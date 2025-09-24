@@ -102,6 +102,9 @@ const formatCardLabel = (card: CardSnapshot): string => {
 const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
   `${formatCardLabel(card)}のカードを引きました！`;
 
+const createScoutCompletionDescription = (card: CardSnapshot): string =>
+  `「${formatCardLabel(card)}のカードを引きました！」`;
+
 const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
   id: card.id,
   rank: card.rank,
@@ -511,7 +514,7 @@ const createScoutCompletionBody = (card: CardSnapshot): HTMLElement => {
 
   const message = document.createElement('p');
   message.className = 'scout-complete__message';
-  message.textContent = createScoutPickSuccessMessage(card);
+  message.textContent = createScoutCompletionDescription(card);
   container.append(message);
 
   const preview = document.createElement('div');
