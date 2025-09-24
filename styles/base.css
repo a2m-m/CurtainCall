@@ -424,6 +424,45 @@ p {
   font-size: 0.95rem;
 }
 
+.scout-recent {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.scout-recent__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scout-recent__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.scout-recent__item {
+  display: flex;
+}
+
+.scout-recent__card {
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.35);
+}
+
+.scout-recent__empty {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
 .home__subtitle {
   margin: 0;
   color: var(--color-muted);
