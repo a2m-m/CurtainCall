@@ -330,6 +330,178 @@ p {
   gap: 0.75rem;
 }
 
+.board-check {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.board-check__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.board-check__tab {
+  flex: 1 1 120px;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.board-check__tab.is-active {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(245, 158, 11, 0.18));
+  border-color: rgba(251, 191, 36, 0.65);
+  color: var(--color-text);
+}
+
+.board-check__tab:focus-visible {
+  outline: 3px solid rgba(251, 191, 36, 0.65);
+  outline-offset: 2px;
+}
+
+.board-check__panels {
+  position: relative;
+}
+
+.board-check__panel {
+  display: block;
+}
+
+.board-check__content {
+  display: grid;
+  gap: 1.5rem;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.board-check__section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.board-check__section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.board-check__definition {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.board-check__definition dt {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.board-check__definition dd {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.board-check__stats {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.board-check__card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.board-check__card-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.board-check__card-details {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.board-check__empty {
+  margin: 0;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.board-check__stage-pair {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.board-check__stage-pair-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.board-check__stage-meta {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.board-check__stage-card {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.board-check__stage-card-label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.board-check__stage-card-content {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.board-check__stage-card-details {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.board-check__score-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.board-check__score-table th,
+.board-check__score-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: right;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.board-check__score-table th:first-child {
+  text-align: left;
+}
+
+.board-check__score-table tbody tr:last-child th,
+.board-check__score-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 @keyframes button-spinner {
   from {
     transform: rotate(0deg);
