@@ -1,6 +1,6 @@
 # task.md — カーテンコール 開発タスクリスト（改訂版 v4：詳細粒度＋通し番号統一）
 
-> **仕様整合元**: rulebook.md / base_spec.md / 各種spec(0.HOME_spec.md, 1.standby_spec.md, 2.scout_spec.md, 3.action_spec.md, 4.spotlight_spec.md, 5.watch_spec.md, 6.intermission_spec.md, 7.curtaincall_spec.md)
+> **仕様整合元**: rulebook.md / base_spec.md / specs配下の各種spec(0.HOME_spec.md, 1.standby_spec.md, 2.scout_spec.md, 3.action_spec.md, 4.spotlight_spec.md, 5.watch_spec.md, 6.intermission_spec.md, 7.curtaincall_spec.md)
 > **原則**: 1タスク=1ブランチ=最小粒度。UI要素・イベント・状態・遷移・ガード・表示文言・AC(受け入れ基準)まで明記。  
 > **進捗報告タスク**も通し番号に統一。章の冒頭に配置し「開始宣言／終了報告／次の予定共有」を行う（コーディング不要）。
 
