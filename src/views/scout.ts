@@ -1,3 +1,4 @@
+import { UIButton } from '../ui/button.js';
 import { CardComponent } from '../ui/card.js';
 import type { CardSuit } from '../ui/card.js';
 
@@ -21,6 +22,10 @@ export interface ScoutViewOptions {
   recentTakenTitle?: string;
   recentTakenEmptyLabel?: string;
   onSelectCard?: (index: number | null) => void;
+  onConfirmSelection?: () => void;
+  onClearSelection?: () => void;
+  confirmLabel?: string;
+  clearLabel?: string;
 }
 
 export interface ScoutViewElement extends HTMLElement {
@@ -97,6 +102,37 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   let currentRecentTaken = options.recentTakenCards
     ? options.recentTakenCards.slice()
     : [];
+
+  const actions = document.createElement('div');
+  actions.className = 'scout-actions';
+
+  const clearButton = new UIButton({
+    label: options.clearLabel ?? '選択をクリア',
+    variant: 'ghost',
+    disabled: currentSelectedIndex === null,
+    preventRapid: false,
+  });
+  clearButton.el.classList.add('scout-actions__button', 'scout-actions__button--secondary');
+  clearButton.onClick(() => {
+    if (options.onClearSelection) {
+      options.onClearSelection();
+    } else {
+      options.onSelectCard?.(null);
+    }
+  });
+
+  const confirmButton = new UIButton({
+    label: options.confirmLabel ?? 'これを引く',
+    variant: 'primary',
+    disabled: currentSelectedIndex === null || currentCards.length === 0,
+  });
+  confirmButton.el.classList.add('scout-actions__button', 'scout-actions__button--primary');
+  confirmButton.onClick(() => {
+    options.onConfirmSelection?.();
+  });
+
+  actions.append(clearButton.el, confirmButton.el);
+  main.append(actions);
 
   const updateCount = (count: number) => {
     handCount.textContent = `${count}枚`;
@@ -193,6 +229,10 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     currentSelectedIndex = selectedIndex ?? null;
     updateCount(currentCards.length);
     renderCards(currentCards, currentSelectedIndex);
+    confirmButton.setDisabled(
+      currentSelectedIndex === null || currentCards.length === 0,
+    );
+    clearButton.setDisabled(currentSelectedIndex === null);
   };
 
   view.updateRecentTaken = (cards) => {
