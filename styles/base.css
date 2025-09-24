@@ -233,6 +233,65 @@ p {
   justify-content: center;
 }
 
+.standby-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2rem, 3vw + 1rem, 3rem) 1.5rem;
+  background: rgba(15, 23, 42, 0.92);
+  z-index: 40;
+}
+
+.standby-overlay.is-active {
+  display: flex;
+}
+
+.standby-overlay__panel {
+  width: min(520px, 100%);
+  display: grid;
+  gap: clamp(1.25rem, 2vw, 1.75rem);
+  padding: clamp(2rem, 2.5vw + 1.25rem, 2.75rem);
+  border-radius: 32px;
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.standby-overlay__title {
+  margin: 0;
+  font-size: clamp(1.75rem, 2.5vw + 1rem, 2.3rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.standby-overlay__message {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+.standby-overlay__message:empty {
+  display: none;
+}
+
+.standby-overlay__actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.standby-overlay__actions .button {
+  min-width: 140px;
+  justify-content: center;
+}
+
+.standby-overlay--in-progress .standby-overlay__actions {
+  display: none;
+}
+
 .home__subtitle {
   margin: 0;
   color: var(--color-muted);
