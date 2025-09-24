@@ -4,6 +4,8 @@ export interface PlaceholderAction {
   label: string;
   variant?: ButtonVariant;
   disabled?: boolean;
+  preventRapid?: boolean;
+  lockDuration?: number;
   onSelect: () => void;
 }
 
@@ -40,6 +42,8 @@ export const createPlaceholderView = (options: PlaceholderOptions): HTMLElement 
         label: action.label,
         variant: action.variant,
         disabled: action.disabled,
+        preventRapid: action.preventRapid,
+        lockDuration: action.lockDuration,
       });
       button.onClick(() => action.onSelect());
       actions.append(button.el);

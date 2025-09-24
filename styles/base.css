@@ -87,6 +87,30 @@ p {
   box-shadow: 0 8px 24px rgba(251, 191, 36, 0.35);
 }
 
+.button.is-busy {
+  cursor: wait;
+  pointer-events: none;
+  opacity: 0.85;
+  transform: none;
+  box-shadow: none;
+}
+
+.button::after {
+  content: '';
+  display: none;
+}
+
+.button.is-busy::after {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  border-radius: 50%;
+  border: 2px solid rgba(15, 23, 42, 0.25);
+  border-top-color: currentColor;
+  animation: button-spinner 600ms linear infinite;
+}
+
 .button--ghost {
   background: transparent;
   color: var(--color-text);
@@ -211,4 +235,13 @@ p {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.75rem;
+}
+
+@keyframes button-spinner {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
