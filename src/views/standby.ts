@@ -15,10 +15,14 @@ export interface StandbyViewOptions {
   players: StandbyPlayerConfig[];
   firstPlayer?: PlayerId | null;
   nextPhaseLabel?: string;
+  seedLockEnabled?: boolean;
+  seedValue?: string | null;
+  seedLockDefaultValue?: string;
   onPlayerNameChange?: (player: PlayerId, name: string) => void;
   onFirstPlayerChange?: (player: PlayerId) => void;
   onStart?: () => void;
   onReturnHome?: () => void;
+  onSeedLockChange?: (locked: boolean) => void;
 }
 
 const STANDBY_PROGRESS_DELAY = 1200;
@@ -123,7 +127,6 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   status.className = 'standby__first-player-status';
   firstPlayerFieldset.append(status);
 
-  const firstPlayerName = `standby-first-player-${uniqueSuffix}`;
   let currentFirstPlayer: PlayerId | null = options.firstPlayer ?? null;
 
   const updateStatus = () => {
@@ -134,53 +137,114 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
     }
   };
 
-  const radioGroup = document.createElement('div');
-  radioGroup.className = 'standby__first-player-options';
+  const firstPlayerOptions = document.createElement('div');
+  firstPlayerOptions.className = 'standby__first-player-options';
 
-  const radioOptions: HTMLLabelElement[] = [];
+  const firstPlayerButtons = new Map<PlayerId, UIButton>();
 
-  const updateRadioSelection = () => {
-    radioOptions.forEach((option) => {
-      const input = option.querySelector<HTMLInputElement>('input[type="radio"]');
-      option.classList.toggle('is-selected', Boolean(input?.checked));
+  const updateFirstPlayerButtons = () => {
+    firstPlayerButtons.forEach((button, id) => {
+      const isSelected = id === currentFirstPlayer;
+      button.setVariant(isSelected ? 'primary' : 'ghost');
+      button.el.classList.toggle('is-selected', isSelected);
     });
   };
 
-  options.players.forEach((player) => {
-    const optionId = `standby-first-player-${player.id}-${uniqueSuffix}`;
-    const label = document.createElement('label');
-    label.className = 'standby-radio';
-
-    const input = document.createElement('input');
-    input.type = 'radio';
-    input.name = firstPlayerName;
-    input.id = optionId;
-    input.value = player.id;
-    input.className = 'standby-radio__input';
-    input.checked = currentFirstPlayer === player.id;
-
-    input.addEventListener('change', () => {
-      if (!input.checked) {
-        return;
-      }
-      currentFirstPlayer = player.id;
+  const selectFirstPlayer = (playerId: PlayerId) => {
+    if (currentFirstPlayer === playerId) {
       updateStatus();
-      updateRadioSelection();
-      updateStartButtonState();
-      options.onFirstPlayerChange?.(player.id);
+      updateFirstPlayerButtons();
+      return;
+    }
+    currentFirstPlayer = playerId;
+    updateStatus();
+    updateFirstPlayerButtons();
+    updateStartButtonState();
+    options.onFirstPlayerChange?.(playerId);
+  };
+
+  const randomButton = new UIButton({ label: 'ランダムで決める', variant: 'ghost' });
+  randomButton.el.classList.add('standby__first-player-button');
+  randomButton.onClick(() => {
+    if (options.players.length === 0) {
+      return;
+    }
+    const index = Math.floor(Math.random() * options.players.length);
+    const selected = options.players[index];
+    selectFirstPlayer(selected.id);
+  });
+  firstPlayerOptions.append(randomButton.el);
+
+  options.players.forEach((player) => {
+    const button = new UIButton({ label: `${player.label}にする`, variant: 'ghost' });
+    button.el.classList.add('standby__first-player-button');
+    button.onClick(() => {
+      selectFirstPlayer(player.id);
     });
-
-    const caption = document.createElement('span');
-    caption.className = 'standby-radio__caption';
-    caption.textContent = `先手：${player.label}`;
-
-    label.append(input, caption);
-    radioGroup.append(label);
-    radioOptions.push(label);
+    firstPlayerButtons.set(player.id, button);
+    firstPlayerOptions.append(button.el);
   });
 
-  firstPlayerFieldset.append(radioGroup);
+  firstPlayerFieldset.append(firstPlayerOptions);
   content.append(firstPlayerFieldset);
+
+  const initializationFieldset = document.createElement('fieldset');
+  initializationFieldset.className = 'standby__fieldset standby__fieldset--initialization';
+
+  const initializationLegend = document.createElement('legend');
+  initializationLegend.className = 'standby__legend';
+  initializationLegend.textContent = '初期化';
+  initializationFieldset.append(initializationLegend);
+
+  const initializationStatus = document.createElement('p');
+  initializationStatus.className = 'standby__initial-status';
+  initializationStatus.textContent = 'セットのシャッフル準備OK';
+  initializationFieldset.append(initializationStatus);
+
+  const seedToggle = document.createElement('label');
+  seedToggle.className = 'standby-seed-toggle';
+
+  const seedCheckbox = document.createElement('input');
+  seedCheckbox.type = 'checkbox';
+  seedCheckbox.className = 'standby-seed-toggle__input';
+  seedCheckbox.checked = Boolean(options.seedLockEnabled);
+
+  const seedLabel = document.createElement('span');
+  seedLabel.className = 'standby-seed-toggle__label';
+  seedLabel.textContent = 'シード固定（開発用）';
+
+  const seedStatus = document.createElement('span');
+  seedStatus.className = 'standby-seed-toggle__status';
+
+  const defaultSeedValue = options.seedLockDefaultValue ?? null;
+  let currentSeedValue: string | null =
+    options.seedValue ?? (seedCheckbox.checked ? defaultSeedValue : null);
+
+  const updateSeedStatus = () => {
+    if (!seedCheckbox.checked) {
+      seedStatus.textContent = '固定OFF';
+      return;
+    }
+    const value = currentSeedValue ?? defaultSeedValue;
+    seedStatus.textContent = value ? `固定ON（${value}）` : '固定ON';
+  };
+
+  seedCheckbox.addEventListener('change', () => {
+    if (seedCheckbox.checked && !currentSeedValue) {
+      currentSeedValue = defaultSeedValue;
+    }
+    if (!seedCheckbox.checked) {
+      currentSeedValue = null;
+    }
+    updateSeedStatus();
+    options.onSeedLockChange?.(seedCheckbox.checked);
+  });
+
+  updateSeedStatus();
+
+  seedToggle.append(seedCheckbox, seedLabel, seedStatus);
+  initializationFieldset.append(seedToggle);
+  content.append(initializationFieldset);
 
   main.append(content);
 
@@ -320,7 +384,7 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   });
 
   updateStatus();
-  updateRadioSelection();
+  updateFirstPlayerButtons();
   updateStartButtonState();
 
   actions.append(homeButton.el, startButton.el);

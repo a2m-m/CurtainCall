@@ -1,5 +1,5 @@
 import { Router, RouteDefinition } from './router.js';
-import { dealInitialSetup } from './cards.js';
+import { createSeededRandom, dealInitialSetup } from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
   deleteResultHistoryEntry,
@@ -65,6 +65,7 @@ const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateD
 
 const STANDBY_DEAL_ERROR_MESSAGE = 'スタンバイの初期化に失敗しました。もう一度お試しください。';
 const STANDBY_FIRST_PLAYER_ERROR_MESSAGE = '先手が未決定です。スタンバイに戻ります。';
+const STANDBY_SEED_LOCK_VALUE = 'dev-fixed-0001';
 
 const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
   id: card.id,
@@ -127,6 +128,7 @@ const createInitialDealState = (
       ...template.meta,
       createdAt: timestamp,
       composition: { ...template.meta.composition },
+      seed: current.meta.seed ?? template.meta.seed,
     },
     resume: {
       at: timestamp,
@@ -160,9 +162,12 @@ const handleStandbyGatePass = (router: Router): void => {
     return;
   }
 
+  const seed = snapshot.meta?.seed;
+  const dealOptions = seed ? { random: createSeededRandom(seed) } : undefined;
+
   let deal: InitialDealResult;
   try {
-    deal = dealInitialSetup();
+    deal = dealInitialSetup(dealOptions);
   } catch (error) {
     console.error('スタンバイの初期化処理でエラーが発生しました。', error);
     showStandbyErrorToast(STANDBY_DEAL_ERROR_MESSAGE);
@@ -478,18 +483,6 @@ const ROUTES: RouteDescriptor[] = [
     phase: 'standby',
   },
   {
-    path: '#/standby/gate',
-    title: 'スタンバイゲート',
-    heading: 'スタンバイ完了',
-    subtitle: '手番移行を安全に行うためのゲート画面です。',
-    phase: 'standby',
-    gate: createHandOffGateConfig({
-      nextPath: '#/phase/scout',
-      message: 'スタンバイが完了しました。端末を相手プレイヤーに渡してから「準備完了」を押してください。',
-      onPass: handleStandbyGatePass,
-    }),
-  },
-  {
     path: '#/phase/scout',
     title: 'スカウト',
     heading: 'スカウトフェーズ',
@@ -699,6 +692,9 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             players,
             firstPlayer: state.firstPlayer,
             nextPhaseLabel: PHASE_LABELS.scout,
+            seedLockEnabled: Boolean(state.meta.seed),
+            seedValue: state.meta.seed ?? null,
+            seedLockDefaultValue: STANDBY_SEED_LOCK_VALUE,
             onPlayerNameChange: (playerId, name) => {
               gameStore.setState((current) => {
                 const target = current.players[playerId];
@@ -735,7 +731,25 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
                 };
               });
             },
-            onStart: () => router.go('#/standby/gate'),
+            onSeedLockChange: (locked) => {
+              gameStore.setState((current) => {
+                const nextSeed = locked ? STANDBY_SEED_LOCK_VALUE : undefined;
+                if (current.meta.seed === nextSeed) {
+                  return current;
+                }
+                const timestamp = Date.now();
+                return {
+                  ...current,
+                  meta: {
+                    ...current.meta,
+                    seed: nextSeed,
+                  },
+                  updatedAt: timestamp,
+                  revision: current.revision + 1,
+                };
+              });
+            },
+            onStart: () => handleStandbyGatePass(router),
             onReturnHome: () => router.go('#/'),
           });
         },
