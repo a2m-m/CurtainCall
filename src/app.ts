@@ -1,4 +1,5 @@
 import { Router, RouteDefinition } from './router.js';
+import { saveLatestGame } from './storage.js';
 import { createInitialState, gameStore, PhaseKey } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
@@ -190,12 +191,24 @@ const initializeApp = (): void => {
     if (current.route === path) {
       return;
     }
+    const phase = inferPhaseFromPath(path);
+    const timestamp = Date.now();
     gameStore.patch({
       route: path,
-      phase: inferPhaseFromPath(path),
+      phase,
       revision: current.revision + 1,
-      updatedAt: Date.now(),
+      updatedAt: timestamp,
+      resume: {
+        at: timestamp,
+        phase,
+        player: current.activePlayer,
+        route: path,
+      },
     });
+  });
+
+  gameStore.subscribe((state) => {
+    saveLatestGame(state);
   });
 
   router.start();
