@@ -173,7 +173,7 @@ export interface GameState extends Record<string, unknown> {
   revision: number;
   updatedAt: number;
   players: Record<PlayerId, PlayerState>;
-  firstPlayer: PlayerId;
+  firstPlayer: PlayerId | null;
   activePlayer: PlayerId;
   turn: TurnState;
   set: SetState;
@@ -237,8 +237,8 @@ export const CARD_COMPOSITION = Object.freeze({
 });
 
 const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
-  lumina: 'ルミナ',
-  nox: 'ノクス',
+  lumina: 'プレイヤーA',
+  nox: 'プレイヤーB',
 };
 
 const createInitialScore = (): PlayerScore => ({
@@ -289,7 +289,7 @@ export const createInitialState = (): GameState => {
       lumina: createPlayerState('lumina'),
       nox: createPlayerState('nox'),
     },
-    firstPlayer: 'lumina',
+    firstPlayer: null,
     activePlayer: 'lumina',
     turn: {
       count: 1,

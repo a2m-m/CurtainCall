@@ -6,12 +6,13 @@ import {
   ResultHistoryEntry,
   saveLatestGame,
 } from './storage.js';
-import { createInitialState, gameStore, PhaseKey, PlayerId } from './state.js';
+import { createInitialState, gameStore, PhaseKey, PlayerId, PLAYER_IDS } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
 import { createGateView } from './views/gate.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
+import { createStandbyView } from './views/standby.js';
 
 interface GateDescriptor {
   message?: string | HTMLElement;
@@ -69,6 +70,11 @@ const HOME_SETTINGS_MESSAGE = '設定メニューは現在準備中です。';
 const PLAYER_LABELS: Record<PlayerId, string> = {
   lumina: 'ルミナ',
   nox: 'ノクス',
+};
+
+const PLAYER_ROLES: Record<PlayerId, string> = {
+  lumina: 'プレイヤーA',
+  nox: 'プレイヤーB',
 };
 
 const PHASE_LABELS: Record<PhaseKey, string> = {
@@ -543,6 +549,70 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             help: {
               onSelect: openRulebookHelp,
             },
+          });
+        },
+      };
+    }
+
+    if (route.path === '#/standby') {
+      return {
+        path: route.path,
+        title: route.title,
+        render: ({ router }) => {
+          const state = gameStore.getState();
+          const players = PLAYER_IDS.map((id) => {
+            const playerState = state.players[id];
+            return {
+              id,
+              label: PLAYER_LABELS[id] ?? id,
+              role: PLAYER_ROLES[id],
+              name: playerState?.name ?? '',
+              placeholder: '名前を入力',
+            };
+          });
+
+          return createStandbyView({
+            title: route.heading,
+            subtitle: route.subtitle,
+            players,
+            firstPlayer: state.firstPlayer,
+            onPlayerNameChange: (playerId, name) => {
+              gameStore.setState((current) => {
+                const target = current.players[playerId];
+                if (!target || target.name === name) {
+                  return current;
+                }
+                const timestamp = Date.now();
+                return {
+                  ...current,
+                  players: {
+                    ...current.players,
+                    [playerId]: {
+                      ...target,
+                      name,
+                    },
+                  },
+                  updatedAt: timestamp,
+                  revision: current.revision + 1,
+                };
+              });
+            },
+            onFirstPlayerChange: (playerId) => {
+              gameStore.setState((current) => {
+                if (current.firstPlayer === playerId && current.activePlayer === playerId) {
+                  return current;
+                }
+                const timestamp = Date.now();
+                return {
+                  ...current,
+                  firstPlayer: playerId,
+                  activePlayer: playerId,
+                  updatedAt: timestamp,
+                  revision: current.revision + 1,
+                };
+              });
+            },
+            onReturnHome: () => router.go('#/'),
           });
         },
       };
