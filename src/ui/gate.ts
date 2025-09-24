@@ -1,0 +1,147 @@
+import { ModalController } from './modal.js';
+
+export interface GateOptions {
+  /**
+   * ゲート内で表示するメインメッセージ。
+   */
+  text: string | HTMLElement;
+  /**
+   * モーダル見出し。省略時はフェーズ名などに依存しない共通タイトルを利用します。
+   */
+  title?: string;
+  /**
+   * 補足説明。箇条書きで表示されます。
+   */
+  notes?: string[];
+  /**
+   * 決定ボタンのラベル。
+   */
+  confirmLabel?: string;
+  /**
+   * ゲート通過時に実行するコールバック。
+   */
+  onOk?: () => void;
+  /**
+   * 連打防止フラグ。既定では true。
+   */
+  preventRapid?: boolean;
+  /**
+   * preventRapid が true の場合のロック時間（ミリ秒）。
+   */
+  lockDuration?: number;
+}
+
+interface ActiveGate {
+  modal: ModalController;
+  handleHashChange: () => void;
+}
+
+const DEFAULT_TITLE = 'ハンドオフゲート';
+const DEFAULT_CONFIRM_LABEL = '準備完了';
+const DEFAULT_LOCK_DURATION = 320;
+
+let activeGate: ActiveGate | null = null;
+
+const ensureModalController = (): ModalController => {
+  if (typeof window === 'undefined') {
+    throw new Error('ゲートモーダルはブラウザ環境でのみ利用できます。');
+  }
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    throw new Error('ゲートモーダルを表示するためのコントローラーが初期化されていません。');
+  }
+  return modal;
+};
+
+const createMessageElement = (text: string | HTMLElement): HTMLElement => {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'gate-modal__message';
+  if (typeof text === 'string') {
+    wrapper.textContent = text;
+  } else {
+    wrapper.append(text);
+  }
+  return wrapper;
+};
+
+const createNotesElement = (notes: string[] | undefined): HTMLElement | null => {
+  if (!notes || notes.length === 0) {
+    return null;
+  }
+  const list = document.createElement('ul');
+  list.className = 'gate-modal__notes';
+  notes.forEach((note) => {
+    const item = document.createElement('li');
+    item.textContent = note;
+    list.append(item);
+  });
+  return list;
+};
+
+const composeGateBody = (options: GateOptions): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'gate-modal';
+  container.append(createMessageElement(options.text));
+  const notes = createNotesElement(options.notes);
+  if (notes) {
+    container.append(notes);
+  }
+  return container;
+};
+
+const cleanupActiveGate = (): void => {
+  if (!activeGate) {
+    return;
+  }
+  window.removeEventListener('hashchange', activeGate.handleHashChange);
+  const { modal } = activeGate;
+  activeGate = null;
+  if (modal.opened) {
+    modal.close();
+  }
+};
+
+export const closeGate = (): void => {
+  cleanupActiveGate();
+};
+
+export const showGate = (options: GateOptions): void => {
+  const modal = ensureModalController();
+  cleanupActiveGate();
+
+  const body = composeGateBody(options);
+
+  const handleSelect = () => {
+    const callback = options.onOk;
+    cleanupActiveGate();
+    callback?.();
+  };
+
+  modal.open({
+    title: options.title ?? DEFAULT_TITLE,
+    body,
+    actions: [
+      {
+        label: options.confirmLabel ?? DEFAULT_CONFIRM_LABEL,
+        preventRapid: options.preventRapid ?? true,
+        lockDuration: options.lockDuration ?? DEFAULT_LOCK_DURATION,
+        dismiss: false,
+        onSelect: handleSelect,
+      },
+    ],
+    dismissible: false,
+  });
+
+  const handleHashChange = () => {
+    cleanupActiveGate();
+  };
+
+  activeGate = {
+    modal,
+    handleHashChange,
+  };
+
+  window.addEventListener('hashchange', handleHashChange);
+};
+
+export default showGate;

@@ -3,7 +3,20 @@ import { saveLatestGame } from './storage.js';
 import { createInitialState, gameStore, PhaseKey } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
+import { createGateView } from './views/gate.js';
 import { createPlaceholderView, PlaceholderAction } from './views/placeholder.js';
+
+interface GateDescriptor {
+  message?: string | HTMLElement;
+  confirmLabel?: string;
+  hints?: string[];
+  modalNotes?: string[];
+  modalTitle?: string;
+  preventRapid?: boolean;
+  lockDuration?: number;
+  nextPath?: string | null;
+  onPass?: (router: Router) => void;
+}
 
 interface RouteDescriptor {
   path: string;
@@ -11,6 +24,7 @@ interface RouteDescriptor {
   heading: string;
   subtitle: string;
   phase: PhaseKey;
+  gate?: GateDescriptor;
 }
 
 declare global {
@@ -22,6 +36,21 @@ declare global {
     };
   }
 }
+
+const HANDOFF_GATE_HINTS = Object.freeze([
+  '端末を次のプレイヤーに渡したら「準備完了」を押してください。',
+  'ゲートを通過した後に秘匿情報が画面へ描画されます。',
+]);
+
+const HANDOFF_GATE_MODAL_NOTES = Object.freeze([
+  'ゲート通過前は秘匿情報を DOM に出力しません。',
+]);
+
+const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateDescriptor => ({
+  hints: [...HANDOFF_GATE_HINTS],
+  modalNotes: [...HANDOFF_GATE_MODAL_NOTES],
+  ...overrides,
+});
 
 const ROUTES: RouteDescriptor[] = [
   {
@@ -37,6 +66,12 @@ const ROUTES: RouteDescriptor[] = [
     heading: '続きから',
     subtitle: 'セーブデータの確認と復元フローは今後実装されます。',
     phase: 'home',
+    gate: {
+      confirmLabel: '準備OK',
+      message: 'セーブデータの復元フローは今後のタスクで実装されます。画面の共有準備のみ行ってください。',
+      modalNotes: ['現在はプレースホルダーのゲート画面です。'],
+      nextPath: null,
+    },
   },
   {
     path: '#/standby',
@@ -51,6 +86,10 @@ const ROUTES: RouteDescriptor[] = [
     heading: 'スタンバイ完了',
     subtitle: '手番移行を安全に行うためのゲート画面です。',
     phase: 'standby',
+    gate: createHandOffGateConfig({
+      nextPath: '#/phase/scout',
+      message: 'スタンバイが完了しました。端末を相手プレイヤーに渡してから「準備完了」を押してください。',
+    }),
   },
   {
     path: '#/phase/scout',
@@ -65,6 +104,9 @@ const ROUTES: RouteDescriptor[] = [
     heading: 'スカウトゲート',
     subtitle: 'ハンドオフを完了するまで秘匿情報は表示されません。',
     phase: 'scout',
+    gate: createHandOffGateConfig({
+      message: 'スカウトフェーズに入ります。端末を次のプレイヤーへ渡し、準備が整ったら進んでください。',
+    }),
   },
   {
     path: '#/phase/action',
@@ -79,6 +121,9 @@ const ROUTES: RouteDescriptor[] = [
     heading: 'アクションゲート',
     subtitle: 'ステージ情報の表示前に通過するゲートです。',
     phase: 'action',
+    gate: createHandOffGateConfig({
+      message: 'アクションフェーズを開始する前に端末の受け渡しを完了してください。',
+    }),
   },
   {
     path: '#/phase/watch',
@@ -93,6 +138,9 @@ const ROUTES: RouteDescriptor[] = [
     heading: 'ウォッチゲート',
     subtitle: 'ウォッチフェーズ開始前のゲート画面です。',
     phase: 'watch',
+    gate: createHandOffGateConfig({
+      message: 'ウォッチフェーズに移行します。端末を相手に渡してから「準備完了」を押してください。',
+    }),
   },
   {
     path: '#/phase/spotlight',
@@ -107,6 +155,9 @@ const ROUTES: RouteDescriptor[] = [
     heading: 'スポットライトゲート',
     subtitle: '公開処理前の確認ゲートです。',
     phase: 'spotlight',
+    gate: createHandOffGateConfig({
+      message: 'スポットライトフェーズの公開処理を行う前に端末の受け渡しを行ってください。',
+    }),
   },
   {
     path: '#/phase/intermission',
@@ -121,6 +172,9 @@ const ROUTES: RouteDescriptor[] = [
     heading: 'インターミッションゲート',
     subtitle: '次のプレイヤーに交代するためのゲートです。',
     phase: 'intermission',
+    gate: createHandOffGateConfig({
+      message: 'インターミッションを開始します。端末を次の担当者に渡してから進んでください。',
+    }),
   },
   {
     path: '#/phase/curtaincall',
@@ -135,6 +189,9 @@ const ROUTES: RouteDescriptor[] = [
     heading: 'カーテンコールゲート',
     subtitle: '結果表示前の確認ゲートです。',
     phase: 'curtaincall',
+    gate: createHandOffGateConfig({
+      message: '結果の確認に入ります。全員の準備が整ったら「準備完了」を押してください。',
+    }),
   },
 ];
 
@@ -144,6 +201,41 @@ const inferPhaseFromPath = (path: string): PhaseKey => phaseMap.get(path) ?? 'ho
 
 const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
   ROUTES.map((route) => {
+    if (route.gate) {
+      return {
+        path: route.path,
+        title: route.title,
+        render: () =>
+          createGateView({
+            title: route.heading,
+            subtitle: route.subtitle,
+            message: route.gate?.message,
+            confirmLabel: route.gate?.confirmLabel,
+            hints: route.gate?.hints,
+            modalNotes: route.gate?.modalNotes,
+            modalTitle: route.gate?.modalTitle ?? route.title,
+            preventRapid: route.gate?.preventRapid,
+            lockDuration: route.gate?.lockDuration,
+            onGatePass: () => {
+              if (route.gate?.onPass) {
+                route.gate.onPass(router);
+                return;
+              }
+              if (route.gate?.nextPath === null) {
+                return;
+              }
+              const derived = route.path.endsWith('/gate')
+                ? route.path.slice(0, -5)
+                : route.path;
+              const target = route.gate?.nextPath ?? derived;
+              if (target && target !== route.path) {
+                router.go(target);
+              }
+            },
+          }),
+      };
+    }
+
     const actions: PlaceholderAction[] | undefined =
       route.path === '#/'
         ? [
@@ -182,6 +274,11 @@ const initializeApp = (): void => {
   }
 
   const router = new Router(root, { fallback: '#/' });
+  const modal = new ModalController(modalRoot);
+  const toast = new ToastManager(toastRoot);
+
+  window.curtainCall = { router, modal, toast };
+
   buildRouteDefinitions(router).forEach((definition) => router.register(definition));
 
   gameStore.setState(createInitialState());
@@ -212,11 +309,6 @@ const initializeApp = (): void => {
   });
 
   router.start();
-
-  const modal = new ModalController(modalRoot);
-  const toast = new ToastManager(toastRoot);
-
-  window.curtainCall = { router, modal, toast };
 };
 
 initializeApp();
