@@ -48,10 +48,18 @@ export class Router {
 
   go(path: string): void {
     const normalized = this.normalize(path);
-    if (normalized === this.currentPath) {
+    const currentHash = window.location.hash || this.fallback;
+
+    if (normalized === this.currentPath && currentHash === normalized) {
       this.renderCurrent();
       return;
     }
+
+    if (currentHash === normalized) {
+      this.renderCurrent();
+      return;
+    }
+
     window.location.hash = normalized;
   }
 
