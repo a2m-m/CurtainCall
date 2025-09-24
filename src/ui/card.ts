@@ -1,6 +1,7 @@
+import type { CardSuit } from '../state.js';
 import { UIComponent } from './component.js';
 
-export type CardSuit = 'hearts' | 'diamonds' | 'clubs' | 'spades' | 'joker';
+export type { CardSuit };
 
 export interface CardOptions {
   rank: string;
