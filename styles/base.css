@@ -461,6 +461,27 @@ p {
 .scout-recent__empty {
   font-size: 0.95rem;
   color: var(--color-muted);
+  letter-spacing: 0.06em;
+}
+
+.scout-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.scout-actions__button {
+  min-width: min(100%, 160px);
+}
+
+.scout-actions__button--secondary {
+  order: 0;
+}
+
+.scout-actions__button--primary {
+  order: 1;
 }
 
 .home__subtitle {

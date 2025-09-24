@@ -73,6 +73,29 @@ const STANDBY_DEAL_ERROR_MESSAGE = 'スタンバイの初期化に失敗しま�
 const STANDBY_FIRST_PLAYER_ERROR_MESSAGE = '先手が未決定です。スタンバイに戻ります。';
 const STANDBY_SEED_LOCK_VALUE = 'dev-fixed-0001';
 
+const CARD_SUIT_LABEL: Record<CardSnapshot['suit'], string> = {
+  spades: 'スペード',
+  hearts: 'ハート',
+  diamonds: 'ダイヤ',
+  clubs: 'クラブ',
+  joker: 'ジョーカー',
+};
+
+const SCOUT_PICK_CONFIRM_TITLE = 'カードを引く';
+const SCOUT_PICK_CONFIRM_MESSAGE = 'このカードを引いて手札に加えます。元に戻せません。';
+const SCOUT_PICK_CONFIRM_OK_LABEL = 'OK';
+const SCOUT_PICK_CONFIRM_CANCEL_LABEL = 'キャンセル';
+
+const formatCardLabel = (card: CardSnapshot): string => {
+  if (card.suit === 'joker') {
+    return CARD_SUIT_LABEL[card.suit];
+  }
+  return `${CARD_SUIT_LABEL[card.suit]}の${card.rank}`;
+};
+
+const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
+  `${formatCardLabel(card)}のカードを引きました！`;
+
 const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
   id: card.id,
   rank: card.rank,
@@ -462,6 +485,135 @@ const openHistoryDialog = (): void => {
 
 const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
 
+const showScoutPickToast = (card: CardSnapshot): void => {
+  const message = createScoutPickSuccessMessage(card);
+  if (typeof window === 'undefined') {
+    console.info(message);
+    return;
+  }
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'info' });
+  } else {
+    console.info(message);
+  }
+};
+
+const completeScoutPick = (): CardSnapshot | null => {
+  let pickedCard: CardSnapshot | null = null;
+  gameStore.setState((current) => {
+    const selectedIndex = current.scout.selectedOpponentCardIndex;
+    if (selectedIndex === null) {
+      return current;
+    }
+
+    const activePlayerId = current.activePlayer;
+    const opponentId = getOpponentId(activePlayerId);
+    const activePlayer = current.players[activePlayerId];
+    const opponent = current.players[opponentId];
+
+    if (!activePlayer || !opponent) {
+      return current;
+    }
+
+    if (selectedIndex < 0 || selectedIndex >= opponent.hand.cards.length) {
+      return current;
+    }
+
+    const sourceCard = opponent.hand.cards[selectedIndex];
+    if (!sourceCard) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const transferredCard = cloneCardSnapshot(sourceCard);
+    const recentCard = cloneCardSnapshot(sourceCard);
+
+    const nextOpponentCards = opponent.hand.cards.filter(
+      (_card, index) => index !== selectedIndex,
+    );
+    const nextPlayerCards = [...activePlayer.hand.cards, transferredCard];
+
+    pickedCard = recentCard;
+
+    return {
+      ...current,
+      players: {
+        ...current.players,
+        [activePlayerId]: {
+          ...activePlayer,
+          hand: {
+            ...activePlayer.hand,
+            cards: nextPlayerCards,
+          },
+        },
+        [opponentId]: {
+          ...opponent,
+          hand: {
+            ...opponent.hand,
+            cards: nextOpponentCards,
+          },
+        },
+      },
+      scout: {
+        ...current.scout,
+        selectedOpponentCardIndex: null,
+      },
+      recentScoutedCard: recentCard,
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  return pickedCard;
+};
+
+const finalizeScoutPick = (): void => {
+  const card = completeScoutPick();
+  if (card) {
+    showScoutPickToast(card);
+  } else {
+    console.warn('カードの取得に失敗しました。選択状態を再確認してください。');
+  }
+};
+
+const openScoutPickConfirmDialog = (): void => {
+  const state = gameStore.getState();
+  if (state.scout.selectedOpponentCardIndex === null) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    finalizeScoutPick();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.warn('カード取得確認モーダルが初期化されていません。');
+    finalizeScoutPick();
+    return;
+  }
+
+  modal.open({
+    title: SCOUT_PICK_CONFIRM_TITLE,
+    body: SCOUT_PICK_CONFIRM_MESSAGE,
+    dismissible: false,
+    actions: [
+      {
+        label: SCOUT_PICK_CONFIRM_CANCEL_LABEL,
+        variant: 'ghost',
+      },
+      {
+        label: SCOUT_PICK_CONFIRM_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        onSelect: () => finalizeScoutPick(),
+      },
+    ],
+  });
+};
+
 const mapOpponentHandCards = (state: GameState): ScoutOpponentHandCardViewModel[] => {
   const opponentId = getOpponentId(state.activePlayer);
   const opponent = state.players[opponentId];
@@ -808,38 +960,42 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
         render: () => {
           const state = gameStore.getState();
 
+          const updateSelectedOpponentCard = (index: number | null): void => {
+            gameStore.setState((current) => {
+              const opponentId = getOpponentId(current.activePlayer);
+              const opponent = current.players[opponentId];
+              const handSize = opponent?.hand.cards.length ?? 0;
+              const normalizedIndex =
+                index === null ||
+                handSize === 0 ||
+                index < 0 ||
+                index >= handSize
+                  ? null
+                  : index;
+              if (current.scout.selectedOpponentCardIndex === normalizedIndex) {
+                return current;
+              }
+              const timestamp = Date.now();
+              return {
+                ...current,
+                scout: {
+                  ...current.scout,
+                  selectedOpponentCardIndex: normalizedIndex,
+                },
+                updatedAt: timestamp,
+                revision: current.revision + 1,
+              };
+            });
+          };
+
           const view = createScoutView({
             title: route.heading,
             cards: mapOpponentHandCards(state),
             selectedIndex: state.scout.selectedOpponentCardIndex,
             recentTakenCards: mapRecentTakenCards(state),
-            onSelectCard: (index) => {
-              gameStore.setState((current) => {
-                const opponentId = getOpponentId(current.activePlayer);
-                const opponent = current.players[opponentId];
-                const handSize = opponent?.hand.cards.length ?? 0;
-                const normalizedIndex =
-                  index === null ||
-                  handSize === 0 ||
-                  index < 0 ||
-                  index >= handSize
-                    ? null
-                    : index;
-                if (current.scout.selectedOpponentCardIndex === normalizedIndex) {
-                  return current;
-                }
-                const timestamp = Date.now();
-                return {
-                  ...current,
-                  scout: {
-                    ...current.scout,
-                    selectedOpponentCardIndex: normalizedIndex,
-                  },
-                  updatedAt: timestamp,
-                  revision: current.revision + 1,
-                };
-              });
-            },
+            onSelectCard: updateSelectedOpponentCard,
+            onClearSelection: () => updateSelectedOpponentCard(null),
+            onConfirmSelection: () => openScoutPickConfirmDialog(),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
