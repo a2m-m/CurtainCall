@@ -12,6 +12,21 @@ const RESUME_GATE_PATH = '#/resume/gate';
 
 const STORAGE_TEST_KEY = '__cc:storage:test__';
 
+const HISTORY_STORAGE_VERSION = 1;
+const HISTORY_MAX_ENTRIES = 50;
+
+export interface ResultHistoryEntry {
+  id: string;
+  summary: string;
+  detail?: string;
+  savedAt: number;
+}
+
+interface ResultHistoryPayloadV1 {
+  version: number;
+  entries: ResultHistoryEntry[];
+}
+
 export interface SaveMetadata {
   savedAt: number;
   phase: PhaseKey;
@@ -84,6 +99,90 @@ const cloneValue = <T>(value: T): T => {
     return structuredClone(value);
   }
   return JSON.parse(JSON.stringify(value)) as T;
+};
+
+const isResultHistoryEntry = (value: unknown): value is ResultHistoryEntry => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const record = value as Partial<ResultHistoryEntry>;
+  if (typeof record.id !== 'string' || record.id.length === 0) {
+    return false;
+  }
+  if (typeof record.summary !== 'string') {
+    return false;
+  }
+  if (record.detail !== undefined && typeof record.detail !== 'string') {
+    return false;
+  }
+  if (typeof record.savedAt !== 'number' || !Number.isFinite(record.savedAt)) {
+    return false;
+  }
+  return true;
+};
+
+const parseResultHistoryEntries = (value: unknown): ResultHistoryEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const entries: ResultHistoryEntry[] = [];
+  value.forEach((entry) => {
+    if (isResultHistoryEntry(entry)) {
+      entries.push({
+        id: entry.id,
+        summary: entry.summary,
+        detail: entry.detail,
+        savedAt: entry.savedAt,
+      });
+    }
+  });
+  return entries;
+};
+
+const readResultHistoryEntries = (storage: Storage): ResultHistoryEntry[] => {
+  const raw = storage.getItem(STORAGE_KEYS.history);
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as ResultHistoryPayloadV1 | ResultHistoryEntry[] | null;
+    if (!parsed) {
+      return [];
+    }
+    if (Array.isArray(parsed)) {
+      return parseResultHistoryEntries(parsed);
+    }
+    if (typeof parsed === 'object' && Array.isArray(parsed.entries)) {
+      return parseResultHistoryEntries(parsed.entries);
+    }
+  } catch (error) {
+    console.warn('結果履歴の解析に失敗しました。', error);
+  }
+  return [];
+};
+
+const writeResultHistoryEntries = (storage: Storage, entries: ResultHistoryEntry[]): void => {
+  const normalized = entries
+    .filter((entry) => isResultHistoryEntry(entry))
+    .slice()
+    .sort((a, b) => b.savedAt - a.savedAt)
+    .slice(0, HISTORY_MAX_ENTRIES)
+    .map((entry) => ({
+      id: entry.id,
+      summary: entry.summary,
+      detail: entry.detail,
+      savedAt: entry.savedAt,
+    }));
+
+  try {
+    const payload: ResultHistoryPayloadV1 = {
+      version: HISTORY_STORAGE_VERSION,
+      entries: normalized,
+    };
+    storage.setItem(STORAGE_KEYS.history, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('結果履歴の保存に失敗しました。', error);
+  }
 };
 
 const createSaveMetadata = (state: GameState): SaveMetadata => ({
@@ -202,6 +301,35 @@ export const getLatestSaveMetadata = (): SaveMetadata | null => {
     return null;
   }
   return { ...payload.meta, turn: { ...payload.meta.turn } };
+};
+
+export const getResultHistory = (): ResultHistoryEntry[] => {
+  const storage = getStorage();
+  if (!storage) {
+    return [];
+  }
+  const entries = readResultHistoryEntries(storage);
+  return entries
+    .slice()
+    .sort((a, b) => b.savedAt - a.savedAt)
+    .map((entry) => cloneValue(entry));
+};
+
+export const deleteResultHistoryEntry = (id: string): boolean => {
+  if (!id) {
+    return false;
+  }
+  const storage = getStorage();
+  if (!storage) {
+    return false;
+  }
+  const entries = readResultHistoryEntries(storage);
+  const nextEntries = entries.filter((entry) => entry.id !== id);
+  if (nextEntries.length === entries.length) {
+    return false;
+  }
+  writeResultHistoryEntries(storage, nextEntries);
+  return true;
 };
 
 export const hasLatestSave = (): boolean => readLatestPayload() !== null;
