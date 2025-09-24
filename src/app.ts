@@ -1,4 +1,6 @@
 import { Router, RouteDefinition } from './router.js';
+import { dealInitialSetup } from './cards.js';
+import type { InitialDealResult } from './cards.js';
 import {
   deleteResultHistoryEntry,
   getLatestSaveMetadata,
@@ -6,7 +8,8 @@ import {
   ResultHistoryEntry,
   saveLatestGame,
 } from './storage.js';
-import { createInitialState, gameStore, PhaseKey, PlayerId, PLAYER_IDS } from './state.js';
+import { createInitialState, gameStore, PLAYER_IDS } from './state.js';
+import type { CardSnapshot, GameState, PhaseKey, PlayerId, PlayerState } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
 import { createGateView } from './views/gate.js';
@@ -59,6 +62,124 @@ const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateD
   modalNotes: [...HANDOFF_GATE_MODAL_NOTES],
   ...overrides,
 });
+
+const STANDBY_DEAL_ERROR_MESSAGE = 'スタンバイの初期化に失敗しました。もう一度お試しください。';
+const STANDBY_FIRST_PLAYER_ERROR_MESSAGE = '先手が未決定です。スタンバイに戻ります。';
+
+const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
+  id: card.id,
+  rank: card.rank,
+  suit: card.suit,
+  value: card.value,
+  face: card.face,
+  annotation: card.annotation,
+});
+
+const createPlayersForInitialDeal = (
+  template: GameState,
+  previous: GameState,
+  deal: InitialDealResult,
+): Record<PlayerId, PlayerState> =>
+  PLAYER_IDS.reduce<Record<PlayerId, PlayerState>>((acc, id) => {
+    const basePlayer = template.players[id];
+    const previousPlayer = previous.players[id];
+    acc[id] = {
+      ...basePlayer,
+      name: previousPlayer?.name ?? basePlayer.name,
+      hand: {
+        ...basePlayer.hand,
+        cards: deal.hands[id].map((card) => cloneCardSnapshot(card)),
+      },
+    };
+    return acc;
+  }, {} as Record<PlayerId, PlayerState>);
+
+const createInitialDealState = (
+  current: GameState,
+  deal: InitialDealResult,
+  timestamp: number,
+): GameState => {
+  const template = createInitialState();
+  const firstPlayer = current.firstPlayer ?? current.activePlayer ?? 'lumina';
+  return {
+    ...template,
+    phase: current.phase,
+    route: current.route,
+    players: createPlayersForInitialDeal(template, current, deal),
+    firstPlayer: current.firstPlayer ?? firstPlayer,
+    activePlayer: firstPlayer,
+    turn: {
+      count: 1,
+      startedAt: timestamp,
+    },
+    set: {
+      cards: deal.set.map((entry) => ({
+        id: entry.id,
+        position: entry.position,
+        card: cloneCardSnapshot(entry.card),
+      })),
+      opened: [],
+    },
+    history: [],
+    updatedAt: timestamp,
+    revision: current.revision + 1,
+    meta: {
+      ...template.meta,
+      createdAt: timestamp,
+      composition: { ...template.meta.composition },
+    },
+    resume: {
+      at: timestamp,
+      phase: current.phase,
+      player: firstPlayer,
+      route: current.route,
+    },
+    recentScoutedCard: null,
+  };
+};
+
+const showStandbyErrorToast = (message: string): void => {
+  if (typeof window === 'undefined') {
+    console.error(message);
+    return;
+  }
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'danger' });
+  } else {
+    console.error(message);
+  }
+};
+
+const handleStandbyGatePass = (router: Router): void => {
+  const snapshot = gameStore.getState();
+  if (!snapshot.firstPlayer) {
+    console.warn('先手が未決定のため、デッキ配布を実行できません。');
+    showStandbyErrorToast(STANDBY_FIRST_PLAYER_ERROR_MESSAGE);
+    router.go('#/standby');
+    return;
+  }
+
+  let deal: InitialDealResult;
+  try {
+    deal = dealInitialSetup();
+  } catch (error) {
+    console.error('スタンバイの初期化処理でエラーが発生しました。', error);
+    showStandbyErrorToast(STANDBY_DEAL_ERROR_MESSAGE);
+    router.go('#/standby');
+    return;
+  }
+
+  gameStore.setState((current) => {
+    if (!current.firstPlayer) {
+      return current;
+    }
+    const timestamp = Date.now();
+    return createInitialDealState(current, deal, timestamp);
+  });
+
+  router.go('#/phase/scout');
+};
 
 const HOME_START_PATH = '#/standby';
 const HOME_RESUME_GATE_PATH = '#/resume/gate';
@@ -365,6 +486,7 @@ const ROUTES: RouteDescriptor[] = [
     gate: createHandOffGateConfig({
       nextPath: '#/phase/scout',
       message: 'スタンバイが完了しました。端末を相手プレイヤーに渡してから「準備完了」を押してください。',
+      onPass: handleStandbyGatePass,
     }),
   },
   {
