@@ -4,7 +4,8 @@ import { createInitialState, gameStore, PhaseKey } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
 import { createGateView } from './views/gate.js';
-import { createPlaceholderView, PlaceholderAction } from './views/placeholder.js';
+import { createHomeView } from './views/home.js';
+import { createPlaceholderView } from './views/placeholder.js';
 
 interface GateDescriptor {
   message?: string | HTMLElement;
@@ -236,21 +237,17 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
       };
     }
 
-    const actions: PlaceholderAction[] | undefined =
-      route.path === '#/'
-        ? [
-            {
-              label: 'スタンバイへ',
-              onSelect: () => router.go('#/standby'),
-            },
-            {
-              label: '続きから',
-              onSelect: () => router.go('#/resume/gate'),
-              variant: 'ghost',
-              disabled: true,
-            },
-          ]
-        : undefined;
+    if (route.path === '#/') {
+      return {
+        path: route.path,
+        title: route.title,
+        render: () =>
+          createHomeView({
+            title: route.heading,
+            subtitle: route.subtitle,
+          }),
+      };
+    }
 
     return {
       path: route.path,
@@ -259,7 +256,6 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
         createPlaceholderView({
           title: route.heading,
           subtitle: route.subtitle,
-          actions,
         }),
     };
   });

@@ -51,6 +51,78 @@ p {
   padding: 1.5rem;
 }
 
+.home-view {
+  min-height: calc(100vh - 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2rem, 3vw + 1rem, 3rem) 1.5rem;
+}
+
+.home {
+  width: min(520px, 100%);
+  display: grid;
+  gap: clamp(1.75rem, 2.5vw, 2.75rem);
+  padding: clamp(2rem, 2.5vw + 1rem, 3rem);
+  border-radius: 32px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.home__title {
+  margin: 0;
+  font-size: clamp(2rem, 3vw + 1rem, 2.75rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.home__subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: clamp(1rem, 1.8vw + 0.5rem, 1.1rem);
+  line-height: 1.7;
+}
+
+.home__actions {
+  display: grid;
+  gap: 1rem;
+}
+
+.home__action {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.home__button {
+  width: 100%;
+  justify-content: center;
+  font-size: 1.05rem;
+  padding-block: 0.85rem;
+}
+
+.home__resume-details {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: 18px;
+  background: rgba(148, 163, 184, 0.12);
+  text-align: left;
+}
+
+.home__resume-summary {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.home__resume-saved {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
 .view__headline {
   font-size: clamp(1.5rem, 2vw + 1rem, 2.5rem);
   letter-spacing: 0.08em;
