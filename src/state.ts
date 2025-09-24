@@ -166,6 +166,10 @@ export interface ResumeSnapshot {
   route: string;
 }
 
+export interface ScoutState {
+  selectedOpponentCardIndex: number | null;
+}
+
 export interface GameState extends Record<string, unknown> {
   matchId: string;
   phase: PhaseKey;
@@ -181,6 +185,7 @@ export interface GameState extends Record<string, unknown> {
   meta: GameMeta;
   resume?: ResumeSnapshot;
   recentScoutedCard: CardSnapshot | null;
+  scout: ScoutState;
 }
 
 export type StateListener<TState> = (state: TState) => void;
@@ -306,6 +311,9 @@ export const createInitialState = (): GameState => {
     },
     resume: undefined,
     recentScoutedCard: null,
+    scout: {
+      selectedOpponentCardIndex: null,
+    },
   };
 };
 
