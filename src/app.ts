@@ -613,6 +613,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
                 };
               });
             },
+            onStart: () => router.go('#/standby/gate'),
             onReturnHome: () => router.go('#/'),
           });
         },
