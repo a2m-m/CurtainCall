@@ -53,6 +53,57 @@ const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateD
   ...overrides,
 });
 
+const HOME_START_PATH = '#/standby';
+const HOME_RESUME_GATE_PATH = '#/resume/gate';
+const RULEBOOK_PATH = './rulebook.md';
+
+const HOME_SETTINGS_TITLE = '設定';
+const HOME_SETTINGS_MESSAGE = '設定メニューは現在準備中です。';
+
+const openSettingsDialog = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.warn('設定ダイアログを表示するモーダルが初期化されていません。');
+    return;
+  }
+
+  modal.open({
+    title: HOME_SETTINGS_TITLE,
+    body: HOME_SETTINGS_MESSAGE,
+    actions: [
+      {
+        label: '閉じる',
+        variant: 'primary',
+        preventRapid: true,
+      },
+    ],
+  });
+};
+
+const openRulebookHelp = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const helpUrl = new URL(RULEBOOK_PATH, window.location.href);
+  const opened = window.open(helpUrl.toString(), '_blank', 'noopener,noreferrer');
+
+  if (!opened) {
+    const toast = window.curtainCall?.toast;
+    if (toast) {
+      toast.show({
+        message: 'ヘルプを開けませんでした。ブラウザのポップアップ設定をご確認ください。',
+        variant: 'warning',
+      });
+    } else {
+      console.warn('ヘルプ画面を開けませんでした。ポップアップブロックを解除してください。');
+    }
+  }
+};
+
 const ROUTES: RouteDescriptor[] = [
   {
     path: '#/',
@@ -245,6 +296,18 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           createHomeView({
             title: route.heading,
             subtitle: route.subtitle,
+            start: {
+              onSelect: () => router.go(HOME_START_PATH),
+            },
+            resume: {
+              onSelect: () => router.go(HOME_RESUME_GATE_PATH),
+            },
+            settings: {
+              onSelect: openSettingsDialog,
+            },
+            help: {
+              onSelect: openRulebookHelp,
+            },
           }),
       };
     }
