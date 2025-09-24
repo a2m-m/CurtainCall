@@ -576,6 +576,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             subtitle: route.subtitle,
             players,
             firstPlayer: state.firstPlayer,
+            nextPhaseLabel: PHASE_LABELS.scout,
             onPlayerNameChange: (playerId, name) => {
               gameStore.setState((current) => {
                 const target = current.players[playerId];
