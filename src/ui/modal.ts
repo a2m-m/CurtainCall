@@ -5,6 +5,9 @@ export interface ModalAction {
   label: string;
   variant?: ButtonVariant;
   dismiss?: boolean;
+  disabled?: boolean;
+  preventRapid?: boolean;
+  lockDuration?: number;
   onSelect?: () => void;
 }
 
@@ -59,6 +62,9 @@ class ModalView extends UIComponent<HTMLDivElement> {
       const button = new UIButton({
         label: action.label,
         variant: action.variant,
+        disabled: action.disabled,
+        preventRapid: action.preventRapid,
+        lockDuration: action.lockDuration,
       });
       button.onClick(() => {
         action.onSelect?.();
