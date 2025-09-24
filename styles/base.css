@@ -123,6 +123,122 @@ p {
   font-size: 0.85rem;
 }
 
+.home-history {
+  display: grid;
+  gap: 1rem;
+  color: var(--color-text);
+}
+
+.home-history__description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.home-history__body {
+  max-height: min(55vh, 420px);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.home-history__empty {
+  margin: 0.5rem 0 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.home-history__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.home-history__item {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.home-history__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.home-history__summary {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.home-history__timestamp {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.home-history__detail {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.home-history__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.home-history__action {
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.home-history__action:hover {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.home-history__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.home-history__action--danger {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+}
+
+.home-history__action--danger:hover {
+  background: rgba(248, 113, 113, 0.2);
+  color: #fee2e2;
+}
+
 .view__headline {
   font-size: clamp(1.5rem, 2vw + 1rem, 2.5rem);
   letter-spacing: 0.08em;

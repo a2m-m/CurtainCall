@@ -24,6 +24,7 @@ export interface HomeViewOptions {
   subtitle?: string;
   start?: HomeButtonOptions;
   resume?: HomeResumeButtonOptions;
+  history?: HomeButtonOptions;
   settings?: HomeButtonOptions;
   help?: HomeButtonOptions;
 }
@@ -141,6 +142,11 @@ export const createHomeView = (options: HomeViewOptions): HTMLElement => {
   const resume = createResumeAction(options.resume);
   if (resume) {
     actions.append(resume.container);
+  }
+
+  const history = createAction(options.history, 'home__action--history', '履歴', 'ghost');
+  if (history) {
+    actions.append(history.container);
   }
 
   const settings = createAction(options.settings, 'home__action--settings', '設定', 'ghost');

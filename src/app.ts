@@ -1,5 +1,11 @@
 import { Router, RouteDefinition } from './router.js';
-import { getLatestSaveMetadata, saveLatestGame } from './storage.js';
+import {
+  deleteResultHistoryEntry,
+  getLatestSaveMetadata,
+  getResultHistory,
+  ResultHistoryEntry,
+  saveLatestGame,
+} from './storage.js';
 import { createInitialState, gameStore, PhaseKey, PlayerId } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
@@ -76,7 +82,16 @@ const PHASE_LABELS: Record<PhaseKey, string> = {
   curtaincall: 'カーテンコール',
 };
 
-const formatResumeTimestamp = (timestamp: number): string | null => {
+const HISTORY_DIALOG_TITLE = 'リザルト履歴';
+const HISTORY_DIALOG_DESCRIPTION =
+  '保存済みのリザルトを確認できます。コピーや削除が可能です（最大50件まで保持されます）。';
+const HISTORY_EMPTY_MESSAGE = '保存されたリザルト履歴はまだありません。';
+const HISTORY_COPY_SUCCESS = '履歴をコピーしました。';
+const HISTORY_COPY_FAILURE = '履歴をコピーできませんでした。';
+const HISTORY_DELETE_SUCCESS = '履歴を削除しました。';
+const HISTORY_DELETE_FAILURE = '履歴の削除に失敗しました。';
+
+const formatTimestamp = (timestamp: number): string | null => {
   if (!Number.isFinite(timestamp)) {
     return null;
   }
@@ -87,6 +102,8 @@ const formatResumeTimestamp = (timestamp: number): string | null => {
   const pad = (value: number): string => value.toString().padStart(2, '0');
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
+
+const formatResumeTimestamp = (timestamp: number): string | null => formatTimestamp(timestamp);
 
 const createResumeSummary = (player: PlayerId, phase: PhaseKey): string => {
   const playerLabel = PLAYER_LABELS[player] ?? player;
@@ -136,6 +153,173 @@ const openRulebookHelp = (): void => {
       console.warn('ヘルプ画面を開けませんでした。ポップアップブロックを解除してください。');
     }
   }
+};
+
+const openHistoryDialog = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.warn('履歴ダイアログを表示するモーダルが初期化されていません。');
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+
+  const container = document.createElement('div');
+  container.className = 'home-history';
+
+  const description = document.createElement('p');
+  description.className = 'home-history__description';
+  description.textContent = HISTORY_DIALOG_DESCRIPTION;
+  container.append(description);
+
+  const body = document.createElement('div');
+  body.className = 'home-history__body';
+  container.append(body);
+
+  let entries = getResultHistory();
+
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (error) {
+        console.warn('クリップボードへの書き込みに失敗しました。', error);
+      }
+    }
+
+    if (typeof document === 'undefined') {
+      return false;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    let success = false;
+    try {
+      success = document.execCommand('copy');
+    } catch (error) {
+      console.warn('クリップボード API が利用できません。', error);
+      success = false;
+    }
+    textarea.remove();
+    return success;
+  };
+
+  const render = () => {
+    body.replaceChildren();
+    if (entries.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'home-history__empty';
+      empty.textContent = HISTORY_EMPTY_MESSAGE;
+      body.append(empty);
+      return;
+    }
+
+    const list = document.createElement('ul');
+    list.className = 'home-history__list';
+
+    const createItem = (entry: ResultHistoryEntry): HTMLLIElement => {
+      const item = document.createElement('li');
+      item.className = 'home-history__item';
+
+      const header = document.createElement('div');
+      header.className = 'home-history__header';
+
+      const summary = document.createElement('p');
+      summary.className = 'home-history__summary';
+      summary.textContent = entry.summary;
+      header.append(summary);
+
+      const timestamp = document.createElement('time');
+      timestamp.className = 'home-history__timestamp';
+      const formatted = formatTimestamp(entry.savedAt);
+      if (formatted) {
+        const date = new Date(entry.savedAt);
+        if (!Number.isNaN(date.getTime())) {
+          timestamp.dateTime = date.toISOString();
+        }
+        timestamp.textContent = formatted;
+      } else {
+        timestamp.textContent = '日時不明';
+      }
+      header.append(timestamp);
+
+      item.append(header);
+
+      if (entry.detail) {
+        const detail = document.createElement('pre');
+        detail.className = 'home-history__detail';
+        detail.textContent = entry.detail;
+        item.append(detail);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'home-history__actions';
+
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'home-history__action';
+      copyButton.textContent = 'コピー';
+      copyButton.addEventListener('click', async () => {
+        const text = [entry.summary, entry.detail].filter(Boolean).join('\n\n');
+        const success = await copyToClipboard(text);
+        if (success) {
+          toast?.show({ message: HISTORY_COPY_SUCCESS, variant: 'success' });
+        } else {
+          toast?.show({ message: HISTORY_COPY_FAILURE, variant: 'warning' });
+        }
+      });
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'home-history__action home-history__action--danger';
+      deleteButton.textContent = '削除';
+      deleteButton.addEventListener('click', () => {
+        const removed = deleteResultHistoryEntry(entry.id);
+        if (!removed) {
+          toast?.show({ message: HISTORY_DELETE_FAILURE, variant: 'warning' });
+          return;
+        }
+        entries = getResultHistory();
+        render();
+        toast?.show({ message: HISTORY_DELETE_SUCCESS, variant: 'info' });
+      });
+
+      actions.append(copyButton, deleteButton);
+      item.append(actions);
+
+      return item;
+    };
+
+    entries.forEach((entry) => {
+      list.append(createItem(entry));
+    });
+
+    body.append(list);
+  };
+
+  render();
+
+  modal.open({
+    title: HISTORY_DIALOG_TITLE,
+    body: container,
+    actions: [
+      {
+        label: '閉じる',
+        variant: 'primary',
+        preventRapid: true,
+      },
+    ],
+  });
 };
 
 const ROUTES: RouteDescriptor[] = [
@@ -348,6 +532,10 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               onSelect: () => router.go(HOME_RESUME_GATE_PATH),
               disabled: !resumeMeta,
               details: resumeDetails,
+            },
+            history: {
+              onSelect: openHistoryDialog,
+              preventRapid: true,
             },
             settings: {
               onSelect: openSettingsDialog,
