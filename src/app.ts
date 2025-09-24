@@ -13,6 +13,7 @@ import { createInitialState, gameStore, PLAYER_IDS } from './state.js';
 import type { CardSnapshot, GameState, PhaseKey, PlayerId, PlayerState } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
+import { CardComponent } from './ui/card.js';
 import { createGateView } from './views/gate.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
@@ -85,6 +86,11 @@ const SCOUT_PICK_CONFIRM_TITLE = 'カードを引く';
 const SCOUT_PICK_CONFIRM_MESSAGE = 'このカードを引いて手札に加えます。元に戻せません。';
 const SCOUT_PICK_CONFIRM_OK_LABEL = 'OK';
 const SCOUT_PICK_CONFIRM_CANCEL_LABEL = 'キャンセル';
+
+const SCOUT_COMPLETE_TITLE = 'スカウト完了';
+const SCOUT_COMPLETE_ACTION_LABEL = 'アクションへ';
+const SCOUT_COMPLETE_CARD_CAPTION = '引いたカード';
+const SCOUT_TO_ACTION_PATH = '#/phase/action';
 
 const formatCardLabel = (card: CardSnapshot): string => {
   if (card.suit === 'joker') {
@@ -499,6 +505,76 @@ const showScoutPickToast = (card: CardSnapshot): void => {
   }
 };
 
+const createScoutCompletionBody = (card: CardSnapshot): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'scout-complete';
+
+  const message = document.createElement('p');
+  message.className = 'scout-complete__message';
+  message.textContent = createScoutPickSuccessMessage(card);
+  container.append(message);
+
+  const preview = document.createElement('div');
+  preview.className = 'scout-complete__preview';
+  container.append(preview);
+
+  const caption = document.createElement('p');
+  caption.className = 'scout-complete__caption';
+  caption.textContent = SCOUT_COMPLETE_CARD_CAPTION;
+  preview.append(caption);
+
+  const cardComponent = new CardComponent({
+    rank: card.rank,
+    suit: card.suit,
+    faceDown: false,
+    annotation: card.annotation,
+  });
+  cardComponent.el.classList.add('scout-complete__card');
+  preview.append(cardComponent.el);
+
+  return container;
+};
+
+const navigateToActionPhase = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(SCOUT_TO_ACTION_PATH);
+  } else {
+    window.location.hash = SCOUT_TO_ACTION_PATH;
+  }
+};
+
+const openScoutCompletionDialog = (card: CardSnapshot): void => {
+  if (typeof window === 'undefined') {
+    navigateToActionPhase();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.warn('スカウト完了ダイアログを表示するモーダルが初期化されていません。');
+    navigateToActionPhase();
+    return;
+  }
+
+  modal.open({
+    title: SCOUT_COMPLETE_TITLE,
+    body: createScoutCompletionBody(card),
+    dismissible: false,
+    actions: [
+      {
+        label: SCOUT_COMPLETE_ACTION_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        onSelect: () => navigateToActionPhase(),
+      },
+    ],
+  });
+};
+
 const completeScoutPick = (): CardSnapshot | null => {
   let pickedCard: CardSnapshot | null = null;
   gameStore.setState((current) => {
@@ -572,6 +648,7 @@ const finalizeScoutPick = (): void => {
   const card = completeScoutPick();
   if (card) {
     showScoutPickToast(card);
+    openScoutCompletionDialog(card);
   } else {
     console.warn('カードの取得に失敗しました。選択状態を再確認してください。');
   }
