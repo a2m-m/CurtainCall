@@ -1,4 +1,5 @@
 import { Router, RouteDefinition } from './router.js';
+import type { RouteContext } from './router.js';
 import { createSeededRandom, dealInitialSetup } from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
@@ -15,6 +16,8 @@ import { ToastManager } from './ui/toast.js';
 import { createGateView } from './views/gate.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
+import { createScoutView } from './views/scout.js';
+import type { ScoutOpponentHandCardViewModel } from './views/scout.js';
 import { createStandbyView } from './views/standby.js';
 
 interface GateDescriptor {
@@ -454,6 +457,36 @@ const openHistoryDialog = (): void => {
   });
 };
 
+const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
+
+const mapOpponentHandCards = (state: GameState): ScoutOpponentHandCardViewModel[] => {
+  const opponentId = getOpponentId(state.activePlayer);
+  const opponent = state.players[opponentId];
+  if (!opponent) {
+    return [];
+  }
+  return opponent.hand.cards.map((card) => ({ id: card.id }));
+};
+
+let activeScoutCleanup: (() => void) | null = null;
+
+const cleanupActiveScoutView = (): void => {
+  if (activeScoutCleanup) {
+    const cleanup = activeScoutCleanup;
+    activeScoutCleanup = null;
+    cleanup();
+  }
+};
+
+const withRouteCleanup = (
+  render: (context: RouteContext) => HTMLElement,
+): ((context: RouteContext) => HTMLElement) => {
+  return (context) => {
+    cleanupActiveScoutView();
+    return render(context);
+  };
+};
+
 const ROUTES: RouteDescriptor[] = [
   {
     path: '#/',
@@ -592,8 +625,10 @@ const inferPhaseFromPath = (path: string): PhaseKey => phaseMap.get(path) ?? 'ho
 
 const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
   ROUTES.map((route) => {
+    let definition: RouteDefinition;
+
     if (route.gate) {
-      return {
+      definition = {
         path: route.path,
         title: route.title,
         render: () =>
@@ -625,10 +660,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             },
           }),
       };
-    }
-
-    if (route.path === '#/') {
-      return {
+    } else if (route.path === '#/') {
+      definition = {
         path: route.path,
         title: route.title,
         render: () => {
@@ -667,13 +700,11 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           });
         },
       };
-    }
-
-    if (route.path === '#/standby') {
-      return {
+    } else if (route.path === '#/standby') {
+      definition = {
         path: route.path,
         title: route.title,
-        render: ({ router }) => {
+        render: ({ router: contextRouter }) => {
           const state = gameStore.getState();
           const players = PLAYER_IDS.map((id) => {
             const playerState = state.players[id];
@@ -749,21 +780,80 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
                 };
               });
             },
-            onStart: () => handleStandbyGatePass(router),
-            onReturnHome: () => router.go('#/'),
+            onStart: () => handleStandbyGatePass(contextRouter),
+            onReturnHome: () => contextRouter.go('#/'),
           });
         },
+      };
+    } else if (route.path === '#/phase/scout') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: () => {
+          const state = gameStore.getState();
+
+          const view = createScoutView({
+            title: route.heading,
+            cards: mapOpponentHandCards(state),
+            selectedIndex: state.scout.selectedOpponentCardIndex,
+            onSelectCard: (index) => {
+              gameStore.setState((current) => {
+                const opponentId = getOpponentId(current.activePlayer);
+                const opponent = current.players[opponentId];
+                const handSize = opponent?.hand.cards.length ?? 0;
+                const normalizedIndex =
+                  index === null ||
+                  handSize === 0 ||
+                  index < 0 ||
+                  index >= handSize
+                    ? null
+                    : index;
+                if (current.scout.selectedOpponentCardIndex === normalizedIndex) {
+                  return current;
+                }
+                const timestamp = Date.now();
+                return {
+                  ...current,
+                  scout: {
+                    ...current.scout,
+                    selectedOpponentCardIndex: normalizedIndex,
+                  },
+                  updatedAt: timestamp,
+                  revision: current.revision + 1,
+                };
+              });
+            },
+          });
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            view.updateOpponentHand(
+              mapOpponentHandCards(nextState),
+              nextState.scout.selectedOpponentCardIndex,
+            );
+          });
+
+          activeScoutCleanup = () => {
+            unsubscribe();
+          };
+
+          return view;
+        },
+      };
+    } else {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: () =>
+          createPlaceholderView({
+            title: route.heading,
+            subtitle: route.subtitle,
+          }),
       };
     }
 
     return {
-      path: route.path,
-      title: route.title,
-      render: () =>
-        createPlaceholderView({
-          title: route.heading,
-          subtitle: route.subtitle,
-        }),
+      ...definition,
+      render: withRouteCleanup(definition.render),
     };
   });
 
