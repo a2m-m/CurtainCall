@@ -5,11 +5,21 @@ export interface ScoutOpponentHandCardViewModel {
   id: string;
 }
 
+export interface ScoutRecentTakenCardViewModel {
+  id: string;
+  rank: string;
+  suit: CardSuit;
+  annotation?: string;
+}
+
 export interface ScoutViewOptions {
   title: string;
   opponentLabel?: string;
   cards: ScoutOpponentHandCardViewModel[];
   selectedIndex?: number | null;
+  recentTakenCards?: ScoutRecentTakenCardViewModel[];
+  recentTakenTitle?: string;
+  recentTakenEmptyLabel?: string;
   onSelectCard?: (index: number | null) => void;
 }
 
@@ -18,6 +28,7 @@ export interface ScoutViewElement extends HTMLElement {
     cards: ScoutOpponentHandCardViewModel[],
     selectedIndex: number | null,
   ) => void;
+  updateRecentTaken: (cards: ScoutRecentTakenCardViewModel[]) => void;
 }
 
 const CARD_PLACEHOLDER_RANK = '?';
@@ -64,8 +75,28 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
 
   main.append(handSection);
 
+  const recentSection = document.createElement('section');
+  recentSection.className = 'scout-recent';
+
+  const recentTitleText =
+    options.recentTakenTitle ?? '最近あなたから取られたカード';
+  const recentTitle = document.createElement('h2');
+  recentTitle.className = 'scout-recent__title';
+  recentTitle.textContent = recentTitleText;
+  recentSection.append(recentTitle);
+
+  const recentList = document.createElement('ul');
+  recentList.className = 'scout-recent__list';
+  recentList.setAttribute('aria-label', recentTitleText);
+  recentSection.append(recentList);
+
+  main.append(recentSection);
+
   let currentCards = options.cards.slice();
   let currentSelectedIndex = options.selectedIndex ?? null;
+  let currentRecentTaken = options.recentTakenCards
+    ? options.recentTakenCards.slice()
+    : [];
 
   const updateCount = (count: number) => {
     handCount.textContent = `${count}枚`;
@@ -125,6 +156,36 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     });
   };
 
+  const renderRecentTaken = (
+    cards: ScoutRecentTakenCardViewModel[],
+  ): void => {
+    recentList.replaceChildren();
+
+    if (cards.length === 0) {
+      const emptyItem = document.createElement('li');
+      emptyItem.className = 'scout-recent__empty';
+      emptyItem.textContent = options.recentTakenEmptyLabel ?? 'なし';
+      recentList.append(emptyItem);
+      return;
+    }
+
+    cards.forEach((card) => {
+      const item = document.createElement('li');
+      item.className = 'scout-recent__item';
+
+      const cardComponent = new CardComponent({
+        rank: card.rank,
+        suit: card.suit,
+        faceDown: false,
+        annotation: card.annotation,
+      });
+      cardComponent.el.classList.add('scout-recent__card');
+
+      item.append(cardComponent.el);
+      recentList.append(item);
+    });
+  };
+
   const view = section as ScoutViewElement;
 
   view.updateOpponentHand = (cards, selectedIndex) => {
@@ -134,7 +195,13 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     renderCards(currentCards, currentSelectedIndex);
   };
 
+  view.updateRecentTaken = (cards) => {
+    currentRecentTaken = cards.slice();
+    renderRecentTaken(currentRecentTaken);
+  };
+
   view.updateOpponentHand(currentCards, currentSelectedIndex);
+  view.updateRecentTaken(currentRecentTaken);
 
   return view;
 };

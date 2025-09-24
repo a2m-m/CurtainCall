@@ -17,7 +17,10 @@ import { createGateView } from './views/gate.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
 import { createScoutView } from './views/scout.js';
-import type { ScoutOpponentHandCardViewModel } from './views/scout.js';
+import type {
+  ScoutOpponentHandCardViewModel,
+  ScoutRecentTakenCardViewModel,
+} from './views/scout.js';
 import { createStandbyView } from './views/standby.js';
 
 interface GateDescriptor {
@@ -468,6 +471,19 @@ const mapOpponentHandCards = (state: GameState): ScoutOpponentHandCardViewModel[
   return opponent.hand.cards.map((card) => ({ id: card.id }));
 };
 
+const mapRecentTakenCards = (state: GameState): ScoutRecentTakenCardViewModel[] => {
+  const player = state.players[state.activePlayer];
+  if (!player) {
+    return [];
+  }
+  return player.takenByOpponent.map((card) => ({
+    id: card.id,
+    rank: card.rank,
+    suit: card.suit,
+    annotation: card.annotation,
+  }));
+};
+
 let activeScoutCleanup: (() => void) | null = null;
 
 const cleanupActiveScoutView = (): void => {
@@ -796,6 +812,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             title: route.heading,
             cards: mapOpponentHandCards(state),
             selectedIndex: state.scout.selectedOpponentCardIndex,
+            recentTakenCards: mapRecentTakenCards(state),
             onSelectCard: (index) => {
               gameStore.setState((current) => {
                 const opponentId = getOpponentId(current.activePlayer);
@@ -830,6 +847,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               mapOpponentHandCards(nextState),
               nextState.scout.selectedOpponentCardIndex,
             );
+            view.updateRecentTaken(mapRecentTakenCards(nextState));
           });
 
           activeScoutCleanup = () => {
