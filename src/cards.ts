@@ -9,6 +9,7 @@ import {
   StandardCardRank,
   StandardCardSuit,
 } from './state.js';
+import { rankValue } from './rank.js';
 
 const STANDARD_RANKS: readonly StandardCardRank[] = [
   'A',
@@ -36,36 +37,13 @@ const SUIT_ID: Record<CardSuit, string> = {
   joker: 'J',
 };
 
-const computeCardValue = (rank: CardRank): number => {
-  if (rank === 'JOKER') {
-    return 0;
-  }
-  if (rank === 'A') {
-    return 1;
-  }
-  const parsed = Number.parseInt(rank, 10);
-  if (Number.isNaN(parsed)) {
-    switch (rank) {
-      case 'J':
-        return 11;
-      case 'Q':
-        return 12;
-      case 'K':
-        return 13;
-      default:
-        throw new Error(`不明なランク値です: ${rank}`);
-    }
-  }
-  return parsed;
-};
-
 const createCardId = (suit: CardSuit, rank: CardRank): string => `${SUIT_ID[suit]}-${rank}`;
 
 const createCardSnapshot = (suit: CardSuit, rank: CardRank): CardSnapshot => ({
   id: createCardId(suit, rank),
   suit,
   rank,
-  value: computeCardValue(rank),
+  value: rankValue(rank),
   face: 'down',
 });
 
