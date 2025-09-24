@@ -51,6 +51,11 @@
 | 22 | feat/scout-recent-taken | 最近取られたUI  | 直近カードを表示。「なし」fallback。        | scout\_spec |
 | 23 | feat/scout-pick-confirm | ピック確定     | 確認dialog→OKで手札移動+通知。キャンセル無変更。 | scout\_spec |
 | 24 | feat/scout-next         | 遷移        | 確定後にactionへ。保存必須。             | scout\_spec |
+| 25 | fix/scout-single-draw    | 多重ドロー防止       | 確認［OK］後は取得処理を1度だけ実行し、手札・山札更新→保存→`/phase/action`へ確実に遷移。戻る時は秘匿情報をクリア。 | scout\_spec |
+| 26 | feat/scout-draw-popup    | 取得結果ポップ       | 引いたカード名とサムネを表示する遷移ポップを実装し、［アクションへ］確定まで背景操作をロック。 | scout\_spec |
+| 27 | feat/scout-header-actions | スカウト補助UI | ヘッダーにボードチェック／自分の手札／ヘルプを設置し、各モーダル起動と秘匿扱いを整備。 | scout\_spec |
+| 28 | fix/scout-recent-tracking | 最近取られた履歴 | スカウトで奪われた側の`takenByOpponent`を更新し、直近カード一覧に反映。履歴上限・古い順管理も定義。 | scout\_spec |
+| 29 | fix/home-resume-visibility | 「つづきから」表示条件 | セーブなし時はボタン非表示。保存有無で詳細文言とアクセシビリティを調整。 | 0.HOME\_spec.md |
 
 ---
 
@@ -58,13 +63,13 @@
 
 | No | branchName                | 概要         | 詳細                           | 参照           |
 | -: | ------------------------- | ---------- | ---------------------------- | ------------ |
-| 25 | chore/report-action       | アクション章レポート | 着手「26–31」／終了時「#5ウォッチへ」。      | -            |
-| 26 | feat/action-footer        | 手札UI       | 下固定。カード選択強調。                 | action\_spec |
-| 27 | feat/action-select-actor  | 役者選択       | actor=tempに格納。解除可。同一カード黒子禁止。 | action\_spec |
-| 28 | feat/action-select-kuroko | 黒子選択       | kuroko=tempに格納。役者と別必須。       | action\_spec |
-| 29 | feat/action-confirm       | 確定         | OKでステージ配置。確定前は未反映。           | action\_spec |
-| 30 | feat/action-guard         | ガード        | 手札不足/未選択時はボタン非活性+警告。         | action\_spec |
-| 31 | feat/action-to-watch      | 遷移         | watch/gateへ。保存必須。            | action\_spec |
+| 30 | chore/report-action       | アクション章レポート | 着手「31–36」／終了時「#5ウォッチへ」。      | -            |
+| 31 | feat/action-footer        | 手札UI       | 下固定。カード選択強調。                 | action\_spec |
+| 32 | feat/action-select-actor  | 役者選択       | actor=tempに格納。解除可。同一カード黒子禁止。 | action\_spec |
+| 33 | feat/action-select-kuroko | 黒子選択       | kuroko=tempに格納。役者と別必須。       | action\_spec |
+| 34 | feat/action-confirm       | 確定         | OKでステージ配置。確定前は未反映。           | action\_spec |
+| 35 | feat/action-guard         | ガード        | 手札不足/未選択時はボタン非活性+警告。         | action\_spec |
+| 36 | feat/action-to-watch      | 遷移         | watch/gateへ。保存必須。            | action\_spec |
 
 ---
 
@@ -72,13 +77,13 @@
 
 | No | branchName                    | 概要        | 詳細                                            | 参照          |
 | -: | ----------------------------- | --------- | --------------------------------------------- | ----------- |
-| 32 | chore/report-watch            | ウォッチ章レポート | 着手「33–38」／終了時「#6スポットライトへ」。                    | -           |
-| 33 | feat/watch-present            | 提示UI      | 相手役者(表)/黒子(裏)を表示。                             | watch\_spec |
-| 34 | feat/watch-boo-mandatory      | ブー必須      | needed>=rでクラップ無効+バッジ。                         | watch\_spec |
-| 35 | feat/watch-declare-flow       | 宣言処理      | クラップ/ブー確定→state更新。                            | watch\_spec |
-| 36 | feat/watch-declare-transition | 遷移        | clap→intermission/gate、boo→spotlight/gate。保存。 | watch\_spec |
-| 37 | feat/watch-myhand             | 自手札モーダル   | モーダルで表示。直近取られたも含む。                            | watch\_spec |
-| 38 | feat/watch-guards             | 戻る時など     | 秘匿ガード、無効時警告。                                  | watch\_spec |
+| 37 | chore/report-watch            | ウォッチ章レポート | 着手「38–43」／終了時「#6スポットライトへ」。                    | -           |
+| 38 | feat/watch-present            | 提示UI      | 相手役者(表)/黒子(裏)を表示。                             | watch\_spec |
+| 39 | feat/watch-boo-mandatory      | ブー必須      | needed>=rでクラップ無効+バッジ。                         | watch\_spec |
+| 40 | feat/watch-declare-flow       | 宣言処理      | クラップ/ブー確定→state更新。                            | watch\_spec |
+| 41 | feat/watch-declare-transition | 遷移        | clap→intermission/gate、boo→spotlight/gate。保存。 | watch\_spec |
+| 42 | feat/watch-myhand             | 自手札モーダル   | モーダルで表示。直近取られたも含む。                            | watch\_spec |
+| 43 | feat/watch-guards             | 戻る時など     | 秘匿ガード、無効時警告。                                  | watch\_spec |
 
 ---
 
@@ -86,14 +91,14 @@
 
 | No | branchName                 | 概要           | 詳細                                    | 参照              |
 | -: | -------------------------- | ------------ | ------------------------------------- | --------------- |
-| 39 | chore/report-spotlight     | スポットライト章レポート | 着手「40–46」／終了時「#7インターミッションへ」。          | -               |
-| 40 | feat/spotlight-reveal      | 黒子公開         | 裏→表。1度限り。rank一致判定。                    | spotlight\_spec |
-| 41 | feat/spotlight-ownership   | 帰属           | 一致→提示者残留。不一致→ブー側へ。                    | spotlight\_spec |
-| 42 | feat/spotlight-open-set    | セット公開        | 行動権者のみ1枚公開。通知表示。                      | spotlight\_spec |
-| 43 | feat/spotlight-bonus-joker | JOKER処理      | 追加1枚表裏配置。即curtaincallへ。               | spotlight\_spec |
-| 44 | feat/spotlight-secret-pair | 秘密ペア         | gate後に同ランク手札を配置。スキップ可。                | spotlight\_spec |
-| 45 | feat/spotlight-exit        | 遷移           | set残=1→curtaincall。他→intermission。保存。 | spotlight\_spec |
-| 46 | feat/spotlight-guards      | ガード          | 公開取り消し不可/多重禁止。                        | spotlight\_spec |
+| 44 | chore/report-spotlight     | スポットライト章レポート | 着手「45–51」／終了時「#7インターミッションへ」。          | -            |
+| 45 | feat/spotlight-reveal      | 黒子公開         | 裏→表。1度限り。rank一致判定。                    | spotlight\_spec |
+| 46 | feat/spotlight-ownership   | 帰属           | 一致→提示者残留。不一致→ブー側へ。                    | spotlight\_spec |
+| 47 | feat/spotlight-open-set    | セット公開        | 行動権者のみ1枚公開。通知表示。                      | spotlight\_spec |
+| 48 | feat/spotlight-bonus-joker | JOKER処理      | 追加1枚表裏配置。即curtaincallへ。               | spotlight\_spec |
+| 49 | feat/spotlight-secret-pair | 秘密ペア         | gate後に同ランク手札を配置。スキップ可。                | spotlight\_spec |
+| 50 | feat/spotlight-exit        | 遷移           | set残=1→curtaincall。他→intermission。保存。 | spotlight\_spec |
+| 51 | feat/spotlight-guards      | ガード          | 公開取り消し不可/多重禁止。                        | spotlight\_spec |
 
 ---
 
@@ -101,9 +106,9 @@
 
 | No | branchName                | 概要             | 詳細                         | 参照                 |
 | -: | ------------------------- | -------------- | -------------------------- | ------------------ |
-| 47 | chore/report-intermission | インターミッション章レポート | 着手「48–49」／終了時「#8カーテンコールへ」。 | -                  |
-| 48 | feat/intermission-gate    | ハンドオフゲート       | 「スタンバイ中→完了→OKで開始」。         | intermission\_spec |
-| 49 | feat/intermission-switch  | 手番切替           | activePlayerを相手へ。          | intermission\_spec |
+| 52 | chore/report-intermission | インターミッション章レポート | 着手「53–54」／終了時「#8カーテンコールへ」。 | -     |
+| 53 | feat/intermission-gate    | ハンドオフゲート       | 「スタンバイ中→完了→OKで開始」。         | intermission\_spec |
+| 54 | feat/intermission-switch  | 手番切替           | activePlayerを相手へ。          | intermission\_spec |
 
 ---
 
@@ -111,12 +116,12 @@
 
 | No | branchName               | 概要           | 詳細                      | 参照                |
 | -: | ------------------------ | ------------ | ----------------------- | ----------------- |
-| 50 | chore/report-curtaincall | カーテンコール章レポート | 着手「51–55」／終了時「#9横断へ」。   | -                 |
-| 51 | feat/cc-gate             | 開始ポップ        | 「カーテンコール開始」通知→OK。       | curtaincall\_spec |
-| 52 | feat/cc-calc             | 集計           | Kami合計-手札合計-ペナルティ。終局判定。 | curtaincall\_spec |
-| 53 | feat/cc-view             | 結果UI         | 勝敗/詳細/ボタン群。             | curtaincall\_spec |
-| 54 | feat/cc-save             | 保存           | 要約形式でlocalStorage保存。    | curtaincall\_spec |
-| 55 | feat/cc-guards           | ガード          | 二重保存禁止等。                | curtaincall\_spec |
+| 55 | chore/report-curtaincall | カーテンコール章レポート | 着手「56–60」／終了時「#9横断へ」。   | -                 |
+| 56 | feat/cc-gate             | 開始ポップ        | 「カーテンコール開始」通知→OK。       | curtaincall\_spec |
+| 57 | feat/cc-calc             | 集計           | Kami合計-手札合計-ペナルティ。終局判定。 | curtaincall\_spec |
+| 58 | feat/cc-view             | 結果UI         | 勝敗/詳細/ボタン群。             | curtaincall\_spec |
+| 59 | feat/cc-save             | 保存           | 要約形式でlocalStorage保存。    | curtaincall\_spec |
+| 60 | feat/cc-guards           | ガード          | 二重保存禁止等。                | curtaincall\_spec |
 
 ---
 
@@ -124,13 +129,13 @@
 
 | No | branchName               | 概要        | 詳細                             | 参照              |
 | -: | ------------------------ | --------- | ------------------------------ | --------------- |
-| 56 | chore/report-shared      | 横断章レポート   | 着手「57–62」／終了時「#10テストへ」。        | -               |
-| 57 | feat/boardcheck-tabs     | ボードチェックUI | bc=1/ボタン起動。非公開は隠す。             | 共通              |
-| 58 | feat/secret-redraw-guard | 秘匿ガード     | gate通過前は描画しない。戻るでクリア。          | spotlight\_spec |
-| 59 | feat/popup-copy          | 文言集約      | messages.tsに集約。                | 各spec           |
-| 60 | chore/storage-abstract   | 保存抽象化     | saveGame/loadGame/saveResult層。 | base\_spec.md   |
-| 61 | chore/animation-core     | 演出共通      | フェード/スライド適用。無効化可。              | base\_spec.md   |
-| 62 | chore/a11y-pass          | A11y対応    | キーボード操作/aria属性。                | 共通              |
+| 61 | chore/report-shared      | 横断章レポート   | 着手「62–67」／終了時「#10テストへ」。        | -               |
+| 62 | feat/boardcheck-tabs     | ボードチェックUI | bc=1/ボタン起動。非公開は隠す。             | 共通              |
+| 63 | feat/secret-redraw-guard | 秘匿ガード     | gate通過前は描画しない。戻るでクリア。          | spotlight\_spec |
+| 64 | feat/popup-copy          | 文言集約      | messages.tsに集約。                | 各spec           |
+| 65 | chore/storage-abstract   | 保存抽象化     | saveGame/loadGame/saveResult層。 | base\_spec.md   |
+| 66 | chore/animation-core     | 演出共通      | フェード/スライド適用。無効化可。              | base\_spec.md   |
+| 67 | chore/a11y-pass          | A11y対応    | キーボード操作/aria属性。                | 共通              |
 
 ---
 
@@ -138,14 +143,14 @@
 
 | No | branchName        | 概要         | 詳細                     | 参照                |
 | -: | ----------------- | ---------- | ---------------------- | ----------------- |
-| 63 | chore/report-test | テスト章レポート   | 着手「64–70」／終了時「#11整合へ」。 | -                 |
-| 64 | test/scaffold     | 基盤テスト      | store/ルータ/ランク関数境界値。    | base\_spec.md     |
-| 65 | test/scout        | スカウトテスト    | ピック→確定。最近取られたUI。       | scout\_spec       |
-| 66 | test/action       | アクションテスト   | 役者/黒子選択とガード。確定反映。      | action\_spec      |
-| 67 | test/watch        | ウォッチテスト    | ブー必須境界。遷移分岐。           | watch\_spec       |
-| 68 | test/spotlight    | スポットライトテスト | 黒子公開/JOKER/秘密ペア。       | spotlight\_spec   |
-| 69 | test/curtaincall  | カーテンコールテスト | 通常/SET1/JOEKR終局。保存整合。  | curtaincall\_spec |
-| 70 | test/guard-shared | 共有ガードテスト   | 秘匿再描画/連打ロック。           | 共通                |
+| 68 | chore/report-test | テスト章レポート   | 着手「69–75」／終了時「#11整合へ」。 | -                 |
+| 69 | test/scaffold     | 基盤テスト      | store/ルータ/ランク関数境界値。    | base\_spec.md     |
+| 70 | test/scout        | スカウトテスト    | ピック→確定。最近取られたUI。       | scout\_spec       |
+| 71 | test/action       | アクションテスト   | 役者/黒子選択とガード。確定反映。      | action\_spec      |
+| 72 | test/watch        | ウォッチテスト    | ブー必須境界。遷移分岐。           | watch\_spec       |
+| 73 | test/spotlight    | スポットライトテスト | 黒子公開/JOKER/秘密ペア。       | spotlight\_spec   |
+| 74 | test/curtaincall  | カーテンコールテスト | 通常/SET1/JOEKR終局。保存整合。  | curtaincall\_spec |
+| 75 | test/guard-shared | 共有ガードテスト   | 秘匿再描画/連打ロック。           | 共通                |
 
 ---
 
@@ -153,6 +158,6 @@
 
 | No | branchName          | 概要      | 詳細                                  | 参照          |
 | -: | ------------------- | ------- | ----------------------------------- | ----------- |
-| 71 | chore/report-sync   | 整合章レポート | 着手「72–73」／終了で全完了宣言。                 | -           |
-| 72 | chore/rulebook-sync | rule整合  | 用語/フロー/終了条件/集計式/ランク値を確認。差分は修正タスク追加。 | rulebook.md |
-| 73 | chore/spec-lint     | specリンタ | 各specの整合・リンタリング。誤記修正。               | 各spec       |
+| 76 | chore/report-sync   | 整合章レポート | 着手「77–78」／終了で全完了宣言。                 | -           |
+| 77 | chore/rulebook-sync | rule整合  | 用語/フロー/終了条件/集計式/ランク値を確認。差分は修正タスク追加。 | rulebook.md |
+| 78 | chore/spec-lint     | specリンタ | 各specの整合・リンタリング。誤記修正。               | 各spec       |
