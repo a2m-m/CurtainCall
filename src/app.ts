@@ -536,6 +536,8 @@ const createScoutCompletionBody = (card: CardSnapshot): HTMLElement => {
 };
 
 const navigateToActionPhase = (): void => {
+  clearScoutSecretState();
+
   if (typeof window === 'undefined') {
     return;
   }
@@ -560,19 +562,24 @@ const openScoutCompletionDialog = (card: CardSnapshot): void => {
     return;
   }
 
-  modal.open({
-    title: SCOUT_COMPLETE_TITLE,
-    body: createScoutCompletionBody(card),
-    dismissible: false,
-    actions: [
-      {
-        label: SCOUT_COMPLETE_ACTION_LABEL,
-        variant: 'primary',
-        preventRapid: true,
-        onSelect: () => navigateToActionPhase(),
-      },
-    ],
-  });
+  try {
+    modal.open({
+      title: SCOUT_COMPLETE_TITLE,
+      body: createScoutCompletionBody(card),
+      dismissible: false,
+      actions: [
+        {
+          label: SCOUT_COMPLETE_ACTION_LABEL,
+          variant: 'primary',
+          preventRapid: true,
+          onSelect: () => navigateToActionPhase(),
+        },
+      ],
+    });
+  } catch (error) {
+    console.warn('スカウト完了ダイアログの表示に失敗しました。代わりに次フェーズへ遷移します。', error);
+    navigateToActionPhase();
+  }
 };
 
 const completeScoutPick = (): CardSnapshot | null => {
@@ -645,11 +652,19 @@ const completeScoutPick = (): CardSnapshot | null => {
 };
 
 const finalizeScoutPick = (): void => {
+  if (isScoutPickInProgress) {
+    console.warn('カードの取得処理を重複して実行しようとしました。');
+    return;
+  }
+
+  isScoutPickInProgress = true;
+
   const card = completeScoutPick();
   if (card) {
     showScoutPickToast(card);
     openScoutCompletionDialog(card);
   } else {
+    isScoutPickInProgress = false;
     console.warn('カードの取得に失敗しました。選択状態を再確認してください。');
   }
 };
@@ -657,6 +672,11 @@ const finalizeScoutPick = (): void => {
 const openScoutPickConfirmDialog = (): void => {
   const state = gameStore.getState();
   if (state.scout.selectedOpponentCardIndex === null) {
+    return;
+  }
+
+  if (isScoutPickInProgress) {
+    console.warn('カードの取得処理が進行中です。');
     return;
   }
 
@@ -713,6 +733,34 @@ const mapRecentTakenCards = (state: GameState): ScoutRecentTakenCardViewModel[] 
   }));
 };
 
+let isScoutPickInProgress = false;
+
+const clearScoutSecretState = (): void => {
+  gameStore.setState((current) => {
+    const hasSelection = current.scout.selectedOpponentCardIndex !== null;
+    const hasRecent = current.recentScoutedCard !== null;
+
+    if (!hasSelection && !hasRecent) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+
+    return {
+      ...current,
+      scout: {
+        ...current.scout,
+        selectedOpponentCardIndex: null,
+      },
+      recentScoutedCard: null,
+      updatedAt: timestamp,
+      revision: current.revision + 1,
+    };
+  });
+
+  isScoutPickInProgress = false;
+};
+
 let activeScoutCleanup: (() => void) | null = null;
 
 const cleanupActiveScoutView = (): void => {
@@ -721,6 +769,7 @@ const cleanupActiveScoutView = (): void => {
     activeScoutCleanup = null;
     cleanup();
   }
+  isScoutPickInProgress = false;
 };
 
 const withRouteCleanup = (
@@ -1085,6 +1134,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
 
           activeScoutCleanup = () => {
             unsubscribe();
+            clearScoutSecretState();
           };
 
           return view;
