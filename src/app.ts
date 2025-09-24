@@ -1,6 +1,6 @@
 import { Router, RouteDefinition } from './router.js';
-import { saveLatestGame } from './storage.js';
-import { createInitialState, gameStore, PhaseKey } from './state.js';
+import { getLatestSaveMetadata, saveLatestGame } from './storage.js';
+import { createInitialState, gameStore, PhaseKey, PlayerId } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
 import { createGateView } from './views/gate.js';
@@ -59,6 +59,40 @@ const RULEBOOK_PATH = './rulebook.md';
 
 const HOME_SETTINGS_TITLE = '設定';
 const HOME_SETTINGS_MESSAGE = '設定メニューは現在準備中です。';
+
+const PLAYER_LABELS: Record<PlayerId, string> = {
+  lumina: 'ルミナ',
+  nox: 'ノクス',
+};
+
+const PHASE_LABELS: Record<PhaseKey, string> = {
+  home: 'HOME',
+  standby: 'スタンバイ',
+  scout: 'スカウト',
+  action: 'アクション',
+  watch: 'ウォッチ',
+  spotlight: 'スポットライト',
+  intermission: 'インターミッション',
+  curtaincall: 'カーテンコール',
+};
+
+const formatResumeTimestamp = (timestamp: number): string | null => {
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const pad = (value: number): string => value.toString().padStart(2, '0');
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const createResumeSummary = (player: PlayerId, phase: PhaseKey): string => {
+  const playerLabel = PLAYER_LABELS[player] ?? player;
+  const phaseLabel = PHASE_LABELS[phase] ?? phase;
+  return `手番：${playerLabel}\u3000\uFF5C\u3000フェーズ：${phaseLabel}`;
+};
 
 const openSettingsDialog = (): void => {
   if (typeof window === 'undefined') {
@@ -292,8 +326,19 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
       return {
         path: route.path,
         title: route.title,
-        render: () =>
-          createHomeView({
+        render: () => {
+          const resumeMeta = getLatestSaveMetadata();
+          const resumeDetails = resumeMeta
+            ? {
+                summary: createResumeSummary(resumeMeta.activePlayer, resumeMeta.phase),
+                savedAt: (() => {
+                  const formatted = formatResumeTimestamp(resumeMeta.savedAt);
+                  return formatted ? `前回保存：${formatted}` : undefined;
+                })(),
+              }
+            : undefined;
+
+          return createHomeView({
             title: route.heading,
             subtitle: route.subtitle,
             start: {
@@ -301,6 +346,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             },
             resume: {
               onSelect: () => router.go(HOME_RESUME_GATE_PATH),
+              disabled: !resumeMeta,
+              details: resumeDetails,
             },
             settings: {
               onSelect: openSettingsDialog,
@@ -308,7 +355,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             help: {
               onSelect: openRulebookHelp,
             },
-          }),
+          });
+        },
       };
     }
 
