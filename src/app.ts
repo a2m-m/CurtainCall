@@ -20,6 +20,7 @@ import type {
   PhaseKey,
   PlayerId,
   PlayerState,
+  StageArea,
   StageCardPlacement,
   StagePair,
   WatchDecision,
@@ -1148,15 +1149,13 @@ const notifyActionGuardStatus = (
   }
 };
 
-const findLatestOpponentStagePair = (state: GameState): StagePair | null => {
-  const opponentId = getOpponentId(state.activePlayer);
-  const opponent = state.players[opponentId];
-  if (!opponent) {
+const findLatestCompleteStagePair = (stage: StageArea | undefined): StagePair | null => {
+  if (!stage) {
     return null;
   }
 
-  for (let index = opponent.stage.pairs.length - 1; index >= 0; index -= 1) {
-    const pair = opponent.stage.pairs[index];
+  for (let index = stage.pairs.length - 1; index >= 0; index -= 1) {
+    const pair = stage.pairs[index];
     if (pair?.actor && pair.kuroko) {
       return pair;
     }
@@ -1165,8 +1164,21 @@ const findLatestOpponentStagePair = (state: GameState): StagePair | null => {
   return null;
 };
 
+const findLatestWatchStagePair = (state: GameState): StagePair | null => {
+  const opponentId = getOpponentId(state.activePlayer);
+  const opponent = state.players[opponentId];
+  const opponentPair = findLatestCompleteStagePair(opponent?.stage);
+
+  if (opponentPair) {
+    return opponentPair;
+  }
+
+  const activePlayer = state.players[state.activePlayer];
+  return findLatestCompleteStagePair(activePlayer?.stage);
+};
+
 const mapWatchStage = (state: GameState): WatchStageViewModel => {
-  const latestPair = findLatestOpponentStagePair(state);
+  const latestPair = findLatestWatchStagePair(state);
   const actorPlacement = latestPair?.actor ?? null;
   const kurokoPlacement = latestPair?.kuroko ?? null;
 
