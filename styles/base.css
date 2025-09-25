@@ -1694,6 +1694,11 @@ p {
   align-items: center;
 }
 
+.board-check__card-label {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
 .board-check__card-grid-item {
   display: flex;
   justify-content: center;
