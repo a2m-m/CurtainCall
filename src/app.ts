@@ -1669,8 +1669,15 @@ const revealSpotlightKuroko = (): RevealSpotlightKurokoResult | null => {
       return current;
     }
 
-    const owner = current.players[targetPair.owner];
-    if (!owner) {
+    const presenterId = targetPair.owner;
+    const presenter = current.players[presenterId];
+    if (!presenter) {
+      return current;
+    }
+
+    const booerId = getOpponentId(presenterId);
+    const booer = current.players[booerId];
+    if (!booer) {
       return current;
     }
 
@@ -1681,23 +1688,44 @@ const revealSpotlightKuroko = (): RevealSpotlightKurokoResult | null => {
 
     const judge: StageJudgeResult = actorCard.rank === kurokoCard.rank ? 'match' : 'mismatch';
 
-    const nextPairs = owner.stage.pairs.map((pair) => {
-      if (pair.id !== targetPair.id) {
-        return pair;
-      }
+    const updatedPair: StagePair = {
+      ...targetPair,
+      owner: judge === 'match' ? presenterId : booerId,
+      judge,
+      kuroko: targetPair.kuroko
+        ? {
+            ...targetPair.kuroko,
+            card: kurokoCard,
+            revealedAt: timestamp,
+          }
+        : undefined,
+    };
 
-      return {
-        ...pair,
-        judge,
-        kuroko: pair.kuroko
-          ? {
-              ...pair.kuroko,
-              card: kurokoCard,
-              revealedAt: timestamp,
-            }
-          : undefined,
+    const nextPlayers: Record<PlayerId, PlayerState> = {
+      ...current.players,
+      [presenterId]: {
+        ...presenter,
+        stage: {
+          ...presenter.stage,
+          pairs:
+            judge === 'match'
+              ? presenter.stage.pairs.map((pair) => (pair.id === targetPair.id ? updatedPair : pair))
+              : presenter.stage.pairs.filter((pair) => pair.id !== targetPair.id),
+        },
+      },
+    };
+
+    if (judge === 'mismatch') {
+      nextPlayers[booerId] = {
+        ...booer,
+        stage: {
+          ...booer.stage,
+          pairs: [...booer.stage.pairs, updatedPair],
+        },
       };
-    });
+    } else {
+      nextPlayers[booerId] = booer;
+    }
 
     result = {
       judge,
@@ -1707,16 +1735,7 @@ const revealSpotlightKuroko = (): RevealSpotlightKurokoResult | null => {
 
     return {
       ...current,
-      players: {
-        ...current.players,
-        [targetPair.owner]: {
-          ...owner,
-          stage: {
-            ...owner.stage,
-            pairs: nextPairs,
-          },
-        },
-      },
+      players: nextPlayers,
       revision: current.revision + 1,
       updatedAt: timestamp,
     };
