@@ -118,6 +118,11 @@ const ACTION_CONFIRM_MODAL_MESSAGE =
   '以下のカードをステージに配置します。確定すると元に戻せません。';
 const ACTION_CONFIRM_MODAL_OK_LABEL = 'OK';
 const ACTION_CONFIRM_MODAL_CANCEL_LABEL = 'キャンセル';
+const ACTION_GUARD_SELECTION_MESSAGE = '役者と黒子をそれぞれ選択してください。';
+const ACTION_GUARD_INSUFFICIENT_HAND_MESSAGE =
+  '手札が2枚未満のため、ステージに配置を確定できません。';
+
+let lastActionGuardMessage: string | null = null;
 
 const formatCardLabel = (card: CardSnapshot): string => {
   if (card.suit === 'joker') {
@@ -961,10 +966,73 @@ const canConfirmActionPlacement = (state: GameState): boolean => {
     return false;
   }
 
+  if (player.hand.cards.length < 2) {
+    return false;
+  }
+
   const hasActor = player.hand.cards.some((card) => card.id === actorId);
   const hasKuroko = player.hand.cards.some((card) => card.id === kurokoId);
 
   return hasActor && hasKuroko;
+};
+
+const getActionPlacementGuardMessage = (state: GameState): string | null => {
+  const player = state.players[state.activePlayer];
+  if (!player) {
+    return ACTION_GUARD_SELECTION_MESSAGE;
+  }
+
+  if (player.hand.cards.length < 2) {
+    return ACTION_GUARD_INSUFFICIENT_HAND_MESSAGE;
+  }
+
+  const actorId = state.action.actorCardId;
+  const kurokoId = state.action.kurokoCardId;
+
+  if (!actorId || !kurokoId || actorId === kurokoId) {
+    return ACTION_GUARD_SELECTION_MESSAGE;
+  }
+
+  const hasActor = player.hand.cards.some((card) => card.id === actorId);
+  const hasKuroko = player.hand.cards.some((card) => card.id === kurokoId);
+
+  if (!hasActor || !hasKuroko) {
+    return ACTION_GUARD_SELECTION_MESSAGE;
+  }
+
+  return null;
+};
+
+const notifyActionGuardStatus = (
+  state: GameState,
+  options: { force?: boolean } = {},
+): void => {
+  const message = getActionPlacementGuardMessage(state);
+
+  if (!message) {
+    if (lastActionGuardMessage !== null) {
+      lastActionGuardMessage = null;
+    }
+    return;
+  }
+
+  if (!options.force && message === lastActionGuardMessage) {
+    return;
+  }
+
+  lastActionGuardMessage = message;
+
+  if (typeof window === 'undefined') {
+    console.warn(message);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'warning' });
+  } else {
+    console.warn(message);
+  }
 };
 
 const createStagePairId = (timestamp: number): string => {
@@ -1116,6 +1184,7 @@ const openActionConfirmDialog = (): void => {
   const state = gameStore.getState();
 
   if (!canConfirmActionPlacement(state)) {
+    notifyActionGuardStatus(state, { force: true });
     return;
   }
 
@@ -1306,6 +1375,7 @@ const cleanupActiveActionView = (): void => {
     cleanup();
   }
   isActionConfirmInProgress = false;
+  lastActionGuardMessage = null;
 };
 
 const withRouteCleanup = (
@@ -1744,12 +1814,15 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             onConfirm: () => openActionConfirmDialog(),
           });
 
+          notifyActionGuardStatus(state);
+
           const unsubscribe = gameStore.subscribe((nextState) => {
             view.updateHand(
               mapActionHandCards(nextState),
               mapActionHandSelection(nextState),
             );
             view.setConfirmDisabled(!canConfirmActionPlacement(nextState));
+            notifyActionGuardStatus(nextState);
           });
 
           activeActionCleanup = () => {
