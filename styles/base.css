@@ -1940,6 +1940,12 @@ p {
   color: var(--color-muted);
 }
 
+.spotlight-reveal-result__stage {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
 .spotlight-reveal-result__cards {
   margin: 0;
   padding: 0;

@@ -1563,6 +1563,11 @@ const createSpotlightRevealResultContent = (
   detail.textContent = `提示者：${presenterName} ／ ブーイング側：${booerName}`;
   container.append(detail);
 
+  const stageInfo = document.createElement('p');
+  stageInfo.className = 'spotlight-reveal-result__stage';
+  stageInfo.textContent = `ペアの帰属：${openPlayerName}ステージ`;
+  container.append(stageInfo);
+
   const cardList = document.createElement('ul');
   cardList.className = 'spotlight-reveal-result__cards';
 
@@ -2821,6 +2826,7 @@ interface RevealSpotlightKurokoResult {
   judge: StageJudgeResult;
   actorCard: CardSnapshot;
   kurokoCard: CardSnapshot;
+  owner: PlayerId;
 }
 
 const revealSpotlightKuroko = (): RevealSpotlightKurokoResult | null => {
@@ -2898,6 +2904,7 @@ const revealSpotlightKuroko = (): RevealSpotlightKurokoResult | null => {
       judge,
       actorCard,
       kurokoCard,
+      owner: updatedPair.owner,
     };
 
     return {
@@ -2959,7 +2966,7 @@ const finalizeSpotlightReveal = (): void => {
   const latest = gameStore.getState();
   saveLatestGame(latest);
 
-  const openPlayerName = result.judge === 'match' ? presenterName : booerName;
+  const openPlayerName = getPlayerDisplayName(latest, result.owner);
   const canOpenSet = canOpenSpotlightSet(latest);
 
   const summary = `${playerName}が黒子を公開しました：役者=${formatCardLabel(
