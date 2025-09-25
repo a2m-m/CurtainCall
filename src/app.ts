@@ -625,38 +625,71 @@ const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'no
 
 const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
 const SCOUT_PICK_RESULT_OK_LABEL = 'OK';
+const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'scout-complete';
+
+  const message = document.createElement('p');
+  message.className = 'scout-complete__message';
+  message.textContent = `${formatCardLabel(card)}を引きました！`;
+  container.append(message);
+
+  const preview = document.createElement('div');
+  preview.className = 'scout-complete__preview';
+
+  const cardPreview = new CardComponent({
+    rank: card.rank,
+    suit: card.suit,
+    faceDown: false,
+    annotation: card.annotation,
+  });
+  cardPreview.el.classList.add('scout-complete__card');
+  preview.append(cardPreview.el);
+
+  const caption = document.createElement('p');
+  caption.className = 'scout-complete__caption';
+  caption.textContent = 'アクションフェーズへ移行します。';
+  preview.append(caption);
+
+  container.append(preview);
+
+  return container;
+};
 
 const showScoutPickResultDialog = (card: CardSnapshot): void => {
   const message = createScoutPickSuccessMessage(card);
 
   if (typeof window === 'undefined') {
     console.info(message);
-    navigateToActionPhase();
     isScoutPickInProgress = false;
+    navigateToActionPhase();
     return;
   }
 
   const modal = window.curtainCall?.modal;
   if (!modal) {
     console.info(message);
-    navigateToActionPhase();
     isScoutPickInProgress = false;
+    navigateToActionPhase();
     return;
   }
 
+  const body = createScoutPickResultContent(card);
+
   modal.open({
     title: SCOUT_PICK_RESULT_TITLE,
-    body: message,
+    body,
     dismissible: false,
     actions: [
       {
         label: SCOUT_PICK_RESULT_OK_LABEL,
         variant: 'primary',
         preventRapid: true,
+        dismiss: false,
         onSelect: () => {
           modal.close();
-          navigateToActionPhase();
           isScoutPickInProgress = false;
+          navigateToActionPhase();
         },
       },
     ],
