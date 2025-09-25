@@ -16,6 +16,8 @@ import type {
   PhaseKey,
   PlayerId,
   PlayerState,
+  SetCardState,
+  SetReveal,
   StageArea,
   StageCardPlacement,
   StagePair,
@@ -188,6 +190,27 @@ const SPOTLIGHT_REVEAL_CONFIRM_TITLE = '黒子を公開';
 const SPOTLIGHT_REVEAL_CONFIRM_MESSAGE = '黒子のカードを公開します。公開後は取り消せません。';
 const SPOTLIGHT_REVEAL_CONFIRM_OK_LABEL = 'OK';
 const SPOTLIGHT_REVEAL_CONFIRM_CANCEL_LABEL = 'キャンセル';
+const SPOTLIGHT_RESULT_TITLE = '判定結果';
+const SPOTLIGHT_RESULT_MATCH_PREFIX = '一致！';
+const SPOTLIGHT_RESULT_MISMATCH_PREFIX = '不一致！';
+const SPOTLIGHT_RESULT_MATCH_MESSAGE = (playerName: string): string =>
+  `${playerName}がセットをオープンできます。`;
+const SPOTLIGHT_RESULT_MISMATCH_MESSAGE = (playerName: string): string =>
+  `${playerName}がセットをオープンできます。`;
+const SPOTLIGHT_RESULT_SKIP_LABEL = '今回はスキップ';
+const SPOTLIGHT_SET_OPEN_BUTTON_LABEL = 'セットをオープンする';
+const SPOTLIGHT_SET_PICKER_TITLE = 'セットをオープン';
+const SPOTLIGHT_SET_PICKER_MESSAGE = 'セットから公開するカードを選択してください。';
+const SPOTLIGHT_SET_PICKER_EMPTY_MESSAGE = '公開できるセットのカードは残っていません。';
+const SPOTLIGHT_SET_PICKER_CANCEL_LABEL = 'キャンセル';
+const SPOTLIGHT_SET_CARD_LABEL_PREFIX = 'カード';
+const SPOTLIGHT_SET_CONFIRM_TITLE = 'セットをオープン';
+const SPOTLIGHT_SET_CONFIRM_MESSAGE = '公開後は取り消せません。';
+const SPOTLIGHT_SET_CONFIRM_OK_LABEL = '公開する';
+const SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL = '戻る';
+const SPOTLIGHT_SET_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
+  `${playerName}が${cardLabel}をオープンしました。`;
+const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態ではありません。';
 
 const createWatchDecisionConfirmMessage = (decision: WatchDecision, playerName: string): string => {
   const base = WATCH_DECISION_CONFIRM_MESSAGES[decision];
@@ -217,6 +240,9 @@ const formatCardLabel = (card: CardSnapshot): string => {
   }
   return `${CARD_SUIT_LABEL[card.suit]}の${card.rank}`;
 };
+
+const formatSetCardPositionLabel = (setCard: SetCardState): string =>
+  `${SPOTLIGHT_SET_CARD_LABEL_PREFIX} #${String(setCard.position + 1).padStart(2, '0')}`;
 
 const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
   `${formatCardLabel(card)}を引きました！アクションフェーズへ移行します`;
@@ -1347,6 +1373,391 @@ const mapSpotlightRevealCaption = (state: GameState): string | null => {
   return SPOTLIGHT_REVEAL_COMPLETED_CAPTION;
 };
 
+const getAvailableSpotlightSetCards = (state: GameState): SetCardState[] =>
+  state.set.cards.filter((setCard) => setCard.card.face !== 'up');
+
+const canOpenSpotlightSet = (state: GameState): boolean => {
+  const targetPair = findLatestSpotlightPair(state);
+  if (!targetPair?.id || !targetPair.owner || !targetPair.actor?.card || !targetPair.kuroko?.card) {
+    return false;
+  }
+
+  if (targetPair.kuroko.card.face !== 'up') {
+    return false;
+  }
+
+  if (targetPair.owner !== state.activePlayer) {
+    return false;
+  }
+
+  if (state.set.opened.some((entry) => entry.pairId === targetPair.id)) {
+    return false;
+  }
+
+  return getAvailableSpotlightSetCards(state).length > 0;
+};
+
+const createSetRevealId = (setCardId: string, timestamp: number): string =>
+  `${setCardId}-open-${timestamp}`;
+
+const openSpotlightSetCard = (setCardId: string): SetReveal | null => {
+  let reveal: SetReveal | null = null;
+
+  gameStore.setState((current) => {
+    const targetPair = findLatestSpotlightPair(current);
+    if (!targetPair?.id || !targetPair.owner || !targetPair.actor?.card || !targetPair.kuroko?.card) {
+      return current;
+    }
+
+    if (targetPair.kuroko.card.face !== 'up') {
+      return current;
+    }
+
+    if (targetPair.owner !== current.activePlayer) {
+      return current;
+    }
+
+    if (current.set.opened.some((entry) => entry.pairId === targetPair.id)) {
+      return current;
+    }
+
+    const targetSetCard = current.set.cards.find((entry) => entry.id === setCardId);
+    if (!targetSetCard || targetSetCard.card.face === 'up') {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const card = cloneCardSnapshot(targetSetCard.card);
+    card.face = 'up';
+
+    const nextReveal: SetReveal = {
+      id: createSetRevealId(targetSetCard.id, timestamp),
+      card,
+      position: targetSetCard.position,
+      openedBy: current.activePlayer,
+      openedAt: timestamp,
+      pairId: targetPair.id,
+      bonus: card.rank === 'JOKER' ? 'joker' : undefined,
+    };
+
+    reveal = nextReveal;
+
+    return {
+      ...current,
+      set: {
+        cards: current.set.cards.map((entry) =>
+          entry.id === targetSetCard.id ? { ...entry, card } : entry,
+        ),
+        opened: [...current.set.opened, nextReveal],
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  return reveal;
+};
+
+const createSpotlightRevealResultContent = (
+  result: RevealSpotlightKurokoResult,
+  presenterName: string,
+  booerName: string,
+  openPlayerName: string,
+): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'spotlight-reveal-result';
+
+  const summary = document.createElement('p');
+  summary.className = 'spotlight-reveal-result__summary';
+  if (result.judge === 'match') {
+    summary.textContent = `${SPOTLIGHT_RESULT_MATCH_PREFIX}${SPOTLIGHT_RESULT_MATCH_MESSAGE(
+      openPlayerName,
+    )}`;
+  } else {
+    summary.textContent = `${SPOTLIGHT_RESULT_MISMATCH_PREFIX}${SPOTLIGHT_RESULT_MISMATCH_MESSAGE(
+      openPlayerName,
+    )}`;
+  }
+  container.append(summary);
+
+  const detail = document.createElement('p');
+  detail.className = 'spotlight-reveal-result__detail';
+  detail.textContent = `提示者：${presenterName} ／ ブーイング側：${booerName}`;
+  container.append(detail);
+
+  const cardList = document.createElement('ul');
+  cardList.className = 'spotlight-reveal-result__cards';
+
+  const createCardItem = (label: string, card: CardSnapshot): HTMLLIElement => {
+    const item = document.createElement('li');
+    item.className = 'spotlight-reveal-result__card';
+    const cardComponent = new CardComponent({
+      rank: card.rank,
+      suit: card.suit,
+      faceDown: false,
+      annotation: card.annotation,
+    });
+    item.append(cardComponent.el);
+
+    const description = document.createElement('p');
+    description.className = 'spotlight-reveal-result__card-label';
+    description.textContent = `${label}：${formatCardLabel(card)}`;
+    item.append(description);
+
+    return item;
+  };
+
+  cardList.append(
+    createCardItem('役者', result.actorCard),
+    createCardItem('黒子', result.kurokoCard),
+  );
+  container.append(cardList);
+
+  return container;
+};
+
+const showSpotlightRevealResultDialog = (
+  result: RevealSpotlightKurokoResult,
+  presenterName: string,
+  booerName: string,
+  openPlayerName: string,
+  canOpenSet: boolean,
+): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    return;
+  }
+
+  const body = createSpotlightRevealResultContent(result, presenterName, booerName, openPlayerName);
+  const actions = canOpenSet
+    ? [
+        {
+          label: SPOTLIGHT_RESULT_SKIP_LABEL,
+          variant: 'ghost' as const,
+        },
+        {
+          label: SPOTLIGHT_SET_OPEN_BUTTON_LABEL,
+          variant: 'primary' as const,
+          preventRapid: true,
+          dismiss: false,
+          onSelect: () => {
+            modal.close();
+            openSpotlightSetPickerDialog(openPlayerName);
+          },
+        },
+      ]
+    : [
+        {
+          label: SPOTLIGHT_RESULT_SKIP_LABEL,
+          variant: 'primary' as const,
+        },
+      ];
+
+  modal.open({
+    title: SPOTLIGHT_RESULT_TITLE,
+    body,
+    dismissible: false,
+    actions,
+  });
+};
+
+const openSpotlightSetPickerDialog = (playerName: string): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    return;
+  }
+
+  const state = gameStore.getState();
+  if (!canOpenSpotlightSet(state)) {
+    console.warn(SPOTLIGHT_SET_OPEN_GUARD_MESSAGE);
+    return;
+  }
+
+  const availableCards = getAvailableSpotlightSetCards(state)
+    .slice()
+    .sort((a, b) => a.position - b.position);
+
+  const container = document.createElement('div');
+  container.className = 'spotlight-set-picker';
+
+  const message = document.createElement('p');
+  message.className = 'spotlight-set-picker__message';
+  message.textContent = `${playerName}のターンです。${SPOTLIGHT_SET_PICKER_MESSAGE}`;
+  container.append(message);
+
+  if (availableCards.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'spotlight-set-picker__empty';
+    empty.textContent = SPOTLIGHT_SET_PICKER_EMPTY_MESSAGE;
+    container.append(empty);
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'spotlight-set-picker__list';
+
+    availableCards.forEach((setCard) => {
+      const item = document.createElement('li');
+      item.className = 'spotlight-set-picker__item';
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'spotlight-set-picker__button';
+      button.setAttribute('aria-label', `${formatSetCardPositionLabel(setCard)}を公開する`);
+
+      const cardComponent = new CardComponent({
+        rank: setCard.card.rank,
+        suit: setCard.card.suit,
+        faceDown: setCard.card.face !== 'up',
+        annotation: setCard.card.annotation,
+      });
+      button.append(cardComponent.el);
+
+      const label = document.createElement('span');
+      label.className = 'spotlight-set-picker__label';
+      label.textContent = formatSetCardPositionLabel(setCard);
+      button.append(label);
+
+      button.addEventListener('click', () => {
+        modal.close();
+        openSpotlightSetConfirmDialog(setCard.id);
+      });
+
+      item.append(button);
+      list.append(item);
+    });
+
+    container.append(list);
+  }
+
+  modal.open({
+    title: SPOTLIGHT_SET_PICKER_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [
+      {
+        label: SPOTLIGHT_SET_PICKER_CANCEL_LABEL,
+        variant: 'ghost',
+      },
+    ],
+  });
+};
+
+const openSpotlightSetConfirmDialog = (setCardId: string): void => {
+  if (typeof window === 'undefined') {
+    finalizeSpotlightSetOpen(setCardId);
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    finalizeSpotlightSetOpen(setCardId);
+    return;
+  }
+
+  const state = gameStore.getState();
+  if (!canOpenSpotlightSet(state)) {
+    console.warn(SPOTLIGHT_SET_OPEN_GUARD_MESSAGE);
+    return;
+  }
+
+  const setCard = state.set.cards.find((entry) => entry.id === setCardId);
+  if (!setCard) {
+    console.warn('公開対象のセットカードが見つかりません。');
+    return;
+  }
+
+  const playerName = getPlayerDisplayName(state, state.activePlayer);
+  const positionLabel = formatSetCardPositionLabel(setCard);
+
+  const container = document.createElement('div');
+  container.className = 'spotlight-set-confirm';
+
+  const message = document.createElement('p');
+  message.className = 'spotlight-set-confirm__message';
+  message.textContent = `${playerName}のターンです。${positionLabel}を公開します。${SPOTLIGHT_SET_CONFIRM_MESSAGE}`;
+  container.append(message);
+
+  const preview = document.createElement('div');
+  preview.className = 'spotlight-set-confirm__preview';
+  const cardComponent = new CardComponent({
+    rank: setCard.card.rank,
+    suit: setCard.card.suit,
+    faceDown: setCard.card.face !== 'up',
+    annotation: setCard.card.annotation,
+  });
+  preview.append(cardComponent.el);
+  container.append(preview);
+
+  modal.open({
+    title: SPOTLIGHT_SET_CONFIRM_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [
+      {
+        label: SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL,
+        variant: 'ghost',
+      },
+      {
+        label: SPOTLIGHT_SET_CONFIRM_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => finalizeSpotlightSetOpen(setCardId),
+      },
+    ],
+  });
+};
+
+const finalizeSpotlightSetOpen = (setCardId: string): void => {
+  if (isSpotlightSetOpenInProgress) {
+    console.warn('セットカードの公開処理が進行中です。');
+    return;
+  }
+
+  const stateBefore = gameStore.getState();
+  if (!canOpenSpotlightSet(stateBefore)) {
+    console.warn(SPOTLIGHT_SET_OPEN_GUARD_MESSAGE);
+    return;
+  }
+
+  const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
+
+  isSpotlightSetOpenInProgress = true;
+  const reveal = openSpotlightSetCard(setCardId);
+  isSpotlightSetOpenInProgress = false;
+
+  if (!reveal) {
+    console.warn('セットカードの公開に失敗しました。状態を確認してください。');
+    return;
+  }
+
+  const latest = gameStore.getState();
+  saveLatestGame(latest);
+
+  const message = SPOTLIGHT_SET_RESULT_MESSAGE(playerName, formatCardLabel(reveal.card));
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    return;
+  }
+
+  window.curtainCall?.modal?.close();
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'info' });
+  } else {
+    console.info(message);
+  }
+};
+
 const getRemainingWatchCount = (state: GameState): number | null => {
   const watchState = state.watch;
   if (watchState && typeof watchState === 'object') {
@@ -1508,6 +1919,7 @@ const completeWatchDecision = (decision: WatchDecision): CompleteWatchDecisionRe
 let isWatchDecisionInProgress = false;
 let isWatchResultDialogOpen = false;
 let isSpotlightRevealInProgress = false;
+let isSpotlightSetOpenInProgress = false;
 
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
@@ -1736,6 +2148,7 @@ const revealSpotlightKuroko = (): RevealSpotlightKurokoResult | null => {
     return {
       ...current,
       players: nextPlayers,
+      activePlayer: updatedPair.owner,
       revision: current.revision + 1,
       updatedAt: timestamp,
     };
@@ -1766,6 +2179,16 @@ const finalizeSpotlightReveal = (): void => {
     return;
   }
 
+  const targetPair = findLatestSpotlightPair(stateBefore);
+  if (!targetPair?.owner || !targetPair.actor?.card || !targetPair.kuroko?.card) {
+    console.warn('黒子公開の対象ペアが見つかりません。');
+    return;
+  }
+
+  const presenterId = targetPair.owner;
+  const booerId = getOpponentId(presenterId);
+  const presenterName = getPlayerDisplayName(stateBefore, presenterId);
+  const booerName = getPlayerDisplayName(stateBefore, booerId);
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
   isSpotlightRevealInProgress = true;
 
@@ -1781,6 +2204,9 @@ const finalizeSpotlightReveal = (): void => {
   const latest = gameStore.getState();
   saveLatestGame(latest);
 
+  const openPlayerName = result.judge === 'match' ? presenterName : booerName;
+  const canOpenSet = canOpenSpotlightSet(latest);
+
   const summary = `${playerName}が黒子を公開しました：役者=${formatCardLabel(
     result.actorCard,
   )}／黒子=${formatCardLabel(result.kurokoCard)}｜判定=${
@@ -1793,6 +2219,8 @@ const finalizeSpotlightReveal = (): void => {
   }
 
   console.info(summary);
+  window.curtainCall?.modal?.close();
+  showSpotlightRevealResultDialog(result, presenterName, booerName, openPlayerName, canOpenSet);
 };
 
 const openSpotlightRevealConfirmDialog = (): void => {
@@ -2344,6 +2772,7 @@ const cleanupActiveSpotlightView = (): void => {
     activeSpotlightCleanup = null;
     cleanup();
     isSpotlightRevealInProgress = false;
+    isSpotlightSetOpenInProgress = false;
   }
 };
 
