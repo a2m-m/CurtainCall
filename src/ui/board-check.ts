@@ -15,7 +15,12 @@ import { CardComponent } from './card.js';
 import { UIComponent } from './component.js';
 import type { ModalController } from './modal.js';
 
-export type BoardCheckTabKey = 'set' | 'luminaStage' | 'noxStage' | 'score';
+export type BoardCheckTabKey =
+  | 'overview'
+  | 'set'
+  | 'luminaStage'
+  | 'noxStage'
+  | 'score';
 
 export interface BoardCheckOptions {
   initialTab?: BoardCheckTabKey;
@@ -61,6 +66,11 @@ const SET_BONUS_LABEL: Record<SetRevealBonus, string> = {
 
 const TAB_DEFINITIONS: TabDefinition[] = [
   {
+    key: 'overview',
+    label: '概要',
+    render: (state) => renderOverviewTab(state),
+  },
+  {
     key: 'set',
     label: 'セット',
     render: (state) => renderSetTab(state),
@@ -87,6 +97,73 @@ const formatCardLabel = (card: CardSnapshot): string => {
     return 'ジョーカー';
   }
   return `${SUIT_LABEL[card.suit]}の${card.rank}`;
+};
+
+const renderOverviewTab = (state: GameState): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'board-check__content';
+
+  const turnSection = createSection('ターン情報');
+  turnSection.append(
+    createDefinitionList(
+      [
+        {
+          term: '現在のターン',
+          description: `${state.turn.count}ターン目`,
+        },
+      ],
+      'board-check__stats',
+    ),
+  );
+  container.append(turnSection);
+
+  const booSection = createSection('規定ブーイング残数');
+  const booItems = PLAYER_IDS.map((id) => {
+    const player = state.players[id];
+    return {
+      term: player.name,
+      description: `${player.booCount}回`,
+    };
+  });
+  booSection.append(createDefinitionList(booItems, 'board-check__stats'));
+  container.append(booSection);
+
+  const takenSection = createSection('奪われたカード');
+  PLAYER_IDS.forEach((id) => {
+    const player = state.players[id];
+    const playerBlock = document.createElement('div');
+    playerBlock.className = 'board-check__subsection';
+
+    const heading = document.createElement('h4');
+    heading.className = 'board-check__subsection-title';
+    heading.textContent = `${player.name}が奪われたカード`;
+    playerBlock.append(heading);
+
+    if (player.takenByOpponent.length === 0) {
+      playerBlock.append(createEmptyMessage('奪われたカードはありません。'));
+    } else {
+      const list = document.createElement('ul');
+      list.className = 'board-check__card-list';
+      player.takenByOpponent.forEach((card) => {
+        const item = document.createElement('li');
+        item.className = 'board-check__card-item';
+        const cardComponent = new CardComponent({
+          rank: card.rank,
+          suit: card.suit,
+          faceDown: card.face !== 'up',
+          annotation: card.annotation,
+        });
+        item.append(cardComponent.el);
+        list.append(item);
+      });
+      playerBlock.append(list);
+    }
+
+    takenSection.append(playerBlock);
+  });
+  container.append(takenSection);
+
+  return container;
 };
 
 const createDefinitionList = (
@@ -129,7 +206,8 @@ const renderSetTab = (state: GameState): HTMLElement => {
   const total = state.meta?.composition?.set ?? CARD_COMPOSITION.set;
   const opened = state.set.opened.length;
   const remaining = Math.max(total - opened, 0);
-  const closed = state.set.cards.length > 0 ? state.set.cards.length : remaining;
+  const hiddenSetCards = state.set.cards.filter((setCard) => setCard.card.face !== 'up');
+  const closed = hiddenSetCards.length > 0 ? hiddenSetCards.length : remaining;
 
   const summary = createSection('セットの状況');
   summary.append(
@@ -198,6 +276,27 @@ const renderSetTab = (state: GameState): HTMLElement => {
   }
 
   container.append(openedSection);
+
+  const hiddenSection = createSection('伏せ札');
+  if (closed === 0) {
+    hiddenSection.append(createEmptyMessage('伏せ札はありません。'));
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'board-check__card-list';
+    for (let index = 0; index < closed; index += 1) {
+      const item = document.createElement('li');
+      item.className = 'board-check__card-item';
+      const card = new CardComponent({
+        rank: '?',
+        suit: 'spades',
+        faceDown: true,
+      });
+      item.append(card.el);
+      list.append(item);
+    }
+    hiddenSection.append(list);
+  }
+  container.append(hiddenSection);
 
   return container;
 };
@@ -412,10 +511,11 @@ const ensureModalController = (): ModalController => {
 };
 
 const resolveInitialTab = (tab: BoardCheckTabKey | undefined): BoardCheckTabKey => {
+  const fallback = TAB_DEFINITIONS[0]?.key ?? 'set';
   if (!tab) {
-    return 'set';
+    return fallback;
   }
-  return TAB_DEFINITIONS.some((definition) => definition.key === tab) ? tab : 'set';
+  return TAB_DEFINITIONS.some((definition) => definition.key === tab) ? tab : fallback;
 };
 
 export const showBoardCheck = (options: BoardCheckOptions = {}): void => {

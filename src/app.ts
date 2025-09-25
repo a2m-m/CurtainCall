@@ -108,7 +108,7 @@ const formatCardLabel = (card: CardSnapshot): string => {
 };
 
 const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
-  `${formatCardLabel(card)}を引きました！アクションフェーズへ移行します`;
+  `${formatCardLabel(card)}のカードを引きました！アクションフェーズへ移行します`;
 
 const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
   id: card.id,
@@ -625,7 +625,6 @@ const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'no
 
 const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
 const SCOUT_PICK_RESULT_OK_LABEL = 'OK';
-
 const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'scout-complete';
