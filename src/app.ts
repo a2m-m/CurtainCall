@@ -153,6 +153,7 @@ const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
 const WATCH_TO_SPOTLIGHT_PATH = SPOTLIGHT_GATE_PATH;
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
+const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
   clap: 'クラップの宣言',
   boo: 'ブーイングの宣言',
@@ -1610,10 +1611,20 @@ const showSpotlightRevealResultDialog = (
   }
 
   const body = createSpotlightRevealResultContent(result, presenterName, booerName, openPlayerName);
+  const skipAction = {
+    label: SPOTLIGHT_RESULT_SKIP_LABEL,
+    preventRapid: true,
+    dismiss: false,
+    onSelect: () => {
+      modal.close();
+      completeSpotlightPhaseTransition();
+    },
+  };
+
   const actions = canOpenSet
     ? [
         {
-          label: SPOTLIGHT_RESULT_SKIP_LABEL,
+          ...skipAction,
           variant: 'ghost' as const,
         },
         {
@@ -1629,7 +1640,7 @@ const showSpotlightRevealResultDialog = (
       ]
     : [
         {
-          label: SPOTLIGHT_RESULT_SKIP_LABEL,
+          ...skipAction,
           variant: 'primary' as const,
         },
       ];
@@ -2181,40 +2192,34 @@ const finalizeSpotlightSecretPairSelection = (
     console.warn('シークレットペアの成立に失敗しました。状態を確認してください。');
   }
 
+  let infoMessage: string | null = null;
+
   if (paired) {
     const latest = gameStore.getState();
     saveLatestGame(latest);
-    const summary = SPOTLIGHT_SECRET_PAIR_RESULT_MESSAGE(
+    infoMessage = SPOTLIGHT_SECRET_PAIR_RESULT_MESSAGE(
       playerName,
       openCardLabel ?? '',
       handCardLabel ?? '',
     );
-    if (typeof window === 'undefined') {
-      console.info(summary);
-    } else {
-      const toast = window.curtainCall?.toast;
-      if (toast) {
-        toast.show({ message: summary, variant: 'info' });
-      } else {
-        console.info(summary);
-      }
-    }
-    return;
+  } else if (handCardId === null) {
+    infoMessage = SPOTLIGHT_SECRET_PAIR_SKIP_RESULT_MESSAGE(playerName);
   }
 
-  if (handCardId === null) {
-    const skipMessage = SPOTLIGHT_SECRET_PAIR_SKIP_RESULT_MESSAGE(playerName);
+  if (infoMessage) {
     if (typeof window === 'undefined') {
-      console.info(skipMessage);
+      console.info(infoMessage);
     } else {
       const toast = window.curtainCall?.toast;
       if (toast) {
-        toast.show({ message: skipMessage, variant: 'info' });
+        toast.show({ message: infoMessage, variant: 'info' });
       } else {
-        console.info(skipMessage);
+        console.info(infoMessage);
       }
     }
   }
+
+  completeSpotlightPhaseTransition();
 };
 
 const openSpotlightSecretPairDialog = (request: SpotlightSecretPairRequest): void => {
@@ -2331,6 +2336,7 @@ const maybeTriggerSpotlightSecretPair = (reveal: SetReveal): void => {
 
   const candidates = findSpotlightSecretPairCandidates(player, reveal.card.rank);
   if (candidates.length === 0) {
+    completeSpotlightPhaseTransition();
     return;
   }
 
@@ -2516,6 +2522,51 @@ const navigateToCurtainCallGate = (): void => {
   }
 };
 
+const navigateToIntermissionGate = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(SPOTLIGHT_TO_INTERMISSION_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_TO_INTERMISSION_PATH;
+  }
+};
+
+const completeSpotlightPhaseTransition = (): void => {
+  if (isSpotlightExitInProgress) {
+    return;
+  }
+
+  const state = gameStore.getState();
+
+  if (pendingSpotlightSecretPair) {
+    return;
+  }
+
+  const targetPair = findLatestSpotlightPair(state);
+  const pendingJoker = findPendingJokerBonusReveal(state, targetPair?.id);
+  if (pendingJoker) {
+    return;
+  }
+
+  const remainingSetCards = state.set.cards.filter((entry) => entry.card.face !== 'up').length;
+  const nextPath =
+    remainingSetCards === 1 ? SPOTLIGHT_TO_CURTAINCALL_PATH : SPOTLIGHT_TO_INTERMISSION_PATH;
+
+  isSpotlightExitInProgress = true;
+
+  saveLatestGame(state);
+
+  if (nextPath === SPOTLIGHT_TO_CURTAINCALL_PATH) {
+    navigateToCurtainCallGate();
+    return;
+  }
+
+  navigateToIntermissionGate();
+};
+
 const handleSpotlightGatePass = (router: Router): void => {
   grantSpotlightSecretAccess();
   router.go('#/phase/spotlight');
@@ -2612,6 +2663,7 @@ let isWatchDecisionInProgress = false;
 let isWatchResultDialogOpen = false;
 let isSpotlightRevealInProgress = false;
 let isSpotlightSetOpenInProgress = false;
+let isSpotlightExitInProgress = false;
 
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
@@ -3468,6 +3520,7 @@ const cleanupActiveSpotlightView = (): void => {
   }
   revokeSpotlightSecretAccess();
   isSpotlightSecretPairInProgress = false;
+  isSpotlightExitInProgress = false;
 };
 
 const withRouteCleanup = (
