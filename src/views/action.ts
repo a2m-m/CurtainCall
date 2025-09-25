@@ -23,9 +23,11 @@ export interface ActionViewOptions {
   selectedCardId?: string | null;
   actorCardId?: string | null;
   kurokoCardId?: string | null;
+  boardCheckLabel?: string;
   confirmLabel?: string;
   confirmDisabled?: boolean;
   onSelectHandCard?: (cardId: string) => void;
+  onOpenBoardCheck?: () => void;
   onConfirm?: () => void;
 }
 
@@ -64,6 +66,18 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
 
   const actions = document.createElement('div');
   actions.className = 'action__actions';
+
+  if (options.onOpenBoardCheck) {
+    const boardCheckButton = new UIButton({
+      label: options.boardCheckLabel ?? 'ボードチェック',
+      variant: 'ghost',
+      preventRapid: false,
+    });
+    boardCheckButton.onClick(() => {
+      options.onOpenBoardCheck?.();
+    });
+    actions.append(boardCheckButton.el);
+  }
 
   const confirmButton = new UIButton({
     label: options.confirmLabel ?? '配置を確定',

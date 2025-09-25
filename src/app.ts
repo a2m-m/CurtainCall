@@ -113,6 +113,7 @@ const SCOUT_HELP_BUTTON_LABEL = '？';
 const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
 
 const ACTION_CONFIRM_BUTTON_LABEL = '配置を確定';
+const ACTION_BOARD_CHECK_LABEL = 'ボードチェック';
 const ACTION_CONFIRM_MODAL_TITLE = '配置を確定';
 const ACTION_CONFIRM_MODAL_MESSAGE =
   '以下のカードをステージに配置します。確定すると元に戻せません。';
@@ -1911,6 +1912,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             selectedCardId: state.action.selectedCardId,
             actorCardId: state.action.actorCardId,
             kurokoCardId: state.action.kurokoCardId,
+            boardCheckLabel: ACTION_BOARD_CHECK_LABEL,
             confirmLabel: ACTION_CONFIRM_BUTTON_LABEL,
             confirmDisabled: !canConfirmActionPlacement(state),
             onSelectHandCard: (cardId) => {
@@ -1929,6 +1931,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               }
               toggleActionKurokoCard(cardId);
             },
+            onOpenBoardCheck: () => showBoardCheck(),
             onConfirm: () => openActionConfirmDialog(),
           });
 
