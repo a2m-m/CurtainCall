@@ -18,6 +18,10 @@ import { showBoardCheck } from './ui/board-check.js';
 import { createGateView } from './views/gate.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
+import {
+  ActionHandCardViewModel,
+  createActionView,
+} from './views/action.js';
 import { createScoutView } from './views/scout.js';
 import type {
   ScoutOpponentHandCardViewModel,
@@ -908,6 +912,19 @@ const mapRecentTakenCards = (state: GameState): ScoutRecentTakenCardViewModel[] 
   }));
 };
 
+const mapActionHandCards = (state: GameState): ActionHandCardViewModel[] => {
+  const player = state.players[state.activePlayer];
+  if (!player) {
+    return [];
+  }
+  return player.hand.cards.map((card) => ({
+    id: card.id,
+    rank: card.rank,
+    suit: card.suit,
+    annotation: card.annotation,
+  }));
+};
+
 let isScoutPickInProgress = false;
 
 const clearScoutSecretState = (): void => {
@@ -938,6 +955,7 @@ const clearScoutSecretState = (): void => {
 };
 
 let activeScoutCleanup: (() => void) | null = null;
+let activeActionCleanup: (() => void) | null = null;
 
 const cleanupActiveScoutView = (): void => {
   if (activeScoutCleanup) {
@@ -948,11 +966,20 @@ const cleanupActiveScoutView = (): void => {
   isScoutPickInProgress = false;
 };
 
+const cleanupActiveActionView = (): void => {
+  if (activeActionCleanup) {
+    const cleanup = activeActionCleanup;
+    activeActionCleanup = null;
+    cleanup();
+  }
+};
+
 const withRouteCleanup = (
   render: (context: RouteContext) => HTMLElement,
 ): ((context: RouteContext) => HTMLElement) => {
   return (context) => {
     cleanupActiveScoutView();
+    cleanupActiveActionView();
     return render(context);
   };
 };
@@ -1345,6 +1372,28 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           activeScoutCleanup = () => {
             unsubscribe();
             clearScoutSecretState();
+          };
+
+          return view;
+        },
+      };
+    } else if (route.path === '#/phase/action') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: () => {
+          const state = gameStore.getState();
+          const view = createActionView({
+            title: route.heading,
+            handCards: mapActionHandCards(state),
+          });
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            view.updateHand(mapActionHandCards(nextState));
+          });
+
+          activeActionCleanup = () => {
+            unsubscribe();
           };
 
           return view;
