@@ -121,6 +121,9 @@ const ACTION_CONFIRM_MODAL_CANCEL_LABEL = 'キャンセル';
 const ACTION_GUARD_SELECTION_MESSAGE = '役者と黒子をそれぞれ選択してください。';
 const ACTION_GUARD_INSUFFICIENT_HAND_MESSAGE =
   '手札が2枚未満のため、ステージに配置を確定できません。';
+const ACTION_RESULT_TITLE = 'アクション完了';
+const ACTION_RESULT_OK_LABEL = 'ウォッチへ';
+const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
 
 let lastActionGuardMessage: string | null = null;
 
@@ -1053,8 +1056,14 @@ const createStagePlacementFromHand = (
   placedAt: timestamp,
 });
 
-const completeActionPlacement = (): boolean => {
-  let placed = false;
+interface CompleteActionPlacementResult {
+  placed: boolean;
+  actorCard?: CardSnapshot;
+  kurokoCard?: CardSnapshot;
+}
+
+const completeActionPlacement = (): CompleteActionPlacementResult => {
+  const result: CompleteActionPlacementResult = { placed: false };
 
   gameStore.setState((current) => {
     const actorId = current.action.actorCardId;
@@ -1085,7 +1094,9 @@ const completeActionPlacement = (): boolean => {
       (card) => card.id !== actorId && card.id !== kurokoId,
     );
 
-    placed = true;
+    result.placed = true;
+    result.actorCard = cloneCardSnapshot(actorCard);
+    result.kurokoCard = cloneCardSnapshot(kurokoCard);
 
     return {
       ...current,
@@ -1123,7 +1134,7 @@ const completeActionPlacement = (): boolean => {
     };
   });
 
-  return placed;
+  return result;
 };
 
 const createActionConfirmModalBody = (
@@ -1156,6 +1167,110 @@ const createActionConfirmModalBody = (
 };
 
 let isActionConfirmInProgress = false;
+let isActionResultDialogOpen = false;
+
+const navigateToWatchGate = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(ACTION_TO_WATCH_PATH);
+  } else {
+    window.location.hash = ACTION_TO_WATCH_PATH;
+  }
+};
+
+const createActionPlacementResultContent = (
+  actorCard: CardSnapshot,
+  kurokoCard: CardSnapshot,
+): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'action-complete';
+
+  const message = document.createElement('p');
+  message.className = 'action-complete__message';
+  message.textContent = ACTION_RESULT_TITLE;
+  container.append(message);
+
+  const summary = document.createElement('p');
+  summary.className = 'action-complete__summary';
+  summary.textContent = `役者：${formatCardLabel(actorCard)} ／ 黒子：${formatCardLabel(
+    kurokoCard,
+  )}`;
+  container.append(summary);
+
+  const notice = document.createElement('p');
+  notice.className = 'action-complete__caption';
+  notice.textContent = 'ウォッチフェーズの準備が整ったら「ウォッチへ」を押してください。';
+  container.append(notice);
+
+  return container;
+};
+
+const showActionPlacementResultDialog = (
+  actorCard: CardSnapshot,
+  kurokoCard: CardSnapshot,
+): void => {
+  if (isActionResultDialogOpen) {
+    return;
+  }
+
+  const summaryMessage = `${ACTION_RESULT_TITLE}｜役者：${formatCardLabel(
+    actorCard,
+  )}／黒子：${formatCardLabel(kurokoCard)}`;
+
+  const finalize = (): void => {
+    isActionResultDialogOpen = false;
+    const latestState = gameStore.getState();
+    saveLatestGame(latestState);
+    navigateToWatchGate();
+  };
+
+  if (typeof window === 'undefined') {
+    console.info(summaryMessage);
+    finalize();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.info(summaryMessage);
+    finalize();
+    return;
+  }
+
+  const openDialog = (): void => {
+    const body = createActionPlacementResultContent(actorCard, kurokoCard);
+    isActionResultDialogOpen = true;
+
+    modal.open({
+      title: ACTION_RESULT_TITLE,
+      body,
+      dismissible: false,
+      actions: [
+        {
+          label: ACTION_RESULT_OK_LABEL,
+          variant: 'primary',
+          preventRapid: true,
+          dismiss: false,
+          onSelect: () => {
+            modal.close();
+            finalize();
+          },
+        },
+      ],
+    });
+  };
+
+  if (modal.opened) {
+    modal.close();
+    window.requestAnimationFrame(() => openDialog());
+    return;
+  }
+
+  openDialog();
+};
 
 const finalizeActionPlacement = (): void => {
   if (isActionConfirmInProgress) {
@@ -1165,9 +1280,9 @@ const finalizeActionPlacement = (): void => {
 
   isActionConfirmInProgress = true;
 
-  const placed = completeActionPlacement();
+  const result = completeActionPlacement();
 
-  if (!placed) {
+  if (!result.placed || !result.actorCard || !result.kurokoCard) {
     isActionConfirmInProgress = false;
     console.warn('配置確定に失敗しました。選択状態を確認してください。');
     return;
@@ -1178,6 +1293,8 @@ const finalizeActionPlacement = (): void => {
   }
 
   isActionConfirmInProgress = false;
+
+  showActionPlacementResultDialog(result.actorCard, result.kurokoCard);
 };
 
 const openActionConfirmDialog = (): void => {
@@ -1376,6 +1493,7 @@ const cleanupActiveActionView = (): void => {
   }
   isActionConfirmInProgress = false;
   lastActionGuardMessage = null;
+  isActionResultDialogOpen = false;
 };
 
 const withRouteCleanup = (
