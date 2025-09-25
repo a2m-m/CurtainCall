@@ -1997,7 +1997,7 @@ p {
 
 .spotlight-set-picker {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .spotlight-set-picker__message,
@@ -2013,8 +2013,8 @@ p {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
 }
 
 .spotlight-set-picker__item {
@@ -2023,29 +2023,53 @@ p {
 }
 
 .spotlight-set-picker__button {
-  display: grid;
-  gap: 0.5rem;
-  justify-items: center;
   width: 100%;
-  padding: 0.85rem;
-  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.2);
+  background: rgba(15, 23, 42, 0.55);
   color: inherit;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  appearance: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    background 120ms ease;
 }
 
-.spotlight-set-picker__button:hover,
+.spotlight-set-picker__button:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(15, 23, 42, 0.65);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(251, 191, 36, 0.18);
+}
+
 .spotlight-set-picker__button:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  outline: 3px solid rgba(251, 191, 36, 0.55);
+  outline-offset: 3px;
 }
 
-.spotlight-set-picker__button .card {
-  width: clamp(90px, 16vw, 120px);
-  height: clamp(126px, 22vw, 168px);
-  font-size: clamp(1.2rem, 2vw, 1.6rem);
+.spotlight-set-picker__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.spotlight-set-picker__card {
+  width: clamp(72px, 15vw, 100px);
+  height: clamp(104px, 21vw, 140px);
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  transition:
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+}
+
+.spotlight-set-picker__button:hover:not(:disabled) .spotlight-set-picker__card {
+  border-color: rgba(251, 191, 36, 0.55);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
 }
 
 .spotlight-set-picker__label {
