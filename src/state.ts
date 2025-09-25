@@ -100,6 +100,13 @@ export interface PlayerState {
   score: PlayerScore;
 }
 
+export type WatchDecision = 'clap' | 'boo';
+
+export interface WatchState extends Record<string, unknown> {
+  decision: WatchDecision | null;
+  nextRoute: string | null;
+}
+
 export interface SetCardState {
   id: string;
   card: CardSnapshot;
@@ -194,6 +201,7 @@ export interface GameState extends Record<string, unknown> {
   recentScoutedCard: CardSnapshot | null;
   scout: ScoutState;
   action: ActionState;
+  watch: WatchState;
 }
 
 export type StateListener<TState> = (state: TState) => void;
@@ -283,6 +291,11 @@ const createPlayerState = (id: PlayerId): PlayerState => ({
   score: createInitialScore(),
 });
 
+export const createInitialWatchState = (): WatchState => ({
+  decision: null,
+  nextRoute: null,
+});
+
 const createMatchId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -330,6 +343,7 @@ export const createInitialState = (): GameState => {
       selectedOpponentCardIndex: null,
     },
     action: createInitialActionState(),
+    watch: createInitialWatchState(),
   };
 };
 
