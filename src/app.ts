@@ -19,6 +19,7 @@ import type {
   StageArea,
   StageCardPlacement,
   StagePair,
+  StageJudgeResult,
   WatchDecision,
 } from './state.js';
 import { ModalController } from './ui/modal.js';
@@ -34,6 +35,7 @@ import {
   createActionView,
 } from './views/action.js';
 import { createWatchView, WatchStageViewModel, WatchStatusViewModel } from './views/watch.js';
+import { createSpotlightView, SpotlightStageViewModel } from './views/spotlight.js';
 import { createScoutView } from './views/scout.js';
 import type {
   ScoutOpponentHandCardViewModel,
@@ -172,6 +174,20 @@ const WATCH_RESULT_OK_LABELS = Object.freeze({
 const WATCH_REDIRECTING_SUBTITLE = '宣言結果に応じた画面へ移動しています…';
 const WATCH_GUARD_REDIRECTING_SUBTITLE =
   '秘匿情報を再表示するにはウォッチゲートを通過してください。';
+
+const SPOTLIGHT_BOARD_CHECK_LABEL = 'ボードチェック';
+const SPOTLIGHT_HELP_BUTTON_LABEL = '？';
+const SPOTLIGHT_HELP_ARIA_LABEL = 'ヘルプ';
+const SPOTLIGHT_STAGE_EMPTY_MESSAGE = WATCH_STAGE_EMPTY_MESSAGE;
+const SPOTLIGHT_KUROKO_HIDDEN_DESCRIPTION = WATCH_KUROKO_DEFAULT_DESCRIPTION;
+const SPOTLIGHT_REVEAL_BUTTON_LABEL = '黒子を公開する';
+const SPOTLIGHT_REVEAL_CAPTION = '黒子を公開すると判定が確定します。元に戻せません。';
+const SPOTLIGHT_REVEAL_COMPLETED_CAPTION = '黒子は既に公開済みです。';
+const SPOTLIGHT_REVEAL_UNAVAILABLE_CAPTION = '公開できる黒子がありません。';
+const SPOTLIGHT_REVEAL_CONFIRM_TITLE = '黒子を公開';
+const SPOTLIGHT_REVEAL_CONFIRM_MESSAGE = '黒子のカードを公開します。公開後は取り消せません。';
+const SPOTLIGHT_REVEAL_CONFIRM_OK_LABEL = 'OK';
+const SPOTLIGHT_REVEAL_CONFIRM_CANCEL_LABEL = 'キャンセル';
 
 const createWatchDecisionConfirmMessage = (decision: WatchDecision, playerName: string): string => {
   const base = WATCH_DECISION_CONFIRM_MESSAGES[decision];
@@ -1257,6 +1273,80 @@ const mapWatchStage = (state: GameState): WatchStageViewModel => {
   };
 };
 
+const findLatestSpotlightPair = (state: GameState): StagePair | null => {
+  const activePlayer = state.players[state.activePlayer];
+  const activePair = findLatestCompleteStagePair(activePlayer?.stage);
+
+  if (activePair) {
+    return activePair;
+  }
+
+  const opponentId = getOpponentId(state.activePlayer);
+  const opponent = state.players[opponentId];
+  return findLatestCompleteStagePair(opponent?.stage);
+};
+
+const mapSpotlightStage = (state: GameState): SpotlightStageViewModel => {
+  const targetPair = findLatestSpotlightPair(state);
+  const actorPlacement = targetPair?.actor ?? null;
+  const kurokoPlacement = targetPair?.kuroko ?? null;
+
+  const actorCard = actorPlacement?.card ?? null;
+  const kurokoCard = kurokoPlacement?.card ?? null;
+
+  const kurokoFaceLabel = kurokoCard?.face === 'up' ? '表' : '裏';
+
+  return {
+    actorLabel: WATCH_ACTOR_LABEL,
+    actorCard: actorCard
+      ? {
+          rank: actorCard.rank,
+          suit: actorCard.suit,
+          faceDown: actorCard.face === 'down',
+          annotation: actorCard.annotation,
+          description: formatCardLabel(actorCard),
+        }
+      : null,
+    actorEmptyMessage: SPOTLIGHT_STAGE_EMPTY_MESSAGE,
+    kurokoLabel: `黒子（${kurokoFaceLabel}）`,
+    kurokoCard: kurokoCard
+      ? {
+          rank: kurokoCard.rank,
+          suit: kurokoCard.suit,
+          faceDown: kurokoCard.face === 'down',
+          annotation: kurokoCard.annotation,
+          description:
+            kurokoCard.face === 'up'
+              ? formatCardLabel(kurokoCard)
+              : SPOTLIGHT_KUROKO_HIDDEN_DESCRIPTION,
+        }
+      : null,
+    kurokoEmptyMessage: SPOTLIGHT_STAGE_EMPTY_MESSAGE,
+  };
+};
+
+const canRevealSpotlightKuroko = (state: GameState): boolean => {
+  const targetPair = findLatestSpotlightPair(state);
+  if (!targetPair?.actor?.card || !targetPair.kuroko?.card) {
+    return false;
+  }
+
+  return targetPair.kuroko.card.face === 'down';
+};
+
+const mapSpotlightRevealCaption = (state: GameState): string | null => {
+  const targetPair = findLatestSpotlightPair(state);
+  if (!targetPair?.kuroko?.card) {
+    return SPOTLIGHT_REVEAL_UNAVAILABLE_CAPTION;
+  }
+
+  if (targetPair.kuroko.card.face === 'down') {
+    return SPOTLIGHT_REVEAL_CAPTION;
+  }
+
+  return SPOTLIGHT_REVEAL_COMPLETED_CAPTION;
+};
+
 const getRemainingWatchCount = (state: GameState): number | null => {
   const watchState = state.watch;
   if (watchState && typeof watchState === 'object') {
@@ -1417,6 +1507,7 @@ const completeWatchDecision = (decision: WatchDecision): CompleteWatchDecisionRe
 
 let isWatchDecisionInProgress = false;
 let isWatchResultDialogOpen = false;
+let isSpotlightRevealInProgress = false;
 
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
@@ -1557,6 +1648,176 @@ const requestWatchDeclaration = (decision: WatchDecision): void => {
   }
 
   openWatchConfirmDialog(decision);
+};
+
+interface RevealSpotlightKurokoResult {
+  judge: StageJudgeResult;
+  actorCard: CardSnapshot;
+  kurokoCard: CardSnapshot;
+}
+
+const revealSpotlightKuroko = (): RevealSpotlightKurokoResult | null => {
+  let result: RevealSpotlightKurokoResult | null = null;
+
+  gameStore.setState((current) => {
+    const targetPair = findLatestSpotlightPair(current);
+    if (!targetPair?.actor?.card || !targetPair.kuroko?.card) {
+      return current;
+    }
+
+    if (targetPair.kuroko.card.face === 'up') {
+      return current;
+    }
+
+    const owner = current.players[targetPair.owner];
+    if (!owner) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const actorCard = cloneCardSnapshot(targetPair.actor.card);
+    const kurokoCard = cloneCardSnapshot(targetPair.kuroko.card);
+    kurokoCard.face = 'up';
+
+    const judge: StageJudgeResult = actorCard.rank === kurokoCard.rank ? 'match' : 'mismatch';
+
+    const nextPairs = owner.stage.pairs.map((pair) => {
+      if (pair.id !== targetPair.id) {
+        return pair;
+      }
+
+      return {
+        ...pair,
+        judge,
+        kuroko: pair.kuroko
+          ? {
+              ...pair.kuroko,
+              card: kurokoCard,
+              revealedAt: timestamp,
+            }
+          : undefined,
+      };
+    });
+
+    result = {
+      judge,
+      actorCard,
+      kurokoCard,
+    };
+
+    return {
+      ...current,
+      players: {
+        ...current.players,
+        [targetPair.owner]: {
+          ...owner,
+          stage: {
+            ...owner.stage,
+            pairs: nextPairs,
+          },
+        },
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  return result;
+};
+
+const createSpotlightRevealConfirmBody = (playerName: string): HTMLElement => {
+  const container = document.createElement('div');
+
+  const message = document.createElement('p');
+  message.textContent = `${playerName}のターンです。${SPOTLIGHT_REVEAL_CONFIRM_MESSAGE}`;
+  container.append(message);
+
+  return container;
+};
+
+const finalizeSpotlightReveal = (): void => {
+  if (isSpotlightRevealInProgress) {
+    console.warn('黒子公開処理が進行中です。');
+    return;
+  }
+
+  const stateBefore = gameStore.getState();
+  if (!canRevealSpotlightKuroko(stateBefore)) {
+    console.warn('公開可能な黒子が見つかりません。');
+    return;
+  }
+
+  const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
+  isSpotlightRevealInProgress = true;
+
+  const result = revealSpotlightKuroko();
+
+  isSpotlightRevealInProgress = false;
+
+  if (!result) {
+    console.warn('黒子の公開に失敗しました。状態を確認してください。');
+    return;
+  }
+
+  const latest = gameStore.getState();
+  saveLatestGame(latest);
+
+  const summary = `${playerName}が黒子を公開しました：役者=${formatCardLabel(
+    result.actorCard,
+  )}／黒子=${formatCardLabel(result.kurokoCard)}｜判定=${
+    result.judge === 'match' ? '一致' : '不一致'
+  }`;
+
+  if (typeof window === 'undefined') {
+    console.info(summary);
+    return;
+  }
+
+  console.info(summary);
+};
+
+const openSpotlightRevealConfirmDialog = (): void => {
+  if (isSpotlightRevealInProgress) {
+    return;
+  }
+
+  const state = gameStore.getState();
+  if (!canRevealSpotlightKuroko(state)) {
+    console.warn('公開可能な黒子が見つかりません。');
+    return;
+  }
+
+  const playerName = getPlayerDisplayName(state, state.activePlayer);
+
+  if (typeof window === 'undefined') {
+    finalizeSpotlightReveal();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    finalizeSpotlightReveal();
+    return;
+  }
+
+  modal.open({
+    title: SPOTLIGHT_REVEAL_CONFIRM_TITLE,
+    body: createSpotlightRevealConfirmBody(playerName),
+    dismissible: false,
+    actions: [
+      {
+        label: SPOTLIGHT_REVEAL_CONFIRM_CANCEL_LABEL,
+        variant: 'ghost',
+      },
+      {
+        label: SPOTLIGHT_REVEAL_CONFIRM_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => finalizeSpotlightReveal(),
+      },
+    ],
+  });
 };
 
 const createStagePairId = (timestamp: number): string => {
@@ -2025,6 +2286,7 @@ const clearScoutSecretState = (): void => {
 let activeScoutCleanup: (() => void) | null = null;
 let activeActionCleanup: (() => void) | null = null;
 let activeWatchCleanup: (() => void) | null = null;
+let activeSpotlightCleanup: (() => void) | null = null;
 
 const cleanupActiveScoutView = (): void => {
   if (activeScoutCleanup) {
@@ -2057,6 +2319,15 @@ const cleanupActiveWatchView = (): void => {
   }
 };
 
+const cleanupActiveSpotlightView = (): void => {
+  if (activeSpotlightCleanup) {
+    const cleanup = activeSpotlightCleanup;
+    activeSpotlightCleanup = null;
+    cleanup();
+    isSpotlightRevealInProgress = false;
+  }
+};
+
 const withRouteCleanup = (
   render: (context: RouteContext) => HTMLElement,
 ): ((context: RouteContext) => HTMLElement) => {
@@ -2064,6 +2335,7 @@ const withRouteCleanup = (
     cleanupActiveScoutView();
     cleanupActiveActionView();
     cleanupActiveWatchView();
+    cleanupActiveSpotlightView();
     return render(context);
   };
 };
@@ -2570,6 +2842,39 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           });
 
           activeWatchCleanup = () => {
+            unsubscribe();
+          };
+
+          return view;
+        },
+      };
+    } else if (route.path === '#/phase/spotlight') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: () => {
+          const state = gameStore.getState();
+          const view = createSpotlightView({
+            title: route.heading,
+            stage: mapSpotlightStage(state),
+            boardCheckLabel: SPOTLIGHT_BOARD_CHECK_LABEL,
+            helpLabel: SPOTLIGHT_HELP_BUTTON_LABEL,
+            helpAriaLabel: SPOTLIGHT_HELP_ARIA_LABEL,
+            revealLabel: SPOTLIGHT_REVEAL_BUTTON_LABEL,
+            revealDisabled: !canRevealSpotlightKuroko(state),
+            revealCaption: mapSpotlightRevealCaption(state) ?? undefined,
+            onReveal: () => openSpotlightRevealConfirmDialog(),
+            onOpenBoardCheck: () => showBoardCheck(),
+            onOpenHelp: () => openRulebookHelp(),
+          });
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            view.updateStage(mapSpotlightStage(nextState));
+            view.setRevealDisabled(!canRevealSpotlightKuroko(nextState));
+            view.updateRevealCaption(mapSpotlightRevealCaption(nextState));
+          });
+
+          activeSpotlightCleanup = () => {
             unsubscribe();
           };
 
