@@ -870,6 +870,7 @@ const openScoutPickConfirmDialog = (): void => {
         label: SCOUT_PICK_CONFIRM_OK_LABEL,
         variant: 'primary',
         preventRapid: true,
+        dismiss: false,
         onSelect: () => finalizeScoutPick(),
       },
     ],
