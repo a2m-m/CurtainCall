@@ -147,13 +147,21 @@ const renderOverviewTab = (state: GameState): HTMLElement => {
       player.takenByOpponent.forEach((card) => {
         const item = document.createElement('li');
         item.className = 'board-check__card-item';
+
         const cardComponent = new CardComponent({
           rank: card.rank,
           suit: card.suit,
-          faceDown: card.face !== 'up',
+          faceDown: false,
           annotation: card.annotation,
         });
-        item.append(cardComponent.el);
+        const cardLabel = formatCardLabel(card);
+        cardComponent.el.setAttribute('aria-label', cardLabel);
+
+        const label = document.createElement('span');
+        label.className = 'board-check__card-label';
+        label.textContent = cardLabel;
+
+        item.append(cardComponent.el, label);
         list.append(item);
       });
       playerBlock.append(list);

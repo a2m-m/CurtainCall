@@ -1859,7 +1859,6 @@ const finalizeActionPlacement = (): void => {
     stateBefore,
     getOpponentId(stateBefore.activePlayer),
   );
-
   isActionConfirmInProgress = true;
 
   const result = completeActionPlacement();
