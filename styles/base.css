@@ -1092,6 +1092,10 @@ p {
   display: block;
 }
 
+.board-check__panel[hidden] {
+  display: none;
+}
+
 .board-check__content {
   display: grid;
   gap: 1.5rem;
