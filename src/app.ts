@@ -13,7 +13,7 @@ import {
   ResultHistoryEntry,
   saveLatestGame,
 } from './storage.js';
-import { createInitialState, gameStore, PLAYER_IDS } from './state.js';
+import { createInitialState, createInitialWatchState, gameStore, PLAYER_IDS } from './state.js';
 import type {
   CardSnapshot,
   GameState,
@@ -22,6 +22,7 @@ import type {
   PlayerState,
   StageCardPlacement,
   StagePair,
+  WatchDecision,
 } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
@@ -150,10 +151,34 @@ const WATCH_FORCED_BADGE_LABEL = 'ブーイング必須';
 const WATCH_CLAP_DISABLED_MESSAGE = '残り機会的にブーイングが必要です';
 const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されていません。';
 const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
-const WATCH_ACTION_PLACEHOLDER_MESSAGES = Object.freeze({
-  clap: 'クラップの宣言処理はまだ実装されていません。',
-  boo: 'ブーイングの宣言処理はまだ実装されていません。',
-});
+const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
+const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight/gate';
+const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
+  clap: 'クラップの宣言',
+  boo: 'ブーイングの宣言',
+} as const);
+const WATCH_DECISION_CONFIRM_MESSAGES = Object.freeze({
+  clap: 'クラップを宣言します。確定すると元に戻せません。',
+  boo: 'ブーイングを宣言します。確定すると元に戻せません。',
+} as const);
+const WATCH_DECISION_CONFIRM_OK_LABEL = 'OK';
+const WATCH_DECISION_CONFIRM_CANCEL_LABEL = 'キャンセル';
+const WATCH_RESULT_TITLES = Object.freeze({
+  clap: 'クラップ！',
+  boo: 'ブーイング！',
+} as const);
+const WATCH_RESULT_MESSAGES = Object.freeze({
+  clap: 'クラップを宣言しました。インターミッションへ進みます。',
+  boo: 'ブーイングを宣言しました。スポットライトへ進みます。',
+} as const);
+const WATCH_RESULT_CAPTIONS = Object.freeze({
+  clap: '端末が相手に見えないことを確認し、インターミッションへ進みましょう。',
+  boo: '端末が相手に見えないことを確認し、スポットライトへ進みましょう。',
+} as const);
+const WATCH_RESULT_OK_LABELS = Object.freeze({
+  clap: 'インターミッションへ',
+  boo: 'スポットライトへ',
+} as const);
 
 let lastActionGuardMessage: string | null = null;
 
@@ -1192,25 +1217,236 @@ const mapWatchStatus = (state: GameState): WatchStatusViewModel => {
   };
 };
 
-const notifyWatchActionPlaceholder = (
-  action: keyof typeof WATCH_ACTION_PLACEHOLDER_MESSAGES,
-): void => {
-  const message = WATCH_ACTION_PLACEHOLDER_MESSAGES[action];
-  if (!message) {
-    return;
-  }
-
+const notifyWatchClapForced = (): void => {
   if (typeof window === 'undefined') {
-    console.info(message);
+    console.warn(WATCH_CLAP_DISABLED_MESSAGE);
     return;
   }
 
   const toast = window.curtainCall?.toast;
   if (toast) {
-    toast.show({ message, variant: 'info' });
+    toast.show({ message: WATCH_CLAP_DISABLED_MESSAGE, variant: 'warning' });
   } else {
-    console.info(message);
+    console.warn(WATCH_CLAP_DISABLED_MESSAGE);
   }
+};
+
+const navigateFromWatchTo = (path: string): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(path);
+  } else {
+    window.location.hash = path;
+  }
+};
+
+const createWatchResultContent = (decision: WatchDecision): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'watch-complete';
+
+  const message = document.createElement('p');
+  message.className = 'watch-complete__message';
+  message.textContent = WATCH_RESULT_MESSAGES[decision];
+  container.append(message);
+
+  const caption = document.createElement('p');
+  caption.className = 'watch-complete__caption';
+  caption.textContent = WATCH_RESULT_CAPTIONS[decision];
+  container.append(caption);
+
+  return container;
+};
+
+interface CompleteWatchDecisionResult {
+  decision: WatchDecision;
+  nextRoute: string;
+}
+
+const WATCH_DECISION_TO_PATH: Record<WatchDecision, string> = {
+  clap: WATCH_TO_INTERMISSION_PATH,
+  boo: WATCH_TO_SPOTLIGHT_PATH,
+};
+
+const completeWatchDecision = (
+  decision: WatchDecision,
+): CompleteWatchDecisionResult | null => {
+  let result: CompleteWatchDecisionResult | null = null;
+
+  gameStore.setState((current) => {
+    const player = current.players[current.activePlayer];
+    if (!player) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const nextRoute = WATCH_DECISION_TO_PATH[decision];
+    const nextPlayer: PlayerState = {
+      ...player,
+      clapCount: decision === 'clap' ? player.clapCount + 1 : player.clapCount,
+      booCount: decision === 'boo' ? player.booCount + 1 : player.booCount,
+    };
+
+    const previousWatchState = current.watch ?? createInitialWatchState();
+
+    result = { decision, nextRoute };
+
+    return {
+      ...current,
+      players: {
+        ...current.players,
+        [current.activePlayer]: nextPlayer,
+      },
+      watch: {
+        ...previousWatchState,
+        decision,
+        nextRoute,
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  return result;
+};
+
+let isWatchDecisionInProgress = false;
+let isWatchResultDialogOpen = false;
+
+const showWatchResultDialog = ({
+  decision,
+  nextRoute,
+}: CompleteWatchDecisionResult): void => {
+  const summary = `${WATCH_RESULT_TITLES[decision]} ${WATCH_RESULT_MESSAGES[decision]}`;
+
+  const finalize = (): void => {
+    isWatchResultDialogOpen = false;
+    const latest = gameStore.getState();
+    saveLatestGame(latest);
+    navigateFromWatchTo(nextRoute);
+  };
+
+  if (isWatchResultDialogOpen) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    console.info(summary);
+    finalize();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.info(summary);
+    finalize();
+    return;
+  }
+
+  const openDialog = (): void => {
+    const body = createWatchResultContent(decision);
+    isWatchResultDialogOpen = true;
+    modal.open({
+      title: WATCH_RESULT_TITLES[decision],
+      body,
+      dismissible: false,
+      actions: [
+        {
+          label: WATCH_RESULT_OK_LABELS[decision],
+          variant: 'primary',
+          preventRapid: true,
+          dismiss: false,
+          onSelect: () => {
+            modal.close();
+            finalize();
+          },
+        },
+      ],
+    });
+  };
+
+  if (modal.opened) {
+    modal.close();
+    window.requestAnimationFrame(() => openDialog());
+    return;
+  }
+
+  openDialog();
+};
+
+const finalizeWatchDecision = (decision: WatchDecision): void => {
+  if (isWatchDecisionInProgress) {
+    console.warn('ウォッチの宣言処理が進行中です。');
+    return;
+  }
+
+  isWatchDecisionInProgress = true;
+
+  const result = completeWatchDecision(decision);
+
+  if (!result) {
+    isWatchDecisionInProgress = false;
+    console.warn('宣言処理を完了できませんでした。状態を確認してください。');
+    return;
+  }
+
+  if (typeof window !== 'undefined') {
+    window.curtainCall?.modal?.close();
+  }
+
+  isWatchDecisionInProgress = false;
+  showWatchResultDialog(result);
+};
+
+const openWatchConfirmDialog = (decision: WatchDecision): void => {
+  if (isWatchDecisionInProgress || isWatchResultDialogOpen) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    finalizeWatchDecision(decision);
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    finalizeWatchDecision(decision);
+    return;
+  }
+
+  const title = WATCH_DECISION_CONFIRM_TITLES[decision];
+  const message = WATCH_DECISION_CONFIRM_MESSAGES[decision];
+
+  modal.open({
+    title,
+    body: message,
+    dismissible: false,
+    actions: [
+      {
+        label: WATCH_DECISION_CONFIRM_CANCEL_LABEL,
+        variant: 'ghost',
+      },
+      {
+        label: WATCH_DECISION_CONFIRM_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => finalizeWatchDecision(decision),
+      },
+    ],
+  });
+};
+
+const requestWatchDeclaration = (decision: WatchDecision): void => {
+  const status = mapWatchStatus(gameStore.getState());
+  if (decision === 'clap' && status.forced) {
+    notifyWatchClapForced();
+    return;
+  }
+
+  openWatchConfirmDialog(decision);
 };
 
 const createStagePairId = (timestamp: number): string => {
@@ -1309,6 +1545,11 @@ const completeActionPlacement = (): CompleteActionPlacementResult => {
         selectedCardId: null,
         actorCardId: null,
         kurokoCardId: null,
+      },
+      watch: {
+        ...(current.watch ?? createInitialWatchState()),
+        decision: null,
+        nextRoute: null,
       },
       revision: current.revision + 1,
       updatedAt: timestamp,
@@ -2159,8 +2400,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             helpAriaLabel: WATCH_HELP_ARIA_LABEL,
             clapLabel: WATCH_CLAP_BUTTON_LABEL,
             booLabel: WATCH_BOO_BUTTON_LABEL,
-            onClap: () => notifyWatchActionPlaceholder('clap'),
-            onBoo: () => notifyWatchActionPlaceholder('boo'),
+            onClap: () => requestWatchDeclaration('clap'),
+            onBoo: () => requestWatchDeclaration('boo'),
             onOpenBoardCheck: () => showBoardCheck(),
             onOpenMyHand: () => openScoutMyHandDialog(),
             onOpenHelp: () => openRulebookHelp(),
