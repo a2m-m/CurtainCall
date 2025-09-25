@@ -23,8 +23,9 @@ export interface WatchStatusViewModel {
   turnLabel: string;
   booLabel: string;
   remainingLabel: string;
-  forced: boolean;
-  forcedLabel?: string;
+  warning: boolean;
+  warningLabel?: string;
+  warningMessage?: string;
   clapDisabled: boolean;
   clapDisabledReason?: string;
 }
@@ -52,7 +53,7 @@ export interface WatchViewElement extends HTMLElement {
 }
 
 const DEFAULT_EMPTY_MESSAGE = 'カードが配置されていません。';
-const DEFAULT_FORCED_LABEL = 'ブーイング必須';
+const DEFAULT_WARNING_LABEL = 'ブーイング不足注意';
 const DEFAULT_CLAP_LABEL = 'クラップ（同数）';
 const DEFAULT_BOO_LABEL = 'ブーイング（異なる）';
 
@@ -212,10 +213,15 @@ export const createWatchView = (options: WatchViewOptions): WatchViewElement => 
   remainingItem.className = 'watch-status__item';
   statusBar.append(remainingItem);
 
-  const forcedBadge = document.createElement('span');
-  forcedBadge.className = 'watch-status__badge';
-  forcedBadge.hidden = true;
-  statusBar.append(forcedBadge);
+  const warningBadge = document.createElement('span');
+  warningBadge.className = 'watch-status__badge';
+  warningBadge.hidden = true;
+  statusBar.append(warningBadge);
+
+  const warningMessage = document.createElement('p');
+  warningMessage.className = 'watch-status__warning';
+  warningMessage.hidden = true;
+  statusBar.append(warningMessage);
 
   const stageSection = document.createElement('section');
   stageSection.className = 'watch-stage';
@@ -260,13 +266,23 @@ export const createWatchView = (options: WatchViewOptions): WatchViewElement => 
     booItem.textContent = status.booLabel;
     remainingItem.textContent = status.remainingLabel;
 
-    const forcedLabel = status.forcedLabel ?? DEFAULT_FORCED_LABEL;
-    forcedBadge.textContent = forcedLabel;
-    forcedBadge.hidden = !status.forced;
+    const warningLabel = status.warningLabel ?? DEFAULT_WARNING_LABEL;
+    warningBadge.textContent = warningLabel;
+    warningBadge.hidden = !status.warning;
+
+    if (status.warning && status.warningMessage) {
+      warningMessage.textContent = status.warningMessage;
+      warningMessage.hidden = false;
+    } else {
+      warningMessage.textContent = '';
+      warningMessage.hidden = true;
+    }
 
     clapButton.setDisabled(Boolean(status.clapDisabled));
     if (status.clapDisabled && status.clapDisabledReason) {
       clapButton.el.title = status.clapDisabledReason;
+    } else if (status.warning && status.warningMessage) {
+      clapButton.el.title = status.warningMessage;
     } else {
       clapButton.el.removeAttribute('title');
     }

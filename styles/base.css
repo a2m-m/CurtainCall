@@ -975,6 +975,14 @@ p {
   display: none;
 }
 
+.watch-status__warning {
+  margin: 0;
+  flex-basis: 100%;
+  font-size: 0.9rem;
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
 .watch-stage {
   padding: clamp(1.75rem, 2.5vw, 2.5rem);
   border-radius: 28px;

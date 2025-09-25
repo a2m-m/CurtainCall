@@ -150,8 +150,8 @@ const WATCH_ACTOR_LABEL = '役者（表）';
 const WATCH_KUROKO_LABEL = '黒子（裏）';
 const WATCH_REQUIRED_BOO_COUNT = 3;
 const WATCH_REMAINING_PLACEHOLDER = '—';
-const WATCH_FORCED_BADGE_LABEL = 'ブーイング必須';
-const WATCH_CLAP_DISABLED_MESSAGE = '残り機会的にブーイングが必要です';
+const WATCH_WARNING_BADGE_LABEL = 'ブーイング不足注意';
+const WATCH_CLAP_WARNING_MESSAGE = '残り機会的にブーイングが必要です';
 const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されていません。';
 const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
 const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
@@ -1235,7 +1235,7 @@ const mapWatchStatus = (state: GameState): WatchStatusViewModel => {
   const booCount = player?.booCount ?? 0;
   const remaining = getRemainingWatchCount(state);
   const needed = Math.max(0, WATCH_REQUIRED_BOO_COUNT - booCount);
-  const forced = remaining !== null && needed >= remaining;
+  const warning = remaining !== null && needed >= remaining;
 
   const turnLabel = `ターン：#${state.turn.count}`;
   const booLabel = `あなたのブーイング：${booCount} / ${WATCH_REQUIRED_BOO_COUNT}`;
@@ -1247,24 +1247,24 @@ const mapWatchStatus = (state: GameState): WatchStatusViewModel => {
     turnLabel,
     booLabel,
     remainingLabel,
-    forced,
-    forcedLabel: WATCH_FORCED_BADGE_LABEL,
-    clapDisabled: forced,
-    clapDisabledReason: forced ? WATCH_CLAP_DISABLED_MESSAGE : undefined,
+    warning,
+    warningLabel: WATCH_WARNING_BADGE_LABEL,
+    warningMessage: warning ? WATCH_CLAP_WARNING_MESSAGE : undefined,
+    clapDisabled: false,
   };
 };
 
-const notifyWatchClapForced = (): void => {
+const notifyWatchClapWarning = (): void => {
   if (typeof window === 'undefined') {
-    console.warn(WATCH_CLAP_DISABLED_MESSAGE);
+    console.warn(WATCH_CLAP_WARNING_MESSAGE);
     return;
   }
 
   const toast = window.curtainCall?.toast;
   if (toast) {
-    toast.show({ message: WATCH_CLAP_DISABLED_MESSAGE, variant: 'warning' });
+    toast.show({ message: WATCH_CLAP_WARNING_MESSAGE, variant: 'warning' });
   } else {
-    console.warn(WATCH_CLAP_DISABLED_MESSAGE);
+    console.warn(WATCH_CLAP_WARNING_MESSAGE);
   }
 };
 
@@ -1478,9 +1478,8 @@ const openWatchConfirmDialog = (decision: WatchDecision): void => {
 
 const requestWatchDeclaration = (decision: WatchDecision): void => {
   const status = mapWatchStatus(gameStore.getState());
-  if (decision === 'clap' && status.forced) {
-    notifyWatchClapForced();
-    return;
+  if (decision === 'clap' && status.warning && status.warningMessage) {
+    notifyWatchClapWarning();
   }
 
   openWatchConfirmDialog(decision);
