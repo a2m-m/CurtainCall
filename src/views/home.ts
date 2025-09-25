@@ -78,6 +78,8 @@ const createResumeAction = (
   }
 
   const details = options?.details;
+  const labelText = resume.button.el.textContent ?? '';
+  const ariaDetailParts: string[] = [];
 
   if (details) {
     const list = document.createElement('div');
@@ -88,6 +90,7 @@ const createResumeAction = (
       summary.className = 'home__resume-summary';
       summary.textContent = details.summary;
       list.append(summary);
+      ariaDetailParts.push(details.summary);
     }
 
     if (details.savedAt) {
@@ -95,6 +98,7 @@ const createResumeAction = (
       savedAt.className = 'home__resume-saved';
       savedAt.textContent = details.savedAt;
       list.append(savedAt);
+      ariaDetailParts.push(details.savedAt);
     }
 
     if (list.childElementCount > 0) {
@@ -104,6 +108,12 @@ const createResumeAction = (
       resume.container.classList.add('home__action--with-details');
       resume.container.append(list);
     }
+  }
+
+  if (ariaDetailParts.length > 0) {
+    const joinedDetails = ariaDetailParts.join('／');
+    const ariaLabel = labelText ? `${labelText}（${joinedDetails}）` : joinedDetails;
+    resume.button.el.setAttribute('aria-label', ariaLabel);
   }
 
   return resume;

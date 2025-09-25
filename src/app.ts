@@ -1129,7 +1129,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             },
             resume: {
               onSelect: () => router.go(HOME_RESUME_GATE_PATH),
-              disabled: !resumeMeta,
+              hidden: !resumeMeta,
               details: resumeDetails,
             },
             history: {
