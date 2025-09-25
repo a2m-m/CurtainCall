@@ -2759,9 +2759,11 @@ const handleIntermissionGatePass = (router: Router): void => {
     const timestamp = Date.now();
     const currentTurn = current.turn ?? { count: 0, startedAt: timestamp };
     const previousWatchState = current.watch ?? createInitialWatchState();
+    const nextActivePlayerId = getOpponentId(current.activePlayer);
 
     return {
       ...current,
+      activePlayer: nextActivePlayerId,
       turn: {
         count: currentTurn.count + 1,
         startedAt: timestamp,
