@@ -108,7 +108,7 @@ const formatCardLabel = (card: CardSnapshot): string => {
 };
 
 const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
-  `${formatCardLabel(card)}のカードを引きました！アクションフェーズへ移行します`;
+  `${formatCardLabel(card)}を引きました！アクションフェーズへ移行します`;
 
 const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
   id: card.id,
@@ -653,47 +653,66 @@ const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
 
   container.append(preview);
 
-  return container;
-};
+  const caption = document.createElement('p');
+  caption.className = 'scout-complete__caption';
+  caption.textContent = 'アクションフェーズへ移行します。';
+  preview.append(caption);
+
+
+let isScoutResultDialogOpen = false;
 
 const showScoutPickResultDialog = (card: CardSnapshot): void => {
   const message = createScoutPickSuccessMessage(card);
 
-  if (typeof window === 'undefined') {
-    console.info(message);
+  const finalize = (): void => {
+    isScoutResultDialogOpen = false;
     isScoutPickInProgress = false;
     navigateToActionPhase();
+  };
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    finalize();
     return;
   }
 
   const modal = window.curtainCall?.modal;
   if (!modal) {
     console.info(message);
-    isScoutPickInProgress = false;
-    navigateToActionPhase();
+    finalize();
     return;
   }
 
-  const body = createScoutPickResultContent(card);
+  const openDialog = (): void => {
+    const body = createScoutPickResultContent(card);
+    isScoutResultDialogOpen = true;
 
-  modal.open({
-    title: SCOUT_PICK_RESULT_TITLE,
-    body,
-    dismissible: false,
-    actions: [
-      {
-        label: SCOUT_PICK_RESULT_OK_LABEL,
-        variant: 'primary',
-        preventRapid: true,
-        dismiss: false,
-        onSelect: () => {
-          modal.close();
-          isScoutPickInProgress = false;
-          navigateToActionPhase();
+    modal.open({
+      title: SCOUT_PICK_RESULT_TITLE,
+      body,
+      dismissible: false,
+      actions: [
+        {
+          label: SCOUT_PICK_RESULT_OK_LABEL,
+          variant: 'primary',
+          preventRapid: true,
+          dismiss: false,
+          onSelect: () => {
+            modal.close();
+            finalize();
+          },
         },
-      },
-    ],
-  });
+      ],
+    });
+  };
+
+  if (modal.opened) {
+    modal.close();
+    window.requestAnimationFrame(() => openDialog());
+    return;
+  }
+
+  openDialog();
 };
 
 const navigateToActionPhase = (): void => {
@@ -911,6 +930,7 @@ const clearScoutSecretState = (): void => {
   });
 
   isScoutPickInProgress = false;
+  isScoutResultDialogOpen = false;
 };
 
 let activeScoutCleanup: (() => void) | null = null;
@@ -1240,7 +1260,11 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           let hasTriggeredAutoAdvance = false;
 
           const triggerAutoAdvance = (): void => {
-            if (hasTriggeredAutoAdvance || isScoutPickInProgress) {
+            if (
+              hasTriggeredAutoAdvance ||
+              isScoutPickInProgress ||
+              isScoutResultDialogOpen
+            ) {
               return;
             }
             hasTriggeredAutoAdvance = true;
