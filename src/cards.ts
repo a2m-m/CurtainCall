@@ -131,6 +131,20 @@ export type DealOptions = ShuffleOptions;
 export const dealInitialSetup = (options: DealOptions = {}): InitialDealResult => {
   const deck = shuffleCards(createStandardDeck(), options);
 
+  const setSize = CARD_COMPOSITION.set;
+  if (setSize <= 0) {
+    throw new Error('セットの枚数が不正です。');
+  }
+
+  const jokerIndex = deck.findIndex((card) => card.rank === 'JOKER');
+  if (jokerIndex === -1) {
+    throw new Error('初期デッキにJOKERが含まれていません。');
+  }
+
+  if (jokerIndex >= setSize) {
+    swap(deck, jokerIndex, setSize - 1);
+  }
+
   const setCards = deck.slice(0, CARD_COMPOSITION.set).map<SetCardState>((card, index) => ({
     id: `set-${String(index + 1).padStart(2, '0')}`,
     card,
