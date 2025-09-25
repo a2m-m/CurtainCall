@@ -99,6 +99,7 @@ const SCOUT_MY_HAND_SECTION_TITLE = '現在の手札';
 const SCOUT_MY_HAND_EMPTY_MESSAGE = '手札はありません。';
 const SCOUT_MY_HAND_RECENT_TITLE = '最近あなたから取られたカード';
 const SCOUT_MY_HAND_RECENT_EMPTY_MESSAGE = 'なし';
+const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
 const SCOUT_HELP_BUTTON_LABEL = '？';
 const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
 
@@ -748,11 +749,23 @@ const completeScoutPick = (): CardSnapshot | null => {
     const timestamp = Date.now();
     const transferredCard = cloneCardSnapshot(sourceCard);
     const recentCard = cloneCardSnapshot(sourceCard);
+    const takenHistoryCard = cloneCardSnapshot(sourceCard);
 
     const nextOpponentCards = opponent.hand.cards.filter(
       (_card, index) => index !== selectedIndex,
     );
     const nextPlayerCards = [...activePlayer.hand.cards, transferredCard];
+    const nextOpponentTakenHistory = [
+      ...opponent.takenByOpponent,
+      takenHistoryCard,
+    ];
+    const trimmedOpponentTakenHistory =
+      SCOUT_RECENT_TAKEN_HISTORY_LIMIT > 0 &&
+      nextOpponentTakenHistory.length > SCOUT_RECENT_TAKEN_HISTORY_LIMIT
+        ? nextOpponentTakenHistory.slice(
+            nextOpponentTakenHistory.length - SCOUT_RECENT_TAKEN_HISTORY_LIMIT,
+          )
+        : nextOpponentTakenHistory;
 
     pickedCard = recentCard;
 
@@ -773,6 +786,7 @@ const completeScoutPick = (): CardSnapshot | null => {
             ...opponent.hand,
             cards: nextOpponentCards,
           },
+          takenByOpponent: trimmedOpponentTakenHistory,
         },
       },
       scout: {
