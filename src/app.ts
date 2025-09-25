@@ -88,9 +88,6 @@ const SCOUT_PICK_CONFIRM_MESSAGE = 'このカードを引いて手札に加え�
 const SCOUT_PICK_CONFIRM_OK_LABEL = 'OK';
 const SCOUT_PICK_CONFIRM_CANCEL_LABEL = 'キャンセル';
 
-const SCOUT_COMPLETE_TITLE = 'スカウト完了';
-const SCOUT_COMPLETE_ACTION_LABEL = 'アクションへ';
-const SCOUT_COMPLETE_CARD_CAPTION = '引いたカード';
 const SCOUT_TO_ACTION_PATH = '#/phase/action';
 const SCOUT_BOARD_CHECK_LABEL = 'ボードチェック';
 const SCOUT_MY_HAND_LABEL = '自分の手札';
@@ -111,10 +108,7 @@ const formatCardLabel = (card: CardSnapshot): string => {
 };
 
 const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
-  `${formatCardLabel(card)}のカードを引きました！`;
-
-const createScoutCompletionDescription = (card: CardSnapshot): string =>
-  `「${formatCardLabel(card)}のカードを引きました！」`;
+  `${formatCardLabel(card)}を引きました！アクションフェーズへ移行します`;
 
 const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
   id: card.id,
@@ -629,48 +623,94 @@ const openHistoryDialog = (): void => {
 
 const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
 
-const showScoutPickToast = (card: CardSnapshot): void => {
-  const message = createScoutPickSuccessMessage(card);
-  if (typeof window === 'undefined') {
-    console.info(message);
-    return;
-  }
-  const toast = window.curtainCall?.toast;
-  if (toast) {
-    toast.show({ message, variant: 'info' });
-  } else {
-    console.info(message);
-  }
-};
+const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
+const SCOUT_PICK_RESULT_OK_LABEL = 'OK';
 
-const createScoutCompletionBody = (card: CardSnapshot): HTMLElement => {
+const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'scout-complete';
 
   const message = document.createElement('p');
   message.className = 'scout-complete__message';
-  message.textContent = createScoutCompletionDescription(card);
+  message.textContent = `${formatCardLabel(card)}を引きました！`;
   container.append(message);
 
   const preview = document.createElement('div');
   preview.className = 'scout-complete__preview';
-  container.append(preview);
 
-  const caption = document.createElement('p');
-  caption.className = 'scout-complete__caption';
-  caption.textContent = SCOUT_COMPLETE_CARD_CAPTION;
-  preview.append(caption);
-
-  const cardComponent = new CardComponent({
+  const cardPreview = new CardComponent({
     rank: card.rank,
     suit: card.suit,
     faceDown: false,
     annotation: card.annotation,
   });
-  cardComponent.el.classList.add('scout-complete__card');
-  preview.append(cardComponent.el);
+  cardPreview.el.classList.add('scout-complete__card');
+  preview.append(cardPreview.el);
+
+  const caption = document.createElement('p');
+  caption.className = 'scout-complete__caption';
+  caption.textContent = 'アクションフェーズへ移行します。';
+  preview.append(caption);
+
+  container.append(preview);
 
   return container;
+};
+
+let isScoutResultDialogOpen = false;
+
+const showScoutPickResultDialog = (card: CardSnapshot): void => {
+  const message = createScoutPickSuccessMessage(card);
+
+  const finalize = (): void => {
+    isScoutResultDialogOpen = false;
+    isScoutPickInProgress = false;
+    navigateToActionPhase();
+  };
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    finalize();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.info(message);
+    finalize();
+    return;
+  }
+
+  const openDialog = (): void => {
+    const body = createScoutPickResultContent(card);
+    isScoutResultDialogOpen = true;
+
+    modal.open({
+      title: SCOUT_PICK_RESULT_TITLE,
+      body,
+      dismissible: false,
+      actions: [
+        {
+          label: SCOUT_PICK_RESULT_OK_LABEL,
+          variant: 'primary',
+          preventRapid: true,
+          dismiss: false,
+          onSelect: () => {
+            modal.close();
+            finalize();
+          },
+        },
+      ],
+    });
+  };
+
+  if (modal.opened) {
+    modal.close();
+    window.requestAnimationFrame(() => openDialog());
+    return;
+  }
+
+  openDialog();
 };
 
 const navigateToActionPhase = (): void => {
@@ -684,39 +724,6 @@ const navigateToActionPhase = (): void => {
     router.go(SCOUT_TO_ACTION_PATH);
   } else {
     window.location.hash = SCOUT_TO_ACTION_PATH;
-  }
-};
-
-const openScoutCompletionDialog = (card: CardSnapshot): void => {
-  if (typeof window === 'undefined') {
-    navigateToActionPhase();
-    return;
-  }
-
-  const modal = window.curtainCall?.modal;
-  if (!modal) {
-    console.warn('スカウト完了ダイアログを表示するモーダルが初期化されていません。');
-    navigateToActionPhase();
-    return;
-  }
-
-  try {
-    modal.open({
-      title: SCOUT_COMPLETE_TITLE,
-      body: createScoutCompletionBody(card),
-      dismissible: false,
-      actions: [
-        {
-          label: SCOUT_COMPLETE_ACTION_LABEL,
-          variant: 'primary',
-          preventRapid: true,
-          onSelect: () => navigateToActionPhase(),
-        },
-      ],
-    });
-  } catch (error) {
-    console.warn('スカウト完了ダイアログの表示に失敗しました。代わりに次フェーズへ遷移します。', error);
-    navigateToActionPhase();
   }
 };
 
@@ -812,8 +819,10 @@ const finalizeScoutPick = (): void => {
 
   const card = completeScoutPick();
   if (card) {
-    showScoutPickToast(card);
-    openScoutCompletionDialog(card);
+    if (typeof window !== 'undefined') {
+      window.curtainCall?.modal?.close();
+    }
+    showScoutPickResultDialog(card);
   } else {
     isScoutPickInProgress = false;
     console.warn('カードの取得に失敗しました。選択状態を再確認してください。');
@@ -856,6 +865,7 @@ const openScoutPickConfirmDialog = (): void => {
         label: SCOUT_PICK_CONFIRM_OK_LABEL,
         variant: 'primary',
         preventRapid: true,
+        dismiss: false,
         onSelect: () => finalizeScoutPick(),
       },
     ],
@@ -870,6 +880,15 @@ const mapOpponentHandCards = (state: GameState): ScoutOpponentHandCardViewModel[
   }
   return opponent.hand.cards.map((card) => ({ id: card.id }));
 };
+
+const getOpponentHandCount = (state: GameState): number => {
+  const opponentId = getOpponentId(state.activePlayer);
+  const opponent = state.players[opponentId];
+  return opponent?.hand.cards.length ?? 0;
+};
+
+const shouldAutoAdvanceFromScout = (state: GameState): boolean =>
+  getOpponentHandCount(state) === 0;
 
 const mapRecentTakenCards = (state: GameState): ScoutRecentTakenCardViewModel[] => {
   const player = state.players[state.activePlayer];
@@ -910,6 +929,7 @@ const clearScoutSecretState = (): void => {
   });
 
   isScoutPickInProgress = false;
+  isScoutResultDialogOpen = false;
 };
 
 let activeScoutCleanup: (() => void) | null = null;
@@ -1236,6 +1256,29 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
         title: route.title,
         render: () => {
           const state = gameStore.getState();
+          let hasTriggeredAutoAdvance = false;
+
+          const triggerAutoAdvance = (): void => {
+            if (
+              hasTriggeredAutoAdvance ||
+              isScoutPickInProgress ||
+              isScoutResultDialogOpen
+            ) {
+              return;
+            }
+            hasTriggeredAutoAdvance = true;
+            if (typeof window !== 'undefined') {
+              window.curtainCall?.modal?.close();
+            }
+            navigateToActionPhase();
+          };
+
+          if (shouldAutoAdvanceFromScout(state)) {
+            triggerAutoAdvance();
+            const placeholder = document.createElement('section');
+            placeholder.className = 'view scout-view';
+            return placeholder;
+          }
 
           const updateSelectedOpponentCard = (index: number | null): void => {
             gameStore.setState((current) => {
@@ -1283,6 +1326,10 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
+            if (shouldAutoAdvanceFromScout(nextState)) {
+              triggerAutoAdvance();
+              return;
+            }
             view.updateOpponentHand(
               mapOpponentHandCards(nextState),
               nextState.scout.selectedOpponentCardIndex,
