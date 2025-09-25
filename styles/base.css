@@ -1053,6 +1053,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  max-height: min(65vh, 520px);
 }
 
 .board-check__tabs {
@@ -1086,10 +1087,23 @@ p {
 
 .board-check__panels {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .board-check__panel {
   display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-right: -0.5rem;
+}
+
+.board-check__panel[hidden] {
+  display: none;
 }
 
 .board-check__panel[hidden] {
@@ -1143,11 +1157,22 @@ p {
   gap: 1rem;
 }
 
+.board-check__card-list--grid {
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 0.75rem;
+  justify-items: center;
+}
+
 .board-check__card-item {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 1rem;
   align-items: center;
+}
+
+.board-check__card-grid-item {
+  display: flex;
+  justify-content: center;
 }
 
 .board-check__card-details {
