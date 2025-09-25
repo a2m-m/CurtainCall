@@ -10,7 +10,14 @@ import {
   saveLatestGame,
 } from './storage.js';
 import { createInitialState, gameStore, PLAYER_IDS } from './state.js';
-import type { CardSnapshot, GameState, PhaseKey, PlayerId, PlayerState } from './state.js';
+import type {
+  CardSnapshot,
+  GameState,
+  PhaseKey,
+  PlayerId,
+  PlayerState,
+  StageCardPlacement,
+} from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
 import { CardComponent } from './ui/card.js';
@@ -104,6 +111,13 @@ const SCOUT_MY_HAND_RECENT_EMPTY_MESSAGE = 'なし';
 const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
 const SCOUT_HELP_BUTTON_LABEL = '？';
 const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
+
+const ACTION_CONFIRM_BUTTON_LABEL = '配置を確定';
+const ACTION_CONFIRM_MODAL_TITLE = '配置を確定';
+const ACTION_CONFIRM_MODAL_MESSAGE =
+  '以下のカードをステージに配置します。確定すると元に戻せません。';
+const ACTION_CONFIRM_MODAL_OK_LABEL = 'OK';
+const ACTION_CONFIRM_MODAL_CANCEL_LABEL = 'キャンセル';
 
 const formatCardLabel = (card: CardSnapshot): string => {
   if (card.suit === 'joker') {
@@ -934,6 +948,232 @@ const mapActionHandSelection = (
   kurokoCardId: state.action.kurokoCardId,
 });
 
+const canConfirmActionPlacement = (state: GameState): boolean => {
+  const actorId = state.action.actorCardId;
+  const kurokoId = state.action.kurokoCardId;
+
+  if (!actorId || !kurokoId || actorId === kurokoId) {
+    return false;
+  }
+
+  const player = state.players[state.activePlayer];
+  if (!player) {
+    return false;
+  }
+
+  const hasActor = player.hand.cards.some((card) => card.id === actorId);
+  const hasKuroko = player.hand.cards.some((card) => card.id === kurokoId);
+
+  return hasActor && hasKuroko;
+};
+
+const createStagePairId = (timestamp: number): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const random = Math.random().toString(16).slice(2, 10);
+  return `pair-${timestamp}-${random}`;
+};
+
+const createStagePlacementFromHand = (
+  card: CardSnapshot,
+  face: CardSnapshot['face'],
+  timestamp: number,
+): StageCardPlacement => ({
+  card: { ...cloneCardSnapshot(card), face },
+  from: 'hand',
+  placedAt: timestamp,
+});
+
+const completeActionPlacement = (): boolean => {
+  let placed = false;
+
+  gameStore.setState((current) => {
+    const actorId = current.action.actorCardId;
+    const kurokoId = current.action.kurokoCardId;
+
+    if (!actorId || !kurokoId || actorId === kurokoId) {
+      return current;
+    }
+
+    const player = current.players[current.activePlayer];
+    if (!player) {
+      return current;
+    }
+
+    const actorCard = player.hand.cards.find((card) => card.id === actorId);
+    const kurokoCard = player.hand.cards.find((card) => card.id === kurokoId);
+
+    if (!actorCard || !kurokoCard) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const pairId = createStagePairId(timestamp);
+    const actorPlacement = createStagePlacementFromHand(actorCard, 'up', timestamp);
+    const kurokoPlacement = createStagePlacementFromHand(kurokoCard, 'down', timestamp);
+
+    const nextHandCards = player.hand.cards.filter(
+      (card) => card.id !== actorId && card.id !== kurokoId,
+    );
+
+    placed = true;
+
+    return {
+      ...current,
+      players: {
+        ...current.players,
+        [current.activePlayer]: {
+          ...player,
+          hand: {
+            ...player.hand,
+            cards: nextHandCards,
+          },
+          stage: {
+            ...player.stage,
+            pairs: [
+              ...player.stage.pairs,
+              {
+                id: pairId,
+                owner: current.activePlayer,
+                origin: 'action',
+                actor: actorPlacement,
+                kuroko: kurokoPlacement,
+                createdAt: timestamp,
+              },
+            ],
+          },
+        },
+      },
+      action: {
+        selectedCardId: null,
+        actorCardId: null,
+        kurokoCardId: null,
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  return placed;
+};
+
+const createActionConfirmModalBody = (
+  actorCard: CardSnapshot,
+  kurokoCard: CardSnapshot,
+): HTMLElement => {
+  const container = document.createElement('div');
+
+  const message = document.createElement('p');
+  message.textContent = ACTION_CONFIRM_MODAL_MESSAGE;
+  container.append(message);
+
+  const list = document.createElement('dl');
+  list.className = 'action-confirm__list';
+
+  const appendEntry = (label: string, card: CardSnapshot, face: 'up' | 'down') => {
+    const term = document.createElement('dt');
+    term.textContent = label;
+    const description = document.createElement('dd');
+    const faceLabel = face === 'up' ? '（表）' : '（裏）';
+    description.textContent = `${formatCardLabel(card)}${faceLabel}`;
+    list.append(term, description);
+  };
+
+  appendEntry('役者', actorCard, 'up');
+  appendEntry('黒子', kurokoCard, 'down');
+
+  container.append(list);
+  return container;
+};
+
+let isActionConfirmInProgress = false;
+
+const finalizeActionPlacement = (): void => {
+  if (isActionConfirmInProgress) {
+    console.warn('配置確定処理が進行中です。');
+    return;
+  }
+
+  isActionConfirmInProgress = true;
+
+  const placed = completeActionPlacement();
+
+  if (!placed) {
+    isActionConfirmInProgress = false;
+    console.warn('配置確定に失敗しました。選択状態を確認してください。');
+    return;
+  }
+
+  if (typeof window !== 'undefined') {
+    window.curtainCall?.modal?.close();
+  }
+
+  isActionConfirmInProgress = false;
+};
+
+const openActionConfirmDialog = (): void => {
+  const state = gameStore.getState();
+
+  if (!canConfirmActionPlacement(state)) {
+    return;
+  }
+
+  const actorId = state.action.actorCardId;
+  const kurokoId = state.action.kurokoCardId;
+
+  if (!actorId || !kurokoId) {
+    return;
+  }
+
+  const player = state.players[state.activePlayer];
+  if (!player) {
+    return;
+  }
+
+  const actorCard = player.hand.cards.find((card) => card.id === actorId);
+  const kurokoCard = player.hand.cards.find((card) => card.id === kurokoId);
+
+  if (!actorCard || !kurokoCard) {
+    return;
+  }
+
+  if (isActionConfirmInProgress) {
+    console.warn('配置確定処理が進行中です。');
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    finalizeActionPlacement();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    finalizeActionPlacement();
+    return;
+  }
+
+  modal.open({
+    title: ACTION_CONFIRM_MODAL_TITLE,
+    body: createActionConfirmModalBody(actorCard, kurokoCard),
+    dismissible: false,
+    actions: [
+      {
+        label: ACTION_CONFIRM_MODAL_CANCEL_LABEL,
+        variant: 'ghost',
+      },
+      {
+        label: ACTION_CONFIRM_MODAL_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => finalizeActionPlacement(),
+      },
+    ],
+  });
+};
+
 const toggleActionActorCard = (cardId: string): void => {
   gameStore.setState((current) => {
     const player = current.players[current.activePlayer];
@@ -1065,6 +1305,7 @@ const cleanupActiveActionView = (): void => {
     activeActionCleanup = null;
     cleanup();
   }
+  isActionConfirmInProgress = false;
 };
 
 const withRouteCleanup = (
@@ -1482,6 +1723,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             selectedCardId: state.action.selectedCardId,
             actorCardId: state.action.actorCardId,
             kurokoCardId: state.action.kurokoCardId,
+            confirmLabel: ACTION_CONFIRM_BUTTON_LABEL,
+            confirmDisabled: !canConfirmActionPlacement(state),
             onSelectHandCard: (cardId) => {
               const current = gameStore.getState();
               if (current.action.actorCardId === cardId) {
@@ -1498,6 +1741,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               }
               toggleActionKurokoCard(cardId);
             },
+            onConfirm: () => openActionConfirmDialog(),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
@@ -1505,6 +1749,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               mapActionHandCards(nextState),
               mapActionHandSelection(nextState),
             );
+            view.setConfirmDisabled(!canConfirmActionPlacement(nextState));
           });
 
           activeActionCleanup = () => {

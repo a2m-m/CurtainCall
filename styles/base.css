@@ -644,6 +644,31 @@ p {
   text-transform: uppercase;
 }
 
+.action__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.action-confirm__list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.75rem;
+}
+
+.action-confirm__list dt {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.action-confirm__list dd {
+  margin: 0;
+}
+
 .action-hand {
   position: sticky;
   bottom: 0;
