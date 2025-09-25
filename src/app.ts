@@ -113,12 +113,15 @@ const SCOUT_PICK_CONFIRM_CANCEL_LABEL = 'キャンセル';
 
 const SCOUT_TO_ACTION_PATH = '#/phase/action';
 const SCOUT_BOARD_CHECK_LABEL = 'ボードチェック';
-const SCOUT_MY_HAND_LABEL = '自分の手札';
-const SCOUT_MY_HAND_MODAL_TITLE = '自分の手札';
-const SCOUT_MY_HAND_SECTION_TITLE = '現在の手札';
-const SCOUT_MY_HAND_EMPTY_MESSAGE = '手札はありません。';
-const SCOUT_MY_HAND_RECENT_TITLE = '最近あなたから取られたカード';
-const SCOUT_MY_HAND_RECENT_EMPTY_MESSAGE = 'なし';
+const MY_HAND_LABEL = '自分の手札';
+const MY_HAND_MODAL_TITLE = '自分の手札';
+const MY_HAND_SECTION_TITLE = '現在の手札';
+const MY_HAND_EMPTY_MESSAGE = '手札はありません。';
+const MY_HAND_RECENT_TITLE = '最近あなたから取られたカード';
+const MY_HAND_RECENT_EMPTY_MESSAGE = 'なし';
+const MY_HAND_RECENT_BADGE_LABEL = '直前に引いたカード';
+
+const SCOUT_MY_HAND_LABEL = MY_HAND_LABEL;
 const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
 const SCOUT_HELP_BUTTON_LABEL = '？';
 const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
@@ -138,7 +141,7 @@ const ACTION_RESULT_OK_LABEL = 'ウォッチへ';
 const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
 
 const WATCH_BOARD_CHECK_LABEL = 'ボードチェック';
-const WATCH_MY_HAND_LABEL = '自分の手札';
+const WATCH_MY_HAND_LABEL = MY_HAND_LABEL;
 const WATCH_HELP_BUTTON_LABEL = '？';
 const WATCH_HELP_ARIA_LABEL = 'ヘルプ';
 const WATCH_CLAP_BUTTON_LABEL = 'クラップ（同数）';
@@ -416,7 +419,7 @@ const openRulebookHelp = (): void => {
   }
 };
 
-const openScoutMyHandDialog = (): void => {
+const openMyHandDialog = (): void => {
   if (typeof window === 'undefined') {
     return;
   }
@@ -436,35 +439,35 @@ const openScoutMyHandDialog = (): void => {
   }
 
   const container = document.createElement('div');
-  container.className = 'scout-myhand';
+  container.className = 'myhand';
 
   const handSection = document.createElement('section');
-  handSection.className = 'scout-myhand__section';
+  handSection.className = 'myhand__section';
   container.append(handSection);
 
   const handHeading = document.createElement('h3');
-  handHeading.className = 'scout-myhand__heading';
-  handHeading.textContent = SCOUT_MY_HAND_SECTION_TITLE;
+  handHeading.className = 'myhand__heading';
+  handHeading.textContent = MY_HAND_SECTION_TITLE;
   handSection.append(handHeading);
 
   const handCount = document.createElement('p');
-  handCount.className = 'scout-myhand__count';
+  handCount.className = 'myhand__count';
   handCount.textContent = `${player.hand.cards.length}枚`;
   handSection.append(handCount);
 
   if (player.hand.cards.length === 0) {
     const empty = document.createElement('p');
-    empty.className = 'scout-myhand__empty';
-    empty.textContent = SCOUT_MY_HAND_EMPTY_MESSAGE;
+    empty.className = 'myhand__empty';
+    empty.textContent = MY_HAND_EMPTY_MESSAGE;
     handSection.append(empty);
   } else {
     const handList = document.createElement('ul');
-    handList.className = 'scout-myhand__hand-list';
-    handList.setAttribute('aria-label', SCOUT_MY_HAND_SECTION_TITLE);
+    handList.className = 'myhand__hand-list';
+    handList.setAttribute('aria-label', MY_HAND_SECTION_TITLE);
 
     player.hand.cards.forEach((card) => {
       const item = document.createElement('li');
-      item.className = 'scout-myhand__hand-item';
+      item.className = 'myhand__hand-item';
 
       const cardComponent = new CardComponent({
         rank: card.rank,
@@ -473,20 +476,20 @@ const openScoutMyHandDialog = (): void => {
         annotation: card.annotation,
       });
       const cardLabel = formatCardLabel(card);
-      cardComponent.el.classList.add('scout-myhand__card');
+      cardComponent.el.classList.add('myhand__card');
       cardComponent.el.setAttribute('aria-label', cardLabel);
 
       const isRecent = player.hand.lastDrawnCardId === card.id;
       if (isRecent) {
         item.classList.add('is-recent');
         const badge = document.createElement('span');
-        badge.className = 'scout-myhand__badge';
-        badge.textContent = '直前に引いたカード';
+        badge.className = 'myhand__badge';
+        badge.textContent = MY_HAND_RECENT_BADGE_LABEL;
         item.append(badge);
       }
 
       const label = document.createElement('span');
-      label.className = 'scout-myhand__card-label';
+      label.className = 'myhand__card-label';
       label.textContent = cardLabel;
 
       item.append(cardComponent.el, label);
@@ -497,22 +500,22 @@ const openScoutMyHandDialog = (): void => {
   }
 
   const recentSection = document.createElement('section');
-  recentSection.className = 'scout-myhand__section';
+  recentSection.className = 'myhand__section';
   container.append(recentSection);
 
   const recentHeading = document.createElement('h3');
-  recentHeading.className = 'scout-myhand__heading';
-  recentHeading.textContent = SCOUT_MY_HAND_RECENT_TITLE;
+  recentHeading.className = 'myhand__heading';
+  recentHeading.textContent = MY_HAND_RECENT_TITLE;
   recentSection.append(recentHeading);
 
   const recentList = document.createElement('ul');
-  recentList.className = 'scout-recent__list scout-myhand__recent-list';
-  recentList.setAttribute('aria-label', SCOUT_MY_HAND_RECENT_TITLE);
+  recentList.className = 'scout-recent__list myhand__recent-list';
+  recentList.setAttribute('aria-label', MY_HAND_RECENT_TITLE);
 
   if (player.takenByOpponent.length === 0) {
     const emptyRecent = document.createElement('li');
     emptyRecent.className = 'scout-recent__empty';
-    emptyRecent.textContent = SCOUT_MY_HAND_RECENT_EMPTY_MESSAGE;
+    emptyRecent.textContent = MY_HAND_RECENT_EMPTY_MESSAGE;
     recentList.append(emptyRecent);
   } else {
     player.takenByOpponent.forEach((card) => {
@@ -537,7 +540,7 @@ const openScoutMyHandDialog = (): void => {
   recentSection.append(recentList);
 
   modal.open({
-    title: SCOUT_MY_HAND_MODAL_TITLE,
+    title: MY_HAND_MODAL_TITLE,
     body: container,
     actions: [
       {
@@ -2308,7 +2311,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             onClearSelection: () => updateSelectedOpponentCard(null),
             onConfirmSelection: () => openScoutPickConfirmDialog(),
             onOpenBoardCheck: () => showBoardCheck(),
-            onOpenMyHand: () => openScoutMyHandDialog(),
+            onOpenMyHand: () => openMyHandDialog(),
             onOpenHelp: () => openRulebookHelp(),
           });
 
@@ -2419,7 +2422,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             onClap: () => requestWatchDeclaration('clap'),
             onBoo: () => requestWatchDeclaration('boo'),
             onOpenBoardCheck: () => showBoardCheck(),
-            onOpenMyHand: () => openScoutMyHandDialog(),
+            onOpenMyHand: () => openMyHandDialog(),
             onOpenHelp: () => openRulebookHelp(),
           });
 

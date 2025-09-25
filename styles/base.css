@@ -490,38 +490,38 @@ p {
   letter-spacing: 0.06em;
 }
 
-.scout-myhand {
+.myhand {
   display: flex;
   flex-direction: column;
   gap: clamp(1.25rem, 2vw, 1.75rem);
 }
 
-.scout-myhand__section {
+.myhand__section {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.scout-myhand__heading {
+.myhand__heading {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
   letter-spacing: 0.06em;
 }
 
-.scout-myhand__count {
+.myhand__count {
   margin: 0;
   font-size: 0.95rem;
   color: var(--color-muted);
 }
 
-.scout-myhand__empty {
+.myhand__empty {
   margin: 0;
   font-size: 0.95rem;
   color: var(--color-muted);
 }
 
-.scout-myhand__hand-list {
+.myhand__hand-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -530,7 +530,7 @@ p {
   gap: clamp(0.75rem, 1.5vw, 1.25rem);
 }
 
-.scout-myhand__hand-item {
+.myhand__hand-item {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -540,12 +540,12 @@ p {
   padding-top: 0.75rem;
 }
 
-.scout-myhand__hand-item.is-recent .scout-myhand__card {
+.myhand__hand-item.is-recent .myhand__card {
   box-shadow: 0 18px 36px rgba(56, 189, 248, 0.2);
   transform: translateY(-4px);
 }
 
-.scout-myhand__badge {
+.myhand__badge {
   position: absolute;
   top: 0;
   left: 50%;
@@ -564,17 +564,17 @@ p {
   box-shadow: 0 10px 20px rgba(56, 189, 248, 0.35);
 }
 
-.scout-myhand__card {
+.myhand__card {
   width: clamp(80px, 12vw, 112px);
   font-size: clamp(1.1rem, 2vw, 1.35rem);
 }
 
-.scout-myhand__card-label {
+.myhand__card-label {
   font-size: 0.95rem;
   color: var(--color-foreground);
 }
 
-.scout-myhand__recent-list {
+.myhand__recent-list {
   margin: 0;
   padding: 0;
 }
