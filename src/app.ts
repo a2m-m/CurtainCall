@@ -625,7 +625,6 @@ const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'no
 
 const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
 const SCOUT_PICK_RESULT_OK_LABEL = 'OK';
-
 const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'scout-complete';
@@ -654,8 +653,11 @@ const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
 
   container.append(preview);
 
-  return container;
-};
+  const caption = document.createElement('p');
+  caption.className = 'scout-complete__caption';
+  caption.textContent = 'アクションフェーズへ移行します。';
+  preview.append(caption);
+
 
 let isScoutResultDialogOpen = false;
 
