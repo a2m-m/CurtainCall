@@ -150,8 +150,10 @@ const WATCH_FORCED_BADGE_LABEL = 'ブーイング必須';
 const WATCH_CLAP_DISABLED_MESSAGE = '残り機会的にブーイングが必要です';
 const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されていません。';
 const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
-const WATCH_TO_INTERMISSION_GATE_PATH = '#/phase/intermission/gate';
-const WATCH_TO_SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
+const WATCH_ACTION_PLACEHOLDER_MESSAGES = Object.freeze({
+  clap: 'クラップの宣言処理はまだ実装されていません。',
+  boo: 'ブーイングの宣言処理はまだ実装されていません。',
+});
 
 let lastActionGuardMessage: string | null = null;
 
@@ -1327,50 +1329,37 @@ const createActionConfirmModalBody = (
 let isActionConfirmInProgress = false;
 let isActionResultDialogOpen = false;
 
-const navigateToPath = (path: string): void => {
+const navigateToWatchGate = (): void => {
   if (typeof window === 'undefined') {
     return;
   }
   const router = window.curtainCall?.router;
   if (router) {
-    router.go(path);
+    router.go(ACTION_TO_WATCH_PATH);
   } else {
-    window.location.hash = path;
+    window.location.hash = ACTION_TO_WATCH_PATH;
   }
 };
 
-const navigateToWatchGate = (): void => {
-  navigateToPath(ACTION_TO_WATCH_PATH);
-};
-
-let isWatchTransitionInProgress = false;
-
-const finalizeWatchTransition = (nextPath: string): void => {
-  if (isWatchTransitionInProgress) {
-    console.warn('ウォッチフェーズの遷移処理が進行中です。');
+const notifyWatchActionPlaceholder = (
+  action: keyof typeof WATCH_ACTION_PLACEHOLDER_MESSAGES,
+): void => {
+  const message = WATCH_ACTION_PLACEHOLDER_MESSAGES[action];
+  if (!message) {
     return;
   }
 
-  isWatchTransitionInProgress = true;
-
-  if (typeof window !== 'undefined') {
-    window.curtainCall?.modal?.close();
+  if (typeof window === 'undefined') {
+    console.info(message);
+    return;
   }
 
-  const latestState = gameStore.getState();
-  saveLatestGame(latestState);
-
-  navigateToPath(nextPath);
-
-  isWatchTransitionInProgress = false;
-};
-
-const handleWatchClap = (): void => {
-  finalizeWatchTransition(WATCH_TO_INTERMISSION_GATE_PATH);
-};
-
-const handleWatchBoo = (): void => {
-  finalizeWatchTransition(WATCH_TO_SPOTLIGHT_GATE_PATH);
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'info' });
+  } else {
+    console.info(message);
+  }
 };
 
 const createActionPlacementResultContent = (
@@ -2170,8 +2159,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             helpAriaLabel: WATCH_HELP_ARIA_LABEL,
             clapLabel: WATCH_CLAP_BUTTON_LABEL,
             booLabel: WATCH_BOO_BUTTON_LABEL,
-            onClap: () => handleWatchClap(),
-            onBoo: () => handleWatchBoo(),
+            onClap: () => notifyWatchActionPlaceholder('clap'),
+            onBoo: () => notifyWatchActionPlaceholder('boo'),
             onOpenBoardCheck: () => showBoardCheck(),
             onOpenMyHand: () => openScoutMyHandDialog(),
             onOpenHelp: () => openRulebookHelp(),
