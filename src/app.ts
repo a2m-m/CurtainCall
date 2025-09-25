@@ -1173,7 +1173,7 @@ const mapWatchStatus = (state: GameState): WatchStatusViewModel => {
   const booCount = player?.booCount ?? 0;
   const remaining = getRemainingWatchCount(state);
   const needed = Math.max(0, WATCH_REQUIRED_BOO_COUNT - booCount);
-  const forced = remaining !== null && remaining > 0 && needed >= remaining;
+  const forced = remaining !== null && needed >= remaining;
 
   const turnLabel = `ターン：#${state.turn.count}`;
   const booLabel = `あなたのブーイング：${booCount} / ${WATCH_REQUIRED_BOO_COUNT}`;
