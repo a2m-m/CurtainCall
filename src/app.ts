@@ -219,6 +219,7 @@ const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態で�
 const SPOTLIGHT_PAIR_CHECK_TITLE = 'ペアの判定';
 const SPOTLIGHT_PAIR_CHECK_MESSAGE =
   '公開された役者札と同じ数字の手札があるか確認してください。同じ数字を持っていたら場に出してペア成立、持っていなければペア不成立です。';
+const SPOTLIGHT_PAIR_CHECK_SKIPPED_MESSAGE = '今回はセットを公開せずに進みます。';
 const SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE = 'ペアをステージに出します。';
 const SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE = 'ペアはできませんでした！';
 const SPOTLIGHT_PAIR_CHECK_CAPTION =
@@ -228,9 +229,6 @@ const SPOTLIGHT_JOKER_BONUS_TITLE = 'JOKERボーナス';
 const SPOTLIGHT_JOKER_BONUS_MESSAGE = (playerName: string): string =>
   `${playerName}のターンです。JOKER！追加でもう1枚オープンして、自動でペアを作ります。`;
 const SPOTLIGHT_JOKER_BONUS_MULTI_PROMPT = '追加で公開するカードを選択してください。';
-const SPOTLIGHT_JOKER_BONUS_SINGLE_MESSAGE =
-  '残りのカードは1枚です。このカードを公開して自動でペアを作ります。';
-const SPOTLIGHT_JOKER_BONUS_SINGLE_ACTION_LABEL = '公開する';
 const SPOTLIGHT_JOKER_BONUS_EMPTY_MESSAGE =
   '追加で公開できるカードがありません。カーテンコールへ進みます。';
 const SPOTLIGHT_JOKER_BONUS_EMPTY_ACTION_LABEL = 'カーテンコールへ';
@@ -282,7 +280,7 @@ interface SpotlightSecretPairRequest {
 let spotlightSecretAccessGranted = false;
 let pendingSpotlightSecretPair: SpotlightSecretPairRequest | null = null;
 let isSpotlightSecretPairInProgress = false;
-type SpotlightPairCheckOutcome = 'paired' | 'unpaired';
+type SpotlightPairCheckOutcome = 'paired' | 'unpaired' | 'skipped';
 let latestSpotlightPairCheckOutcome: SpotlightPairCheckOutcome | null = null;
 
 const grantSpotlightSecretAccess = (): void => {
@@ -1631,6 +1629,7 @@ const showSpotlightRevealResultDialog = (
     preventRapid: true,
     dismiss: false,
     onSelect: () => {
+      latestSpotlightPairCheckOutcome = 'skipped';
       modal.close();
       completeSpotlightPhaseTransition();
     },
@@ -1885,28 +1884,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
   }
 
   if (availableCards.length === 1) {
-    const note = document.createElement('p');
-    note.className = 'spotlight-set-picker__empty';
-    note.textContent = SPOTLIGHT_JOKER_BONUS_SINGLE_MESSAGE;
-    container.append(note);
-
-    modal.open({
-      title: SPOTLIGHT_JOKER_BONUS_TITLE,
-      body: container,
-      dismissible: false,
-      actions: [
-        {
-          label: SPOTLIGHT_JOKER_BONUS_SINGLE_ACTION_LABEL,
-          variant: 'primary',
-          preventRapid: true,
-          dismiss: false,
-          onSelect: () => {
-            modal.close();
-            openSpotlightSetConfirmDialog(availableCards[0].id);
-          },
-        },
-      ],
-    });
+    resolveAutomatically();
     return;
   }
 
@@ -2619,7 +2597,9 @@ const completeSpotlightPhaseTransition = (): void => {
       ? SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE
       : pairCheckOutcome === 'unpaired'
         ? SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE
-        : SPOTLIGHT_PAIR_CHECK_MESSAGE;
+        : pairCheckOutcome === 'skipped'
+          ? SPOTLIGHT_PAIR_CHECK_SKIPPED_MESSAGE
+          : SPOTLIGHT_PAIR_CHECK_MESSAGE;
   message.textContent = messageText;
   body.append(message);
 
