@@ -216,6 +216,12 @@ const SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL = '戻る';
 const SPOTLIGHT_SET_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
   `${playerName}が${cardLabel}をオープンしました。`;
 const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態ではありません。';
+const SPOTLIGHT_PAIR_CHECK_TITLE = 'ペアの判定';
+const SPOTLIGHT_PAIR_CHECK_MESSAGE =
+  '公開された役者札と同じ数字の手札があるか確認してください。同じ数字を持っていたら場に出してペア成立、持っていなければペア不成立です。';
+const SPOTLIGHT_PAIR_CHECK_CAPTION =
+  '判定が終わったら「判定完了」を押してインターミッションへ進みましょう。';
+const SPOTLIGHT_PAIR_CHECK_CONFIRM_LABEL = '判定完了';
 const SPOTLIGHT_JOKER_BONUS_TITLE = 'JOKERボーナス';
 const SPOTLIGHT_JOKER_BONUS_MESSAGE = (playerName: string): string =>
   `${playerName}のターンです。JOKER！追加でもう1枚オープンして、自動でペアを作ります。`;
@@ -2579,7 +2585,47 @@ const completeSpotlightPhaseTransition = (): void => {
     return;
   }
 
-  navigateToIntermissionGate();
+  if (typeof window === 'undefined') {
+    navigateToIntermissionGate();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    navigateToIntermissionGate();
+    return;
+  }
+
+  const body = document.createElement('div');
+  body.className = 'spotlight-pair-check';
+
+  const message = document.createElement('p');
+  message.className = 'spotlight-pair-check__message';
+  message.textContent = SPOTLIGHT_PAIR_CHECK_MESSAGE;
+  body.append(message);
+
+  const caption = document.createElement('p');
+  caption.className = 'spotlight-pair-check__caption';
+  caption.textContent = SPOTLIGHT_PAIR_CHECK_CAPTION;
+  body.append(caption);
+
+  modal.open({
+    title: SPOTLIGHT_PAIR_CHECK_TITLE,
+    body,
+    dismissible: false,
+    actions: [
+      {
+        label: SPOTLIGHT_PAIR_CHECK_CONFIRM_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => {
+          modal.close();
+          navigateToIntermissionGate();
+        },
+      },
+    ],
+  });
 };
 
 const handleSpotlightGatePass = (router: Router): void => {
