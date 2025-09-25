@@ -29,6 +29,7 @@ import { ToastManager } from './ui/toast.js';
 import { CardComponent } from './ui/card.js';
 import { showBoardCheck } from './ui/board-check.js';
 import { createGateView } from './views/gate.js';
+import type { ButtonVariant } from './ui/button.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
 import {
@@ -45,6 +46,14 @@ import type {
 } from './views/scout.js';
 import { createStandbyView } from './views/standby.js';
 
+interface GateActionDescriptor {
+  label: string;
+  variant?: ButtonVariant;
+  preventRapid?: boolean;
+  lockDuration?: number;
+  onSelect?: (context: { router: Router }) => void;
+}
+
 interface GateDescriptor {
   message?: string | HTMLElement;
   resolveMessage?: (state: GameState) => string | HTMLElement;
@@ -56,6 +65,8 @@ interface GateDescriptor {
   lockDuration?: number;
   nextPath?: string | null;
   onPass?: (router: Router) => void;
+  resolveSubtitle?: (state: GameState) => string | undefined;
+  resolveActions?: (context: { state: GameState; router: Router }) => GateActionDescriptor[];
 }
 
 interface RouteDescriptor {
@@ -90,6 +101,14 @@ const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateD
   ...overrides,
 });
 
+const INTERMISSION_GATE_TITLE = '手番交代';
+const INTERMISSION_GATE_CONFIRM_LABEL = 'OK（スカウトへ）';
+const INTERMISSION_BOARD_CHECK_LABEL = 'ボードチェック';
+const INTERMISSION_SUMMARY_LABEL = '前ラウンド要約';
+const INTERMISSION_SUMMARY_TITLE = '前ラウンド要約';
+const INTERMISSION_SUMMARY_CAPTION = '前ラウンドで公開された情報のみが表示されます。';
+const INTERMISSION_SUMMARY_EMPTY = '公開情報はまだありません。';
+
 const STANDBY_DEAL_ERROR_MESSAGE = 'スタンバイの初期化に失敗しました。もう一度お試しください。';
 const STANDBY_FIRST_PLAYER_ERROR_MESSAGE = '先手が未決定です。スタンバイに戻ります。';
 const STANDBY_SEED_LOCK_VALUE = 'dev-fixed-0001';
@@ -108,6 +127,7 @@ const SCOUT_PICK_CONFIRM_OK_LABEL = 'OK';
 const SCOUT_PICK_CONFIRM_CANCEL_LABEL = 'キャンセル';
 
 const SCOUT_TO_ACTION_PATH = '#/phase/action';
+const INTERMISSION_TO_SCOUT_PATH = '#/phase/scout';
 const SCOUT_BOARD_CHECK_LABEL = 'ボードチェック';
 const MY_HAND_LABEL = '自分の手札';
 const MY_HAND_MODAL_TITLE = '自分の手札';
@@ -1420,6 +1440,159 @@ const mapSpotlightStage = (state: GameState): SpotlightStageViewModel => {
   };
 };
 
+const createIntermissionGateSubtitle = (state: GameState): string => {
+  const nextPlayerName = getPlayerDisplayName(state, state.activePlayer);
+  return `次は${nextPlayerName}の番です`;
+};
+
+const findLatestStagePairForIntermission = (state: GameState): StagePair | null => {
+  const spotlightPair = findLatestSpotlightPair(state);
+  if (!spotlightPair) {
+    return findLatestWatchStagePair(state);
+  }
+
+  const watchPair = findLatestWatchStagePair(state);
+  if (!watchPair) {
+    return spotlightPair;
+  }
+
+  return spotlightPair.createdAt >= watchPair.createdAt ? spotlightPair : watchPair;
+};
+
+const formatIntermissionPairSummary = (state: GameState): string => {
+  const latestPair = findLatestStagePairForIntermission(state);
+  if (!latestPair) {
+    return INTERMISSION_SUMMARY_EMPTY;
+  }
+
+  const ownerName = getPlayerDisplayName(state, latestPair.owner);
+  const judgeLabel =
+    latestPair.judge === 'match'
+      ? '（成立）'
+      : latestPair.judge === 'mismatch'
+        ? '（不成立）'
+        : '';
+  return `${ownerName}が保持${judgeLabel}`;
+};
+
+const formatIntermissionSetSummary = (state: GameState): string => {
+  const opened = state.set?.opened ?? [];
+  if (opened.length === 0) {
+    return INTERMISSION_SUMMARY_EMPTY;
+  }
+
+  const reveal = opened[opened.length - 1];
+  const cardLabel = formatCardLabel(reveal.card);
+  const bonusLabel =
+    reveal.bonus === 'pair'
+      ? 'ペア成立'
+      : reveal.bonus === 'joker'
+        ? 'JOKERボーナス'
+        : reveal.bonus === 'secretPair'
+          ? '秘密のペア'
+          : 'ペア未成立';
+  const assignedName = reveal.assignedTo ? getPlayerDisplayName(state, reveal.assignedTo) : null;
+  const fragments = [`${cardLabel}`, bonusLabel];
+  const summary = fragments.filter(Boolean).join('｜');
+  return assignedName ? `${summary}（${assignedName}へ）` : summary;
+};
+
+const formatIntermissionScoreSummary = (state: GameState): string => {
+  const luminaScore = state.players.lumina?.score?.final ?? 0;
+  const noxScore = state.players.nox?.score?.final ?? 0;
+  const diff = luminaScore - noxScore;
+  if (diff > 0) {
+    return `ルミナ +${diff}｜ルミナ ${luminaScore} / ノクス ${noxScore}`;
+  }
+  if (diff < 0) {
+    return `ノクス +${Math.abs(diff)}｜ルミナ ${luminaScore} / ノクス ${noxScore}`;
+  }
+  return `同点｜ルミナ ${luminaScore} / ノクス ${noxScore}`;
+};
+
+const formatIntermissionBooSummary = (state: GameState): string => {
+  const luminaBoo = state.players.lumina?.booCount ?? 0;
+  const noxBoo = state.players.nox?.booCount ?? 0;
+  return `ルミナ ${luminaBoo} / 3 ｜ ノクス ${noxBoo} / 3`;
+};
+
+const formatIntermissionNextPlayerSummary = (state: GameState): string => {
+  const nextPlayerName = getPlayerDisplayName(state, state.activePlayer);
+  const turnNumber = (state.turn?.count ?? 0) + 1;
+  return `${nextPlayerName}（ターン #${turnNumber}）`;
+};
+
+const formatIntermissionSetRemaining = (state: GameState): string => {
+  const remaining = state.set?.cards?.filter((entry) => entry.card.face !== 'up').length ?? 0;
+  return `残り ${remaining} 枚`;
+};
+
+const createIntermissionSummaryView = (state: GameState): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'intermission-summary';
+
+  const caption = document.createElement('p');
+  caption.className = 'intermission-summary__caption';
+  caption.textContent = INTERMISSION_SUMMARY_CAPTION;
+  container.append(caption);
+
+  const list = document.createElement('div');
+  list.className = 'intermission-summary__list';
+
+  const appendItem = (label: string, description: string) => {
+    const item = document.createElement('div');
+    item.className = 'intermission-summary__item';
+
+    const term = document.createElement('p');
+    term.className = 'intermission-summary__term';
+    term.textContent = label;
+
+    const body = document.createElement('p');
+    body.className = 'intermission-summary__description';
+    body.textContent = description;
+
+    item.append(term, body);
+    list.append(item);
+  };
+
+  appendItem('次の手番', formatIntermissionNextPlayerSummary(state));
+  appendItem('提示ペアの帰属', formatIntermissionPairSummary(state));
+  appendItem('直近のセット公開', formatIntermissionSetSummary(state));
+  appendItem('残りセット', formatIntermissionSetRemaining(state));
+  appendItem('スコア差分', formatIntermissionScoreSummary(state));
+  appendItem('ブーイング進捗', formatIntermissionBooSummary(state));
+
+  container.append(list);
+  return container;
+};
+
+const openIntermissionSummaryDialog = (): void => {
+  const state = gameStore.getState();
+
+  if (typeof window === 'undefined') {
+    console.info(INTERMISSION_SUMMARY_TITLE);
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.info(INTERMISSION_SUMMARY_TITLE);
+    return;
+  }
+
+  const body = createIntermissionSummaryView(state);
+  modal.open({
+    title: INTERMISSION_SUMMARY_TITLE,
+    body,
+    actions: [
+      {
+        label: '閉じる',
+        variant: 'ghost',
+      },
+    ],
+  });
+};
+
 const canRevealSpotlightKuroko = (state: GameState): boolean => {
   const targetPair = findLatestSpotlightPair(state);
   if (!targetPair?.actor?.card || !targetPair.kuroko?.card) {
@@ -2579,6 +2752,31 @@ const navigateToIntermissionGate = (): void => {
   } else {
     window.location.hash = SPOTLIGHT_TO_INTERMISSION_PATH;
   }
+};
+
+const handleIntermissionGatePass = (router: Router): void => {
+  gameStore.setState((current) => {
+    const timestamp = Date.now();
+    const currentTurn = current.turn ?? { count: 0, startedAt: timestamp };
+    const previousWatchState = current.watch ?? createInitialWatchState();
+
+    return {
+      ...current,
+      turn: {
+        count: currentTurn.count + 1,
+        startedAt: timestamp,
+      },
+      watch: {
+        ...previousWatchState,
+        decision: null,
+        nextRoute: null,
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  router.go(INTERMISSION_TO_SCOUT_PATH);
 };
 
 const completeSpotlightPhaseTransition = (): void => {
@@ -3763,19 +3961,38 @@ const ROUTES: RouteDescriptor[] = [
   },
   {
     path: '#/phase/intermission',
-    title: 'インターミッション',
-    heading: 'インターミッション',
-    subtitle: '手番交代のためのインターミッション画面は今後実装されます。',
+    title: INTERMISSION_GATE_TITLE,
+    heading: INTERMISSION_GATE_TITLE,
+    subtitle: '手番交代中です。ハンドオフゲートを通過してください。',
     phase: 'intermission',
   },
   {
     path: '#/phase/intermission/gate',
-    title: 'インターミッションゲート',
-    heading: 'インターミッションゲート',
-    subtitle: '次のプレイヤーに交代するためのゲートです。',
+    title: `${INTERMISSION_GATE_TITLE}ゲート`,
+    heading: INTERMISSION_GATE_TITLE,
+    subtitle: '次のプレイヤーに端末を渡しましょう。',
     phase: 'intermission',
     gate: createHandOffGateConfig({
-      resolveMessage: (state) => createPhaseGateMessage(state, 'インターミッション'),
+      confirmLabel: INTERMISSION_GATE_CONFIRM_LABEL,
+      resolveMessage: (state) =>
+        createPhaseGateMessage(state, 'インターミッション', INTERMISSION_GATE_CONFIRM_LABEL),
+      resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
+      resolveActions: (context) => {
+        void context;
+        return [
+          {
+            label: INTERMISSION_BOARD_CHECK_LABEL,
+            variant: 'ghost',
+            onSelect: () => showBoardCheck(),
+          },
+          {
+            label: INTERMISSION_SUMMARY_LABEL,
+            variant: 'ghost',
+            onSelect: () => openIntermissionSummaryDialog(),
+          },
+        ];
+      },
+      onPass: (nextRouter) => handleIntermissionGatePass(nextRouter),
     }),
   },
   {
@@ -3809,17 +4026,19 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
       definition = {
         path: route.path,
         title: route.title,
-        render: () => {
+        render: ({ router: contextRouter }) => {
           const state = gameStore.getState();
           const confirmLabel = route.gate?.confirmLabel ?? DEFAULT_GATE_CONFIRM_LABEL;
           const resolvedMessage =
             route.gate?.resolveMessage?.(state) ??
             route.gate?.message ??
             createTurnGateMessage(state, confirmLabel);
+          const resolvedSubtitle = route.gate?.resolveSubtitle?.(state) ?? route.subtitle;
+          const resolvedActions = route.gate?.resolveActions?.({ state, router: contextRouter }) ?? [];
 
           return createGateView({
             title: route.heading,
-            subtitle: route.subtitle,
+            subtitle: resolvedSubtitle,
             message: resolvedMessage,
             confirmLabel: route.gate?.confirmLabel,
             hints: route.gate?.hints,
@@ -3827,9 +4046,16 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             modalTitle: route.gate?.modalTitle ?? route.title,
             preventRapid: route.gate?.preventRapid,
             lockDuration: route.gate?.lockDuration,
+            actions: resolvedActions.map((action) => ({
+              label: action.label,
+              variant: action.variant,
+              preventRapid: action.preventRapid,
+              lockDuration: action.lockDuration,
+              onSelect: () => action.onSelect?.({ router: contextRouter }),
+            })),
             onGatePass: () => {
               if (route.gate?.onPass) {
-                route.gate.onPass(router);
+                route.gate.onPass(contextRouter);
                 return;
               }
               if (route.gate?.nextPath === null) {
@@ -3838,7 +4064,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               const derived = route.path.endsWith('/gate') ? route.path.slice(0, -5) : route.path;
               const target = route.gate?.nextPath ?? derived;
               if (target && target !== route.path) {
-                router.go(target);
+                contextRouter.go(target);
               }
             },
           });

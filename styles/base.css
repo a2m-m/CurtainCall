@@ -1556,6 +1556,16 @@ p {
   color: var(--color-accent);
 }
 
+.gate-view__actions {
+  margin-top: 2rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.gate-view__actions .button {
+  width: 100%;
+}
+
 .card {
   width: 64px;
   height: 92px;
@@ -1577,6 +1587,43 @@ p {
   margin-top: 25vh;
   text-align: center;
   color: var(--color-muted);
+}
+
+.intermission-summary {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.intermission-summary__caption {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.intermission-summary__list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.intermission-summary__item {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-radius: 18px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.intermission-summary__term {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.intermission-summary__description {
+  margin: 0.35rem 0 0;
+  color: var(--color-muted);
+  line-height: 1.6;
 }
 
 .placeholder__title {

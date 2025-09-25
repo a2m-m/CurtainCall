@@ -1,4 +1,13 @@
+import { UIButton, ButtonVariant } from '../ui/button.js';
 import { showGate, GateOptions } from '../ui/gate.js';
+
+export interface GateViewAction {
+  label: string;
+  variant?: ButtonVariant;
+  preventRapid?: boolean;
+  lockDuration?: number;
+  onSelect?: () => void;
+}
 
 export interface GateViewOptions {
   title: string;
@@ -11,6 +20,7 @@ export interface GateViewOptions {
   preventRapid?: boolean;
   lockDuration?: number;
   onGatePass?: () => void;
+  actions?: GateViewAction[];
 }
 
 const DEFAULT_GATE_MESSAGE =
@@ -36,6 +46,32 @@ const renderHintList = (hints: string[] | undefined): HTMLUListElement | null =>
   return list;
 };
 
+const renderActions = (actions: GateViewAction[] | undefined): HTMLDivElement | null => {
+  if (!actions || actions.length === 0) {
+    return null;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'gate-view__actions';
+
+  actions.forEach((action) => {
+    const button = new UIButton({
+      label: action.label,
+      variant: action.variant ?? 'ghost',
+      preventRapid: action.preventRapid,
+      lockDuration: action.lockDuration,
+    });
+
+    if (action.onSelect) {
+      button.onClick(() => action.onSelect?.());
+    }
+
+    container.append(button.el);
+  });
+
+  return container;
+};
+
 export const createGateView = (options: GateViewOptions): HTMLElement => {
   const section = document.createElement('section');
   section.className = 'view gate-view';
@@ -57,6 +93,11 @@ export const createGateView = (options: GateViewOptions): HTMLElement => {
   const hints = renderHintList(options.hints);
   if (hints) {
     wrapper.append(hints);
+  }
+
+  const actions = renderActions(options.actions);
+  if (actions) {
+    wrapper.append(actions);
   }
 
   section.append(wrapper);
