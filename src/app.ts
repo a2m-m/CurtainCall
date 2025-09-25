@@ -14,6 +14,7 @@ import type { CardSnapshot, GameState, PhaseKey, PlayerId, PlayerState } from '.
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
 import { CardComponent } from './ui/card.js';
+import { showBoardCheck } from './ui/board-check.js';
 import { createGateView } from './views/gate.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
@@ -91,6 +92,15 @@ const SCOUT_COMPLETE_TITLE = 'スカウト完了';
 const SCOUT_COMPLETE_ACTION_LABEL = 'アクションへ';
 const SCOUT_COMPLETE_CARD_CAPTION = '引いたカード';
 const SCOUT_TO_ACTION_PATH = '#/phase/action';
+const SCOUT_BOARD_CHECK_LABEL = 'ボードチェック';
+const SCOUT_MY_HAND_LABEL = '自分の手札';
+const SCOUT_MY_HAND_MODAL_TITLE = '自分の手札';
+const SCOUT_MY_HAND_SECTION_TITLE = '現在の手札';
+const SCOUT_MY_HAND_EMPTY_MESSAGE = '手札はありません。';
+const SCOUT_MY_HAND_RECENT_TITLE = '最近あなたから取られたカード';
+const SCOUT_MY_HAND_RECENT_EMPTY_MESSAGE = 'なし';
+const SCOUT_HELP_BUTTON_LABEL = '？';
+const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
 
 const formatCardLabel = (card: CardSnapshot): string => {
   if (card.suit === 'joker') {
@@ -323,6 +333,130 @@ const openRulebookHelp = (): void => {
       console.warn('ヘルプ画面を開けませんでした。ポップアップブロックを解除してください。');
     }
   }
+};
+
+const openScoutMyHandDialog = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.warn('自分の手札モーダルを表示するためのモーダルコントローラーが初期化されていません。');
+    return;
+  }
+
+  const state = gameStore.getState();
+  const player = state.players[state.activePlayer];
+
+  if (!player) {
+    console.warn('自分の手札を表示できません。アクティブプレイヤーが見つかりません。');
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'scout-myhand';
+
+  const handSection = document.createElement('section');
+  handSection.className = 'scout-myhand__section';
+  container.append(handSection);
+
+  const handHeading = document.createElement('h3');
+  handHeading.className = 'scout-myhand__heading';
+  handHeading.textContent = SCOUT_MY_HAND_SECTION_TITLE;
+  handSection.append(handHeading);
+
+  const handCount = document.createElement('p');
+  handCount.className = 'scout-myhand__count';
+  handCount.textContent = `${player.hand.cards.length}枚`;
+  handSection.append(handCount);
+
+  if (player.hand.cards.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'scout-myhand__empty';
+    empty.textContent = SCOUT_MY_HAND_EMPTY_MESSAGE;
+    handSection.append(empty);
+  } else {
+    const handList = document.createElement('ul');
+    handList.className = 'scout-myhand__hand-list';
+    handList.setAttribute('aria-label', SCOUT_MY_HAND_SECTION_TITLE);
+
+    player.hand.cards.forEach((card) => {
+      const item = document.createElement('li');
+      item.className = 'scout-myhand__hand-item';
+
+      const cardComponent = new CardComponent({
+        rank: card.rank,
+        suit: card.suit,
+        faceDown: false,
+        annotation: card.annotation,
+      });
+      const cardLabel = formatCardLabel(card);
+      cardComponent.el.classList.add('scout-myhand__card');
+      cardComponent.el.setAttribute('aria-label', cardLabel);
+
+      const label = document.createElement('span');
+      label.className = 'scout-myhand__card-label';
+      label.textContent = cardLabel;
+
+      item.append(cardComponent.el, label);
+      handList.append(item);
+    });
+
+    handSection.append(handList);
+  }
+
+  const recentSection = document.createElement('section');
+  recentSection.className = 'scout-myhand__section';
+  container.append(recentSection);
+
+  const recentHeading = document.createElement('h3');
+  recentHeading.className = 'scout-myhand__heading';
+  recentHeading.textContent = SCOUT_MY_HAND_RECENT_TITLE;
+  recentSection.append(recentHeading);
+
+  const recentList = document.createElement('ul');
+  recentList.className = 'scout-recent__list scout-myhand__recent-list';
+  recentList.setAttribute('aria-label', SCOUT_MY_HAND_RECENT_TITLE);
+
+  if (player.takenByOpponent.length === 0) {
+    const emptyRecent = document.createElement('li');
+    emptyRecent.className = 'scout-recent__empty';
+    emptyRecent.textContent = SCOUT_MY_HAND_RECENT_EMPTY_MESSAGE;
+    recentList.append(emptyRecent);
+  } else {
+    player.takenByOpponent.forEach((card) => {
+      const item = document.createElement('li');
+      item.className = 'scout-recent__item';
+
+      const cardComponent = new CardComponent({
+        rank: card.rank,
+        suit: card.suit,
+        faceDown: false,
+        annotation: card.annotation,
+      });
+      const cardLabel = formatCardLabel(card);
+      cardComponent.el.classList.add('scout-recent__card');
+      cardComponent.el.setAttribute('aria-label', cardLabel);
+
+      item.append(cardComponent.el);
+      recentList.append(item);
+    });
+  }
+
+  recentSection.append(recentList);
+
+  modal.open({
+    title: SCOUT_MY_HAND_MODAL_TITLE,
+    body: container,
+    actions: [
+      {
+        label: '閉じる',
+        variant: 'ghost',
+        preventRapid: false,
+      },
+    ],
+  });
 };
 
 const openHistoryDialog = (): void => {
@@ -1122,9 +1256,16 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             cards: mapOpponentHandCards(state),
             selectedIndex: state.scout.selectedOpponentCardIndex,
             recentTakenCards: mapRecentTakenCards(state),
+            boardCheckLabel: SCOUT_BOARD_CHECK_LABEL,
+            myHandLabel: SCOUT_MY_HAND_LABEL,
+            helpLabel: SCOUT_HELP_BUTTON_LABEL,
+            helpAriaLabel: SCOUT_HELP_ARIA_LABEL,
             onSelectCard: updateSelectedOpponentCard,
             onClearSelection: () => updateSelectedOpponentCard(null),
             onConfirmSelection: () => openScoutPickConfirmDialog(),
+            onOpenBoardCheck: () => showBoardCheck(),
+            onOpenMyHand: () => openScoutMyHandDialog(),
+            onOpenHelp: () => openRulebookHelp(),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {

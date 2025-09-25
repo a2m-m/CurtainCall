@@ -26,6 +26,13 @@ export interface ScoutViewOptions {
   onClearSelection?: () => void;
   confirmLabel?: string;
   clearLabel?: string;
+  boardCheckLabel?: string;
+  myHandLabel?: string;
+  helpLabel?: string;
+  helpAriaLabel?: string;
+  onOpenBoardCheck?: () => void;
+  onOpenMyHand?: () => void;
+  onOpenHelp?: () => void;
 }
 
 export interface ScoutViewElement extends HTMLElement {
@@ -47,10 +54,64 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   main.className = 'scout';
   section.append(main);
 
+  const header = document.createElement('div');
+  header.className = 'scout__header';
+
   const heading = document.createElement('h1');
   heading.className = 'scout__title';
   heading.textContent = options.title;
-  main.append(heading);
+  header.append(heading);
+
+  const headerActions = document.createElement('div');
+  headerActions.className = 'scout__header-actions';
+
+  if (options.onOpenBoardCheck) {
+    const boardCheckButton = new UIButton({
+      label: options.boardCheckLabel ?? 'ボードチェック',
+      variant: 'ghost',
+      preventRapid: false,
+    });
+    boardCheckButton.el.classList.add('scout__header-button');
+    boardCheckButton.onClick(() => {
+      options.onOpenBoardCheck?.();
+    });
+    headerActions.append(boardCheckButton.el);
+  }
+
+  if (options.onOpenMyHand) {
+    const myHandButton = new UIButton({
+      label: options.myHandLabel ?? '自分の手札',
+      variant: 'ghost',
+      preventRapid: false,
+    });
+    myHandButton.el.classList.add('scout__header-button');
+    myHandButton.onClick(() => {
+      options.onOpenMyHand?.();
+    });
+    headerActions.append(myHandButton.el);
+  }
+
+  if (options.onOpenHelp) {
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? '？',
+      variant: 'ghost',
+      preventRapid: false,
+    });
+    helpButton.el.classList.add('scout__header-button', 'scout__header-button--help');
+    const helpAriaLabel = options.helpAriaLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', helpAriaLabel);
+    helpButton.el.title = helpAriaLabel;
+    helpButton.onClick(() => {
+      options.onOpenHelp?.();
+    });
+    headerActions.append(helpButton.el);
+  }
+
+  if (headerActions.childElementCount > 0) {
+    header.append(headerActions);
+  }
+
+  main.append(header);
 
   const opponentTitle = options.opponentLabel
     ? `${options.opponentLabel}の手札`
