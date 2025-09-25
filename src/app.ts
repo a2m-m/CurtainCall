@@ -683,7 +683,8 @@ const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
 
   const actionNotice = document.createElement('p');
   actionNotice.className = 'scout-complete__caption';
-  actionNotice.textContent = 'OKを押してアクションフェーズへ進みましょう。';
+  actionNotice.textContent =
+    '端末が相手に見えないことを確認し、OKを押してアクションフェーズへ進みましょう。';
   container.append(actionNotice);
 
   return container;
