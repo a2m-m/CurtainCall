@@ -1947,6 +1947,13 @@ const completeSpotlightJokerBonus = (
   jokerReveal: SetReveal,
   bonusReveal: SetReveal | null,
 ): void => {
+  if (isSpotlightJokerBonusInProgress) {
+    console.warn('JOKERボーナス処理が進行中です。');
+    return;
+  }
+
+  isSpotlightJokerBonusInProgress = true;
+
   const stateBefore = gameStore.getState();
   const playerId = stateBefore.activePlayer;
   const playerName = getPlayerDisplayName(stateBefore, playerId);
@@ -2069,6 +2076,9 @@ const completeSpotlightJokerBonus = (
   }
 
   navigateToCurtainCallGate();
+  if (typeof window === 'undefined') {
+    isSpotlightJokerBonusInProgress = false;
+  }
 };
 
 const findSpotlightSecretPairCandidates = (
@@ -2663,6 +2673,7 @@ let isWatchDecisionInProgress = false;
 let isWatchResultDialogOpen = false;
 let isSpotlightRevealInProgress = false;
 let isSpotlightSetOpenInProgress = false;
+let isSpotlightJokerBonusInProgress = false;
 let isSpotlightExitInProgress = false;
 
 const showWatchResultDialog = (
@@ -3517,6 +3528,7 @@ const cleanupActiveSpotlightView = (): void => {
     cleanup();
     isSpotlightRevealInProgress = false;
     isSpotlightSetOpenInProgress = false;
+    isSpotlightJokerBonusInProgress = false;
   }
   revokeSpotlightSecretAccess();
   isSpotlightSecretPairInProgress = false;
