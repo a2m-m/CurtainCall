@@ -150,7 +150,8 @@ const WATCH_CLAP_WARNING_MESSAGE = '残り機会的にブーイングが必要�
 const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されていません。';
 const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
 const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
-const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight/gate';
+const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
+const WATCH_TO_SPOTLIGHT_PATH = SPOTLIGHT_GATE_PATH;
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
   clap: 'クラップの宣言',
@@ -177,6 +178,8 @@ const WATCH_RESULT_OK_LABELS = Object.freeze({
 const WATCH_REDIRECTING_SUBTITLE = '宣言結果に応じた画面へ移動しています…';
 const WATCH_GUARD_REDIRECTING_SUBTITLE =
   '秘匿情報を再表示するにはウォッチゲートを通過してください。';
+const SPOTLIGHT_SECRET_GUARD_REDIRECTING_SUBTITLE =
+  'シークレットペア処理のためゲートへ移動します…';
 
 const SPOTLIGHT_BOARD_CHECK_LABEL = 'ボードチェック';
 const SPOTLIGHT_HELP_BUTTON_LABEL = '？';
@@ -226,6 +229,21 @@ const SPOTLIGHT_JOKER_BONUS_RESULT_MESSAGE = (playerName: string, cardLabel: str
   `JOKERボーナス：${playerName}が${cardLabel}とジョーカーでペアを作りました。`;
 const SPOTLIGHT_JOKER_BONUS_EMPTY_RESULT_MESSAGE = (playerName: string): string =>
   `JOKERボーナス：${playerName}は追加で公開できるカードがなく、自動ペアは成立しません。`;
+const SPOTLIGHT_SECRET_PAIR_TITLE = 'シークレットペア';
+const SPOTLIGHT_SECRET_PAIR_MESSAGE = (playerName: string, cardLabel: string): string =>
+  `${playerName}のターンです。${cardLabel}と同じランクの手札を選んでペアを作れます。`;
+const SPOTLIGHT_SECRET_PAIR_EMPTY_MESSAGE =
+  '同じランクの手札はありません。今回はスキップできます。';
+const SPOTLIGHT_SECRET_PAIR_SKIP_LABEL = 'ペアを作らない';
+const SPOTLIGHT_SECRET_PAIR_GATE_MESSAGE = (playerName: string): string =>
+  `${playerName}の手札を表示します。相手に画面が見えないことを確認してから進んでください。`;
+const SPOTLIGHT_SECRET_PAIR_RESULT_MESSAGE = (
+  playerName: string,
+  openCardLabel: string,
+  handCardLabel: string,
+): string => `${playerName}が${openCardLabel}と${handCardLabel}でシークレットペアを作りました。`;
+const SPOTLIGHT_SECRET_PAIR_SKIP_RESULT_MESSAGE = (playerName: string): string =>
+  `${playerName}はシークレットペアを作成しませんでした。`;
 
 const createWatchDecisionConfirmMessage = (decision: WatchDecision, playerName: string): string => {
   const base = WATCH_DECISION_CONFIRM_MESSAGES[decision];
@@ -246,6 +264,25 @@ const revokeWatchSecretAccess = (): void => {
 };
 
 const hasWatchSecretAccess = (): boolean => watchSecretAccessGranted;
+
+interface SpotlightSecretPairRequest {
+  revealId: string;
+  playerId: PlayerId;
+}
+
+let spotlightSecretAccessGranted = false;
+let pendingSpotlightSecretPair: SpotlightSecretPairRequest | null = null;
+let isSpotlightSecretPairInProgress = false;
+
+const grantSpotlightSecretAccess = (): void => {
+  spotlightSecretAccessGranted = true;
+};
+
+const revokeSpotlightSecretAccess = (): void => {
+  spotlightSecretAccessGranted = false;
+};
+
+const hasSpotlightSecretAccess = (): boolean => spotlightSecretAccessGranted;
 
 let lastActionGuardMessage: string | null = null;
 
@@ -2023,6 +2060,299 @@ const completeSpotlightJokerBonus = (
   navigateToCurtainCallGate();
 };
 
+const findSpotlightSecretPairCandidates = (
+  player: PlayerState | undefined,
+  rank: CardSnapshot['rank'],
+): CardSnapshot[] => {
+  if (!player || rank === 'JOKER') {
+    return [];
+  }
+  const candidates = player.hand.cards.filter((card) => card.rank === rank);
+  return sortCardsByDescendingValue(candidates);
+};
+
+const finalizeSpotlightSecretPairSelection = (
+  request: SpotlightSecretPairRequest,
+  handCardId: string | null,
+): void => {
+  if (isSpotlightSecretPairInProgress) {
+    console.warn('シークレットペア処理が進行中です。');
+    return;
+  }
+
+  const stateBefore = gameStore.getState();
+  const playerName = getPlayerDisplayName(stateBefore, request.playerId);
+  let paired = false;
+  let openCardLabel: string | null = null;
+  let handCardLabel: string | null = null;
+
+  isSpotlightSecretPairInProgress = true;
+
+  gameStore.setState((current) => {
+    const player = current.players[request.playerId];
+    if (!player) {
+      return current;
+    }
+
+    const revealIndex = current.set.opened.findIndex((entry) => entry.id === request.revealId);
+    if (revealIndex === -1) {
+      return current;
+    }
+
+    const revealEntry = current.set.opened[revealIndex];
+    openCardLabel = formatCardLabel(revealEntry.card);
+
+    if (!handCardId) {
+      return current;
+    }
+
+    const handCard = player.hand.cards.find((card) => card.id === handCardId);
+    if (!handCard || handCard.rank !== revealEntry.card.rank) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const nextOpened = current.set.opened.slice();
+    const actorCard = cloneCardSnapshot(revealEntry.card);
+    actorCard.face = 'up';
+    const actorPlacement: StageCardPlacement = {
+      card: actorCard,
+      from: 'set',
+      placedAt: timestamp,
+      revealedAt: revealEntry.openedAt,
+    };
+    const kurokoPlacement = createStagePlacementFromHand(handCard, 'down', timestamp);
+    const pairId = createStagePairId(timestamp);
+
+    const nextHandCards = player.hand.cards.filter((card) => card.id !== handCardId);
+    const nextLastDrawnCardId =
+      player.hand.lastDrawnCardId === handCardId ? null : player.hand.lastDrawnCardId;
+
+    const updatedReveal: SetReveal = {
+      ...revealEntry,
+      assignedTo: request.playerId,
+      bonus: 'secretPair',
+    };
+    nextOpened[revealIndex] = updatedReveal;
+
+    handCardLabel = formatCardLabel(handCard);
+    paired = true;
+
+    return {
+      ...current,
+      players: {
+        ...current.players,
+        [request.playerId]: {
+          ...player,
+          hand: {
+            ...player.hand,
+            cards: nextHandCards,
+            lastDrawnCardId: nextLastDrawnCardId,
+          },
+          stage: {
+            ...player.stage,
+            pairs: [
+              ...player.stage.pairs,
+              {
+                id: pairId,
+                owner: request.playerId,
+                origin: 'spotlight',
+                actor: actorPlacement,
+                kuroko: kurokoPlacement,
+                createdAt: timestamp,
+              },
+            ],
+          },
+        },
+      },
+      set: {
+        ...current.set,
+        opened: nextOpened,
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  pendingSpotlightSecretPair = null;
+  isSpotlightSecretPairInProgress = false;
+
+  if (handCardId !== null && !paired) {
+    console.warn('シークレットペアの成立に失敗しました。状態を確認してください。');
+  }
+
+  if (paired) {
+    const latest = gameStore.getState();
+    saveLatestGame(latest);
+    const summary = SPOTLIGHT_SECRET_PAIR_RESULT_MESSAGE(
+      playerName,
+      openCardLabel ?? '',
+      handCardLabel ?? '',
+    );
+    if (typeof window === 'undefined') {
+      console.info(summary);
+    } else {
+      const toast = window.curtainCall?.toast;
+      if (toast) {
+        toast.show({ message: summary, variant: 'info' });
+      } else {
+        console.info(summary);
+      }
+    }
+    return;
+  }
+
+  if (handCardId === null) {
+    const skipMessage = SPOTLIGHT_SECRET_PAIR_SKIP_RESULT_MESSAGE(playerName);
+    if (typeof window === 'undefined') {
+      console.info(skipMessage);
+    } else {
+      const toast = window.curtainCall?.toast;
+      if (toast) {
+        toast.show({ message: skipMessage, variant: 'info' });
+      } else {
+        console.info(skipMessage);
+      }
+    }
+  }
+};
+
+const openSpotlightSecretPairDialog = (request: SpotlightSecretPairRequest): void => {
+  const state = gameStore.getState();
+  const reveal = state.set.opened.find((entry) => entry.id === request.revealId);
+  const player = state.players[request.playerId];
+
+  if (!reveal || !player) {
+    pendingSpotlightSecretPair = null;
+    return;
+  }
+
+  const playerName = getPlayerDisplayName(state, request.playerId);
+  const openCardLabel = formatCardLabel(reveal.card);
+  const candidates = findSpotlightSecretPairCandidates(player, reveal.card.rank);
+
+  if (typeof window === 'undefined') {
+    finalizeSpotlightSecretPairSelection(request, candidates[0]?.id ?? null);
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    finalizeSpotlightSecretPairSelection(request, candidates[0]?.id ?? null);
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'spotlight-set-picker';
+
+  const message = document.createElement('p');
+  message.className = 'spotlight-set-picker__message';
+  message.textContent = SPOTLIGHT_SECRET_PAIR_MESSAGE(playerName, openCardLabel);
+  container.append(message);
+
+  if (candidates.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'spotlight-set-picker__empty';
+    empty.textContent = SPOTLIGHT_SECRET_PAIR_EMPTY_MESSAGE;
+    container.append(empty);
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'spotlight-set-picker__list';
+
+    candidates.forEach((card) => {
+      const item = document.createElement('li');
+      item.className = 'spotlight-set-picker__item';
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'spotlight-set-picker__button';
+      button.setAttribute('aria-label', `${formatCardLabel(card)}でペアを作る`);
+
+      const cardComponent = new CardComponent({
+        rank: card.rank,
+        suit: card.suit,
+        faceDown: false,
+        annotation: card.annotation,
+      });
+      button.append(cardComponent.el);
+
+      const label = document.createElement('span');
+      label.className = 'spotlight-set-picker__label';
+      label.textContent = formatCardLabel(card);
+      button.append(label);
+
+      button.addEventListener('click', () => {
+        modal.close();
+        finalizeSpotlightSecretPairSelection(request, card.id);
+      });
+
+      item.append(button);
+      list.append(item);
+    });
+
+    container.append(list);
+  }
+
+  modal.open({
+    title: SPOTLIGHT_SECRET_PAIR_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [
+      {
+        label: SPOTLIGHT_SECRET_PAIR_SKIP_LABEL,
+        variant: 'ghost',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => {
+          modal.close();
+          finalizeSpotlightSecretPairSelection(request, null);
+        },
+      },
+    ],
+  });
+};
+
+const maybeTriggerSpotlightSecretPair = (reveal: SetReveal): void => {
+  if (reveal.card.rank === 'JOKER') {
+    return;
+  }
+
+  const state = gameStore.getState();
+  const playerId = state.activePlayer;
+  const player = state.players[playerId];
+
+  if (!player) {
+    return;
+  }
+
+  if (pendingSpotlightSecretPair?.revealId === reveal.id) {
+    return;
+  }
+
+  const candidates = findSpotlightSecretPairCandidates(player, reveal.card.rank);
+  if (candidates.length === 0) {
+    return;
+  }
+
+  pendingSpotlightSecretPair = { revealId: reveal.id, playerId };
+  revokeSpotlightSecretAccess();
+
+  if (state.route === SPOTLIGHT_GATE_PATH) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(SPOTLIGHT_GATE_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_GATE_PATH;
+  }
+};
+
 const finalizeSpotlightSetOpen = (setCardId: string): void => {
   if (isSpotlightSetOpenInProgress) {
     console.warn('セットカードの公開処理が進行中です。');
@@ -2076,7 +2406,10 @@ const finalizeSpotlightSetOpen = (setCardId: string): void => {
 
   if (reveal.bonus === 'joker') {
     openSpotlightJokerBonusDialog(reveal, playerName);
+    return;
   }
+
+  maybeTriggerSpotlightSecretPair(reveal);
 };
 
 const getRemainingWatchCount = (state: GameState): number | null => {
@@ -2159,6 +2492,18 @@ const navigateFromWatchTo = (path: string): void => {
   }
 };
 
+const navigateToSpotlightGate = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(SPOTLIGHT_GATE_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_GATE_PATH;
+  }
+};
+
 const navigateToCurtainCallGate = (): void => {
   if (typeof window === 'undefined') {
     return;
@@ -2169,6 +2514,20 @@ const navigateToCurtainCallGate = (): void => {
   } else {
     window.location.hash = SPOTLIGHT_TO_CURTAINCALL_PATH;
   }
+};
+
+const handleSpotlightGatePass = (router: Router): void => {
+  grantSpotlightSecretAccess();
+  router.go('#/phase/spotlight');
+  const request = pendingSpotlightSecretPair;
+  if (!request) {
+    return;
+  }
+  queueMicrotask(() => {
+    if (pendingSpotlightSecretPair?.revealId === request.revealId) {
+      openSpotlightSecretPairDialog(request);
+    }
+  });
 };
 
 const createWatchResultContent = (
@@ -3107,6 +3466,8 @@ const cleanupActiveSpotlightView = (): void => {
     isSpotlightRevealInProgress = false;
     isSpotlightSetOpenInProgress = false;
   }
+  revokeSpotlightSecretAccess();
+  isSpotlightSecretPairInProgress = false;
 };
 
 const withRouteCleanup = (
@@ -3219,7 +3580,15 @@ const ROUTES: RouteDescriptor[] = [
     subtitle: '公開処理前の確認ゲートです。',
     phase: 'spotlight',
     gate: createHandOffGateConfig({
-      resolveMessage: (state) => createPhaseGateMessage(state, 'スポットライトフェーズ'),
+      resolveMessage: (state) => {
+        const request = pendingSpotlightSecretPair;
+        if (request) {
+          const playerName = getPlayerDisplayName(state, request.playerId);
+          return SPOTLIGHT_SECRET_PAIR_GATE_MESSAGE(playerName);
+        }
+        return createPhaseGateMessage(state, 'スポットライトフェーズ');
+      },
+      onPass: (nextRouter) => handleSpotlightGatePass(nextRouter),
     }),
   },
   {
@@ -3633,8 +4002,20 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
       definition = {
         path: route.path,
         title: route.title,
-        render: () => {
+        render: ({ router: contextRouter }) => {
           const state = gameStore.getState();
+          if (pendingSpotlightSecretPair && !hasSpotlightSecretAccess()) {
+            if (contextRouter) {
+              contextRouter.go(SPOTLIGHT_GATE_PATH);
+            } else {
+              navigateToSpotlightGate();
+            }
+
+            return createPlaceholderView({
+              title: route.heading,
+              subtitle: SPOTLIGHT_SECRET_GUARD_REDIRECTING_SUBTITLE,
+            });
+          }
           const view = createSpotlightView({
             title: route.heading,
             stage: mapSpotlightStage(state),
