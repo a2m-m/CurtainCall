@@ -282,10 +282,10 @@ const renderSetTab = (state: GameState): HTMLElement => {
     hiddenSection.append(createEmptyMessage('伏せ札はありません。'));
   } else {
     const list = document.createElement('ul');
-    list.className = 'board-check__card-list';
+    list.className = 'board-check__card-list board-check__card-list--grid';
     for (let index = 0; index < closed; index += 1) {
       const item = document.createElement('li');
-      item.className = 'board-check__card-item';
+      item.className = 'board-check__card-grid-item';
       const card = new CardComponent({
         rank: '?',
         suit: 'spades',
