@@ -170,6 +170,12 @@ export interface ScoutState {
   selectedOpponentCardIndex: number | null;
 }
 
+export interface ActionState {
+  selectedCardId: string | null;
+  actorCardId: string | null;
+  kurokoCardId: string | null;
+}
+
 export interface GameState extends Record<string, unknown> {
   matchId: string;
   phase: PhaseKey;
@@ -186,6 +192,7 @@ export interface GameState extends Record<string, unknown> {
   resume?: ResumeSnapshot;
   recentScoutedCard: CardSnapshot | null;
   scout: ScoutState;
+  action: ActionState;
 }
 
 export type StateListener<TState> = (state: TState) => void;
@@ -282,6 +289,12 @@ const createMatchId = (): string => {
   return `match-${Date.now()}-${random}`;
 };
 
+export const createInitialActionState = (): ActionState => ({
+  selectedCardId: null,
+  actorCardId: null,
+  kurokoCardId: null,
+});
+
 export const createInitialState = (): GameState => {
   const timestamp = Date.now();
   return {
@@ -314,6 +327,7 @@ export const createInitialState = (): GameState => {
     scout: {
       selectedOpponentCardIndex: null,
     },
+    action: createInitialActionState(),
   };
 };
 

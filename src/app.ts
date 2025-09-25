@@ -20,6 +20,7 @@ import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
 import {
   ActionHandCardViewModel,
+  ActionHandSelectionState,
   createActionView,
 } from './views/action.js';
 import { createScoutView } from './views/scout.js';
@@ -925,6 +926,56 @@ const mapActionHandCards = (state: GameState): ActionHandCardViewModel[] => {
   }));
 };
 
+const mapActionHandSelection = (
+  state: GameState,
+): Partial<ActionHandSelectionState> => ({
+  selectedCardId: state.action.selectedCardId,
+  actorCardId: state.action.actorCardId,
+  kurokoCardId: state.action.kurokoCardId,
+});
+
+const toggleActionActorCard = (cardId: string): void => {
+  gameStore.setState((current) => {
+    const player = current.players[current.activePlayer];
+    if (!player) {
+      return current;
+    }
+
+    const hasCard = player.hand.cards.some((card) => card.id === cardId);
+    if (!hasCard) {
+      return current;
+    }
+
+    const nextActorCardId = current.action.actorCardId === cardId ? null : cardId;
+    const nextKurokoCardId =
+      nextActorCardId !== null && current.action.kurokoCardId === nextActorCardId
+        ? null
+        : current.action.kurokoCardId;
+
+    if (
+      nextActorCardId === current.action.actorCardId &&
+      nextKurokoCardId === current.action.kurokoCardId &&
+      current.action.selectedCardId === null
+    ) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+
+    return {
+      ...current,
+      action: {
+        ...current.action,
+        selectedCardId: null,
+        actorCardId: nextActorCardId,
+        kurokoCardId: nextKurokoCardId,
+      },
+      updatedAt: timestamp,
+      revision: current.revision + 1,
+    };
+  });
+};
+
 let isScoutPickInProgress = false;
 
 const clearScoutSecretState = (): void => {
@@ -1386,10 +1437,19 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           const view = createActionView({
             title: route.heading,
             handCards: mapActionHandCards(state),
+            selectedCardId: state.action.selectedCardId,
+            actorCardId: state.action.actorCardId,
+            kurokoCardId: state.action.kurokoCardId,
+            onSelectHandCard: (cardId) => {
+              toggleActionActorCard(cardId);
+            },
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
-            view.updateHand(mapActionHandCards(nextState));
+            view.updateHand(
+              mapActionHandCards(nextState),
+              mapActionHandSelection(nextState),
+            );
           });
 
           activeActionCleanup = () => {
