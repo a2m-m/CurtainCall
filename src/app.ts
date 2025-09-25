@@ -646,17 +646,20 @@ const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
   cardPreview.el.classList.add('scout-complete__card');
   preview.append(cardPreview.el);
 
-  const caption = document.createElement('p');
-  caption.className = 'scout-complete__caption';
-  caption.textContent = 'アクションフェーズへ移行します。';
-  preview.append(caption);
+  const previewCaption = document.createElement('p');
+  previewCaption.className = 'scout-complete__caption';
+  previewCaption.textContent = '引いたカードは以下の通りです。';
+  preview.append(previewCaption);
 
   container.append(preview);
 
-  const caption = document.createElement('p');
-  caption.className = 'scout-complete__caption';
-  caption.textContent = 'アクションフェーズへ移行します。';
-  preview.append(caption);
+  const actionNotice = document.createElement('p');
+  actionNotice.className = 'scout-complete__caption';
+  actionNotice.textContent = 'OKを押してアクションフェーズへ進みましょう。';
+  container.append(actionNotice);
+
+  return container;
+};
 
 
 let isScoutResultDialogOpen = false;
@@ -867,6 +870,7 @@ const openScoutPickConfirmDialog = (): void => {
         label: SCOUT_PICK_CONFIRM_OK_LABEL,
         variant: 'primary',
         preventRapid: true,
+        dismiss: false,
         onSelect: () => finalizeScoutPick(),
       },
     ],
