@@ -151,6 +151,7 @@ const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されてい
 const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
 const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight/gate';
+const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
   clap: 'クラップの宣言',
   boo: 'ブーイングの宣言',
@@ -211,6 +212,20 @@ const SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL = '戻る';
 const SPOTLIGHT_SET_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
   `${playerName}が${cardLabel}をオープンしました。`;
 const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態ではありません。';
+const SPOTLIGHT_JOKER_BONUS_TITLE = 'JOKERボーナス';
+const SPOTLIGHT_JOKER_BONUS_MESSAGE = (playerName: string): string =>
+  `${playerName}のターンです。JOKER！追加でもう1枚オープンして、自動でペアを作ります。`;
+const SPOTLIGHT_JOKER_BONUS_MULTI_PROMPT = '追加で公開するカードを選択してください。';
+const SPOTLIGHT_JOKER_BONUS_SINGLE_MESSAGE =
+  '残りのカードは1枚です。このカードを公開して自動でペアを作ります。';
+const SPOTLIGHT_JOKER_BONUS_SINGLE_ACTION_LABEL = '公開する';
+const SPOTLIGHT_JOKER_BONUS_EMPTY_MESSAGE =
+  '追加で公開できるカードがありません。カーテンコールへ進みます。';
+const SPOTLIGHT_JOKER_BONUS_EMPTY_ACTION_LABEL = 'カーテンコールへ';
+const SPOTLIGHT_JOKER_BONUS_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
+  `JOKERボーナス：${playerName}が${cardLabel}とジョーカーでペアを作りました。`;
+const SPOTLIGHT_JOKER_BONUS_EMPTY_RESULT_MESSAGE = (playerName: string): string =>
+  `JOKERボーナス：${playerName}は追加で公開できるカードがなく、自動ペアは成立しません。`;
 
 const createWatchDecisionConfirmMessage = (decision: WatchDecision, playerName: string): string => {
   const base = WATCH_DECISION_CONFIRM_MESSAGES[decision];
@@ -1376,6 +1391,21 @@ const mapSpotlightRevealCaption = (state: GameState): string | null => {
 const getAvailableSpotlightSetCards = (state: GameState): SetCardState[] =>
   state.set.cards.filter((setCard) => setCard.card.face !== 'up');
 
+const findPendingJokerBonusReveal = (
+  state: GameState,
+  pairId: string | null | undefined,
+): SetReveal | null => {
+  if (!pairId) {
+    return null;
+  }
+
+  return (
+    state.set.opened.find(
+      (entry) => entry.pairId === pairId && entry.bonus === 'joker' && !entry.assignedTo,
+    ) ?? null
+  );
+};
+
 const canOpenSpotlightSet = (state: GameState): boolean => {
   const targetPair = findLatestSpotlightPair(state);
   if (!targetPair?.id || !targetPair.owner || !targetPair.actor?.card || !targetPair.kuroko?.card) {
@@ -1390,7 +1420,14 @@ const canOpenSpotlightSet = (state: GameState): boolean => {
     return false;
   }
 
-  if (state.set.opened.some((entry) => entry.pairId === targetPair.id)) {
+  const relatedReveals = state.set.opened.filter((entry) => entry.pairId === targetPair.id);
+  const pendingJoker = findPendingJokerBonusReveal(state, targetPair.id);
+
+  if (pendingJoker) {
+    return getAvailableSpotlightSetCards(state).length > 0;
+  }
+
+  if (relatedReveals.length > 0) {
     return false;
   }
 
@@ -1417,7 +1454,10 @@ const openSpotlightSetCard = (setCardId: string): SetReveal | null => {
       return current;
     }
 
-    if (current.set.opened.some((entry) => entry.pairId === targetPair.id)) {
+    const relatedReveals = current.set.opened.filter((entry) => entry.pairId === targetPair.id);
+    const pendingJoker = findPendingJokerBonusReveal(current, targetPair.id);
+
+    if (!pendingJoker && relatedReveals.length > 0) {
       return current;
     }
 
@@ -1715,6 +1755,274 @@ const openSpotlightSetConfirmDialog = (setCardId: string): void => {
   });
 };
 
+const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: string): void => {
+  const resolveAutomatically = (): void => {
+    const state = gameStore.getState();
+    const availableCards = getAvailableSpotlightSetCards(state)
+      .slice()
+      .sort((a, b) => a.position - b.position);
+
+    if (availableCards.length === 0) {
+      completeSpotlightJokerBonus(jokerReveal, null);
+      return;
+    }
+
+    finalizeSpotlightSetOpen(availableCards[0].id);
+  };
+
+  if (typeof window === 'undefined') {
+    resolveAutomatically();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    resolveAutomatically();
+    return;
+  }
+
+  const state = gameStore.getState();
+  const availableCards = getAvailableSpotlightSetCards(state)
+    .slice()
+    .sort((a, b) => a.position - b.position);
+
+  const container = document.createElement('div');
+  container.className = 'spotlight-set-picker';
+
+  const message = document.createElement('p');
+  message.className = 'spotlight-set-picker__message';
+  message.textContent = SPOTLIGHT_JOKER_BONUS_MESSAGE(playerName);
+  container.append(message);
+
+  if (availableCards.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'spotlight-set-picker__empty';
+    empty.textContent = SPOTLIGHT_JOKER_BONUS_EMPTY_MESSAGE;
+    container.append(empty);
+
+    modal.open({
+      title: SPOTLIGHT_JOKER_BONUS_TITLE,
+      body: container,
+      dismissible: false,
+      actions: [
+        {
+          label: SPOTLIGHT_JOKER_BONUS_EMPTY_ACTION_LABEL,
+          variant: 'primary',
+          preventRapid: true,
+          dismiss: false,
+          onSelect: () => {
+            modal.close();
+            completeSpotlightJokerBonus(jokerReveal, null);
+          },
+        },
+      ],
+    });
+    return;
+  }
+
+  if (availableCards.length === 1) {
+    const note = document.createElement('p');
+    note.className = 'spotlight-set-picker__empty';
+    note.textContent = SPOTLIGHT_JOKER_BONUS_SINGLE_MESSAGE;
+    container.append(note);
+
+    modal.open({
+      title: SPOTLIGHT_JOKER_BONUS_TITLE,
+      body: container,
+      dismissible: false,
+      actions: [
+        {
+          label: SPOTLIGHT_JOKER_BONUS_SINGLE_ACTION_LABEL,
+          variant: 'primary',
+          preventRapid: true,
+          dismiss: false,
+          onSelect: () => {
+            modal.close();
+            openSpotlightSetConfirmDialog(availableCards[0].id);
+          },
+        },
+      ],
+    });
+    return;
+  }
+
+  const prompt = document.createElement('p');
+  prompt.className = 'spotlight-set-picker__empty';
+  prompt.textContent = SPOTLIGHT_JOKER_BONUS_MULTI_PROMPT;
+  container.append(prompt);
+
+  const list = document.createElement('ul');
+  list.className = 'spotlight-set-picker__list';
+
+  availableCards.forEach((setCard) => {
+    const item = document.createElement('li');
+    item.className = 'spotlight-set-picker__item';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'spotlight-set-picker__button';
+    button.setAttribute('aria-label', `${formatSetCardPositionLabel(setCard)}を公開する`);
+
+    const cardComponent = new CardComponent({
+      rank: setCard.card.rank,
+      suit: setCard.card.suit,
+      faceDown: setCard.card.face !== 'up',
+      annotation: setCard.card.annotation,
+    });
+    button.append(cardComponent.el);
+
+    const label = document.createElement('span');
+    label.className = 'spotlight-set-picker__label';
+    label.textContent = formatSetCardPositionLabel(setCard);
+    button.append(label);
+
+    button.addEventListener('click', () => {
+      modal.close();
+      openSpotlightSetConfirmDialog(setCard.id);
+    });
+
+    item.append(button);
+    list.append(item);
+  });
+
+  container.append(list);
+
+  modal.open({
+    title: SPOTLIGHT_JOKER_BONUS_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [],
+  });
+};
+
+const completeSpotlightJokerBonus = (
+  jokerReveal: SetReveal,
+  bonusReveal: SetReveal | null,
+): void => {
+  const stateBefore = gameStore.getState();
+  const playerId = stateBefore.activePlayer;
+  const playerName = getPlayerDisplayName(stateBefore, playerId);
+  const bonusCardLabel = bonusReveal ? formatCardLabel(bonusReveal.card) : null;
+  let paired = false;
+
+  gameStore.setState((current) => {
+    const player = current.players[playerId];
+    if (!player) {
+      return current;
+    }
+
+    const jokerIndex = current.set.opened.findIndex((entry) => entry.id === jokerReveal.id);
+    if (jokerIndex === -1) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const nextOpened = current.set.opened.slice();
+    const jokerEntry = nextOpened[jokerIndex];
+    const updatedJokerEntry: SetReveal = {
+      ...jokerEntry,
+      assignedTo: playerId,
+    };
+    nextOpened[jokerIndex] = updatedJokerEntry;
+
+    if (!bonusReveal) {
+      return {
+        ...current,
+        set: {
+          ...current.set,
+          opened: nextOpened,
+        },
+        revision: current.revision + 1,
+        updatedAt: timestamp,
+      };
+    }
+
+    const bonusIndex = current.set.opened.findIndex((entry) => entry.id === bonusReveal.id);
+    if (bonusIndex === -1) {
+      return current;
+    }
+
+    const bonusEntry = nextOpened[bonusIndex];
+    const updatedBonusEntry: SetReveal = {
+      ...bonusEntry,
+      assignedTo: playerId,
+    };
+    nextOpened[bonusIndex] = updatedBonusEntry;
+
+    const pairId = createStagePairId(timestamp);
+
+    const actorCard = cloneCardSnapshot(updatedBonusEntry.card);
+    actorCard.face = 'up';
+    const actorPlacement: StageCardPlacement = {
+      card: actorCard,
+      from: 'set',
+      placedAt: timestamp,
+      revealedAt: updatedBonusEntry.openedAt,
+    };
+
+    const jokerCard = cloneCardSnapshot(updatedJokerEntry.card);
+    jokerCard.face = 'down';
+    const kurokoPlacement: StageCardPlacement = {
+      card: jokerCard,
+      from: 'jokerBonus',
+      placedAt: timestamp,
+      revealedAt: updatedJokerEntry.openedAt,
+    };
+
+    paired = true;
+
+    return {
+      ...current,
+      players: {
+        ...current.players,
+        [playerId]: {
+          ...player,
+          stage: {
+            ...player.stage,
+            pairs: [
+              ...player.stage.pairs,
+              {
+                id: pairId,
+                owner: playerId,
+                origin: 'joker',
+                actor: actorPlacement,
+                kuroko: kurokoPlacement,
+                createdAt: timestamp,
+              },
+            ],
+          },
+        },
+      },
+      set: {
+        ...current.set,
+        opened: nextOpened,
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  const latest = gameStore.getState();
+  saveLatestGame(latest);
+
+  const summary = paired
+    ? SPOTLIGHT_JOKER_BONUS_RESULT_MESSAGE(playerName, bonusCardLabel ?? '')
+    : SPOTLIGHT_JOKER_BONUS_EMPTY_RESULT_MESSAGE(playerName);
+
+  if (typeof window === 'undefined') {
+    console.info(summary);
+  } else {
+    const toast = window.curtainCall?.toast;
+    if (toast) {
+      toast.show({ message: summary, variant: 'info' });
+    } else {
+      console.info(summary);
+    }
+  }
+
+  navigateToCurtainCallGate();
+};
+
 const finalizeSpotlightSetOpen = (setCardId: string): void => {
   if (isSpotlightSetOpenInProgress) {
     console.warn('セットカードの公開処理が進行中です。');
@@ -1727,6 +2035,8 @@ const finalizeSpotlightSetOpen = (setCardId: string): void => {
     return;
   }
 
+  const targetPairBefore = findLatestSpotlightPair(stateBefore);
+  const pendingJokerBefore = findPendingJokerBonusReveal(stateBefore, targetPairBefore?.id);
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
 
   isSpotlightSetOpenInProgress = true;
@@ -1738,8 +2048,10 @@ const finalizeSpotlightSetOpen = (setCardId: string): void => {
     return;
   }
 
-  const latest = gameStore.getState();
-  saveLatestGame(latest);
+  if (!pendingJokerBefore) {
+    const latest = gameStore.getState();
+    saveLatestGame(latest);
+  }
 
   const message = SPOTLIGHT_SET_RESULT_MESSAGE(playerName, formatCardLabel(reveal.card));
 
@@ -1755,6 +2067,15 @@ const finalizeSpotlightSetOpen = (setCardId: string): void => {
     toast.show({ message, variant: 'info' });
   } else {
     console.info(message);
+  }
+
+  if (pendingJokerBefore) {
+    completeSpotlightJokerBonus(pendingJokerBefore, reveal);
+    return;
+  }
+
+  if (reveal.bonus === 'joker') {
+    openSpotlightJokerBonusDialog(reveal, playerName);
   }
 };
 
@@ -1835,6 +2156,18 @@ const navigateFromWatchTo = (path: string): void => {
     router.go(path);
   } else {
     window.location.hash = path;
+  }
+};
+
+const navigateToCurtainCallGate = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(SPOTLIGHT_TO_CURTAINCALL_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_TO_CURTAINCALL_PATH;
   }
 };
 
