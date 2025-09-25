@@ -21,6 +21,7 @@ import type {
   PlayerId,
   PlayerState,
   StageCardPlacement,
+  StagePair,
 } from './state.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
@@ -34,6 +35,11 @@ import {
   ActionHandSelectionState,
   createActionView,
 } from './views/action.js';
+import {
+  createWatchView,
+  WatchStageViewModel,
+  WatchStatusViewModel,
+} from './views/watch.js';
 import { createScoutView } from './views/scout.js';
 import type {
   ScoutOpponentHandCardViewModel,
@@ -129,6 +135,25 @@ const ACTION_GUARD_INSUFFICIENT_HAND_MESSAGE =
 const ACTION_RESULT_TITLE = 'アクション完了';
 const ACTION_RESULT_OK_LABEL = 'ウォッチへ';
 const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
+
+const WATCH_BOARD_CHECK_LABEL = 'ボードチェック';
+const WATCH_MY_HAND_LABEL = '自分の手札';
+const WATCH_HELP_BUTTON_LABEL = '？';
+const WATCH_HELP_ARIA_LABEL = 'ヘルプ';
+const WATCH_CLAP_BUTTON_LABEL = 'クラップ（同数）';
+const WATCH_BOO_BUTTON_LABEL = 'ブーイング（異なる）';
+const WATCH_ACTOR_LABEL = '役者（表）';
+const WATCH_KUROKO_LABEL = '黒子（裏）';
+const WATCH_REQUIRED_BOO_COUNT = 3;
+const WATCH_REMAINING_PLACEHOLDER = '—';
+const WATCH_FORCED_BADGE_LABEL = 'ブーイング必須';
+const WATCH_CLAP_DISABLED_MESSAGE = '残り機会的にブーイングが必要です';
+const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されていません。';
+const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
+const WATCH_ACTION_PLACEHOLDER_MESSAGES = Object.freeze({
+  clap: 'クラップの宣言処理はまだ実装されていません。',
+  boo: 'ブーイングの宣言処理はまだ実装されていません。',
+});
 
 let lastActionGuardMessage: string | null = null;
 
@@ -1061,6 +1086,133 @@ const notifyActionGuardStatus = (
   }
 };
 
+const findLatestOpponentStagePair = (state: GameState): StagePair | null => {
+  const opponentId = getOpponentId(state.activePlayer);
+  const opponent = state.players[opponentId];
+  if (!opponent) {
+    return null;
+  }
+
+  for (let index = opponent.stage.pairs.length - 1; index >= 0; index -= 1) {
+    const pair = opponent.stage.pairs[index];
+    if (pair?.actor && pair.kuroko) {
+      return pair;
+    }
+  }
+
+  return null;
+};
+
+const mapWatchStage = (state: GameState): WatchStageViewModel => {
+  const latestPair = findLatestOpponentStagePair(state);
+  const actorPlacement = latestPair?.actor ?? null;
+  const kurokoPlacement = latestPair?.kuroko ?? null;
+
+  const actorCard = actorPlacement?.card ?? null;
+  const kurokoCard = kurokoPlacement?.card ?? null;
+
+  return {
+    actorLabel: WATCH_ACTOR_LABEL,
+    actorCard: actorCard
+      ? {
+          rank: actorCard.rank,
+          suit: actorCard.suit,
+          faceDown: actorCard.face === 'down',
+          annotation: actorCard.annotation,
+          description: formatCardLabel(actorCard),
+        }
+      : null,
+    actorEmptyMessage: WATCH_STAGE_EMPTY_MESSAGE,
+    kurokoLabel: WATCH_KUROKO_LABEL,
+    kurokoCard: kurokoCard
+      ? {
+          rank: kurokoCard.rank,
+          suit: kurokoCard.suit,
+          faceDown: true,
+          annotation: kurokoCard.annotation,
+          description: WATCH_KUROKO_DEFAULT_DESCRIPTION,
+        }
+      : null,
+    kurokoEmptyMessage: WATCH_STAGE_EMPTY_MESSAGE,
+  };
+};
+
+const getRemainingWatchCount = (state: GameState): number | null => {
+  const watchState = state.watch;
+  if (watchState && typeof watchState === 'object') {
+    const watchRecord = watchState as Record<string, unknown>;
+    const directRemaining = watchRecord.remaining;
+    if (typeof directRemaining === 'number') {
+      return directRemaining;
+    }
+
+    const perPlayer = watchRecord.remainingWatchIncludingCurrent;
+    if (perPlayer && typeof perPlayer === 'object') {
+      const record = perPlayer as Record<string, unknown>;
+      const value = record[state.activePlayer];
+      if (typeof value === 'number') {
+        return value;
+      }
+    }
+  }
+
+  const rootRemaining = state.remainingWatchIncludingCurrent;
+  if (rootRemaining && typeof rootRemaining === 'object') {
+    const record = rootRemaining as Record<string, unknown>;
+    const value = record[state.activePlayer];
+    if (typeof value === 'number') {
+      return value;
+    }
+  }
+
+  return null;
+};
+
+const mapWatchStatus = (state: GameState): WatchStatusViewModel => {
+  const player = state.players[state.activePlayer];
+  const booCount = player?.booCount ?? 0;
+  const remaining = getRemainingWatchCount(state);
+  const needed = Math.max(0, WATCH_REQUIRED_BOO_COUNT - booCount);
+  const forced = remaining !== null && remaining > 0 && needed >= remaining;
+
+  const turnLabel = `ターン：#${state.turn.count}`;
+  const booLabel = `あなたのブーイング：${booCount} / ${WATCH_REQUIRED_BOO_COUNT}`;
+  const remainingLabelValue =
+    remaining !== null ? String(remaining) : WATCH_REMAINING_PLACEHOLDER;
+  const remainingLabel = `残りウォッチ機会：${remainingLabelValue}`;
+
+  return {
+    turnLabel,
+    booLabel,
+    remainingLabel,
+    forced,
+    forcedLabel: WATCH_FORCED_BADGE_LABEL,
+    clapDisabled: forced,
+    clapDisabledReason: forced ? WATCH_CLAP_DISABLED_MESSAGE : undefined,
+  };
+};
+
+const notifyWatchActionPlaceholder = (
+  action: keyof typeof WATCH_ACTION_PLACEHOLDER_MESSAGES,
+): void => {
+  const message = WATCH_ACTION_PLACEHOLDER_MESSAGES[action];
+  if (!message) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'info' });
+  } else {
+    console.info(message);
+  }
+};
+
 const createStagePairId = (timestamp: number): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -1504,6 +1656,7 @@ const clearScoutSecretState = (): void => {
 
 let activeScoutCleanup: (() => void) | null = null;
 let activeActionCleanup: (() => void) | null = null;
+let activeWatchCleanup: (() => void) | null = null;
 
 const cleanupActiveScoutView = (): void => {
   if (activeScoutCleanup) {
@@ -1525,12 +1678,21 @@ const cleanupActiveActionView = (): void => {
   isActionResultDialogOpen = false;
 };
 
+const cleanupActiveWatchView = (): void => {
+  if (activeWatchCleanup) {
+    const cleanup = activeWatchCleanup;
+    activeWatchCleanup = null;
+    cleanup();
+  }
+};
+
 const withRouteCleanup = (
   render: (context: RouteContext) => HTMLElement,
 ): ((context: RouteContext) => HTMLElement) => {
   return (context) => {
     cleanupActiveScoutView();
     cleanupActiveActionView();
+    cleanupActiveWatchView();
     return render(context);
   };
 };
@@ -1975,6 +2137,41 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           });
 
           activeActionCleanup = () => {
+            unsubscribe();
+          };
+
+          return view;
+        },
+      };
+    } else if (route.path === '#/phase/watch') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: () => {
+          const state = gameStore.getState();
+          const view = createWatchView({
+            title: route.heading,
+            status: mapWatchStatus(state),
+            stage: mapWatchStage(state),
+            boardCheckLabel: WATCH_BOARD_CHECK_LABEL,
+            myHandLabel: WATCH_MY_HAND_LABEL,
+            helpLabel: WATCH_HELP_BUTTON_LABEL,
+            helpAriaLabel: WATCH_HELP_ARIA_LABEL,
+            clapLabel: WATCH_CLAP_BUTTON_LABEL,
+            booLabel: WATCH_BOO_BUTTON_LABEL,
+            onClap: () => notifyWatchActionPlaceholder('clap'),
+            onBoo: () => notifyWatchActionPlaceholder('boo'),
+            onOpenBoardCheck: () => showBoardCheck(),
+            onOpenMyHand: () => openScoutMyHandDialog(),
+            onOpenHelp: () => openRulebookHelp(),
+          });
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            view.updateStatus(mapWatchStatus(nextState));
+            view.updateStage(mapWatchStage(nextState));
+          });
+
+          activeWatchCleanup = () => {
             unsubscribe();
           };
 
