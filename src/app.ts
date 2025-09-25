@@ -51,6 +51,7 @@ import { createStandbyView } from './views/standby.js';
 
 interface GateDescriptor {
   message?: string | HTMLElement;
+  resolveMessage?: (state: GameState) => string | HTMLElement;
   confirmLabel?: string;
   hints?: string[];
   modalNotes?: string[];
@@ -174,10 +175,6 @@ const WATCH_RESULT_MESSAGES = Object.freeze({
   clap: 'クラップを宣言しました。インターミッションへ進みます。',
   boo: 'ブーイングを宣言しました。スポットライトへ進みます。',
 } as const);
-const WATCH_RESULT_CAPTIONS = Object.freeze({
-  clap: '端末が相手に見えないことを確認し、インターミッションへ進みましょう。',
-  boo: '端末が相手に見えないことを確認し、スポットライトへ進みましょう。',
-} as const);
 const WATCH_RESULT_OK_LABELS = Object.freeze({
   clap: 'インターミッションへ',
   boo: 'スポットライトへ',
@@ -198,11 +195,6 @@ const createWatchResultMessage = (
   decision: WatchDecision,
   playerName: string,
 ): string => `${playerName}が${WATCH_RESULT_MESSAGES[decision]}`;
-
-const createWatchResultCaption = (
-  decision: WatchDecision,
-  playerName: string,
-): string => `${playerName}は${WATCH_RESULT_CAPTIONS[decision]}`;
 
 let watchSecretAccessGranted = false;
 
@@ -375,6 +367,32 @@ const getPlayerDisplayName = (state: GameState, playerId: PlayerId): string => {
   }
   return PLAYER_LABELS[playerId] ?? playerId;
 };
+
+const DEFAULT_GATE_CONFIRM_LABEL = '準備完了';
+
+const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
+
+const getTurnPlayerNames = (
+  state: GameState,
+): { activeName: string; opponentName: string } => {
+  const activeName = getPlayerDisplayName(state, state.activePlayer);
+  const opponentName = getPlayerDisplayName(state, getOpponentId(state.activePlayer));
+  return { activeName, opponentName };
+};
+
+const createTurnGateMessage = (
+  state: GameState,
+  confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
+): string => {
+  const { activeName, opponentName } = getTurnPlayerNames(state);
+  return `次は${activeName}のターンです。${opponentName}に画面が見えないことを確認したら「${confirmLabel}」を押してください。`;
+};
+
+const createPhaseGateMessage = (
+  state: GameState,
+  phaseLabel: string,
+  confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
+): string => `${createTurnGateMessage(state, confirmLabel)}${phaseLabel ? `${phaseLabel}を始めましょう。` : ''}`;
 
 const PHASE_LABELS: Record<PhaseKey, string> = {
   home: 'HOME',
@@ -762,8 +780,6 @@ const openHistoryDialog = (): void => {
   });
 };
 
-const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
-
 const calculateRemainingWatchCounts = (
   state: GameState,
   options: { phase?: PhaseKey } = {},
@@ -799,6 +815,7 @@ const createScoutPickConfirmBody = (playerName: string): HTMLElement => {
 const createScoutPickResultContent = (
   card: CardSnapshot,
   playerName: string,
+  opponentName: string,
 ): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'scout-complete';
@@ -829,8 +846,7 @@ const createScoutPickResultContent = (
 
   const actionNotice = document.createElement('p');
   actionNotice.className = 'scout-complete__caption';
-  actionNotice.textContent =
-    `${playerName}は端末が相手に見えないことを確認し、OKを押してアクションフェーズへ進みましょう。`;
+  actionNotice.textContent = `${playerName}は${opponentName}に画面が見えないことを確認し、「${SCOUT_PICK_RESULT_OK_LABEL}」を押してアクションフェーズへ進みましょう。`;
   container.append(actionNotice);
 
   return container;
@@ -842,6 +858,7 @@ let isScoutResultDialogOpen = false;
 const showScoutPickResultDialog = (
   card: CardSnapshot,
   playerName: string,
+  opponentName: string,
 ): void => {
   const message = `${playerName}｜${createScoutPickSuccessMessage(card)}`;
 
@@ -865,7 +882,7 @@ const showScoutPickResultDialog = (
   }
 
   const openDialog = (): void => {
-    const body = createScoutPickResultContent(card, playerName);
+    const body = createScoutPickResultContent(card, playerName, opponentName);
     isScoutResultDialogOpen = true;
 
     modal.open({
@@ -1004,6 +1021,10 @@ const finalizeScoutPick = (): void => {
 
   const stateBefore = gameStore.getState();
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
+  const opponentName = getPlayerDisplayName(
+    stateBefore,
+    getOpponentId(stateBefore.activePlayer),
+  );
 
   isScoutPickInProgress = true;
 
@@ -1012,7 +1033,7 @@ const finalizeScoutPick = (): void => {
     if (typeof window !== 'undefined') {
       window.curtainCall?.modal?.close();
     }
-    showScoutPickResultDialog(card, playerName);
+    showScoutPickResultDialog(card, playerName, opponentName);
   } else {
     isScoutPickInProgress = false;
     console.warn('カードの取得に失敗しました。選択状態を再確認してください。');
@@ -1345,6 +1366,7 @@ const navigateFromWatchTo = (path: string): void => {
 const createWatchResultContent = (
   decision: WatchDecision,
   playerName: string,
+  opponentName: string,
 ): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'watch-complete';
@@ -1354,10 +1376,15 @@ const createWatchResultContent = (
   message.textContent = createWatchResultMessage(decision, playerName);
   container.append(message);
 
-  const caption = document.createElement('p');
-  caption.className = 'watch-complete__caption';
-  caption.textContent = createWatchResultCaption(decision, playerName);
-  container.append(caption);
+  const handoff = document.createElement('p');
+  handoff.className = 'watch-complete__caption';
+  handoff.textContent = `ウォッチフェーズが終わります。${opponentName}に端末を渡してください。`;
+  container.append(handoff);
+
+  const instruction = document.createElement('p');
+  instruction.className = 'watch-complete__caption';
+  instruction.textContent = `${opponentName}が準備できたら「${WATCH_RESULT_OK_LABELS[decision]}」を押して次へ進みましょう。`;
+  container.append(instruction);
 
   return container;
 };
@@ -1385,6 +1412,7 @@ const completeWatchDecision = (
 
     const timestamp = Date.now();
     const nextRoute = WATCH_DECISION_TO_PATH[decision];
+    const nextActivePlayerId = getOpponentId(current.activePlayer);
     const nextPlayer: PlayerState = {
       ...player,
       clapCount: decision === 'clap' ? player.clapCount + 1 : player.clapCount,
@@ -1401,6 +1429,7 @@ const completeWatchDecision = (
         ...current.players,
         [current.activePlayer]: nextPlayer,
       },
+      activePlayer: nextActivePlayerId,
       watch: {
         ...previousWatchState,
         decision,
@@ -1420,6 +1449,7 @@ let isWatchResultDialogOpen = false;
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
   playerName: string,
+  opponentName: string,
 ): void => {
   const summary = `${playerName}｜${WATCH_RESULT_TITLES[decision]} ${WATCH_RESULT_MESSAGES[decision]}`;
 
@@ -1448,7 +1478,7 @@ const showWatchResultDialog = (
   }
 
   const openDialog = (): void => {
-    const body = createWatchResultContent(decision, playerName);
+    const body = createWatchResultContent(decision, playerName, opponentName);
     isWatchResultDialogOpen = true;
     modal.open({
       title: WATCH_RESULT_TITLES[decision],
@@ -1486,6 +1516,10 @@ const finalizeWatchDecision = (decision: WatchDecision): void => {
 
   const stateBefore = gameStore.getState();
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
+  const opponentName = getPlayerDisplayName(
+    stateBefore,
+    getOpponentId(stateBefore.activePlayer),
+  );
 
   isWatchDecisionInProgress = true;
 
@@ -1502,7 +1536,7 @@ const finalizeWatchDecision = (decision: WatchDecision): void => {
   }
 
   isWatchDecisionInProgress = false;
-  showWatchResultDialog(result, playerName);
+  showWatchResultDialog(result, playerName, opponentName);
 };
 
 const openWatchConfirmDialog = (decision: WatchDecision): void => {
@@ -1604,6 +1638,7 @@ const completeActionPlacement = (): CompleteActionPlacementResult => {
     }
 
     const timestamp = Date.now();
+    const nextActivePlayerId = getOpponentId(current.activePlayer);
     const pairId = createStagePairId(timestamp);
     const actorPlacement = createStagePlacementFromHand(actorCard, 'up', timestamp);
     const kurokoPlacement = createStagePlacementFromHand(kurokoCard, 'down', timestamp);
@@ -1648,6 +1683,7 @@ const completeActionPlacement = (): CompleteActionPlacementResult => {
           },
         },
       },
+      activePlayer: nextActivePlayerId,
       action: {
         selectedCardId: null,
         actorCardId: null,
@@ -1715,6 +1751,7 @@ const createActionPlacementResultContent = (
   actorCard: CardSnapshot,
   kurokoCard: CardSnapshot,
   playerName: string,
+  opponentName: string,
 ): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'action-complete';
@@ -1733,8 +1770,7 @@ const createActionPlacementResultContent = (
 
   const notice = document.createElement('p');
   notice.className = 'action-complete__caption';
-  notice.textContent =
-    `${playerName}は端末が相手に見えないことを確認し、「ウォッチへ」を押してください。`;
+  notice.textContent = `アクションフェーズが終わります。${opponentName}に端末を渡し、準備が整ったら「${ACTION_RESULT_OK_LABEL}」を押してウォッチフェーズへ進みましょう。`;
   container.append(notice);
 
   return container;
@@ -1744,6 +1780,7 @@ const showActionPlacementResultDialog = (
   actorCard: CardSnapshot,
   kurokoCard: CardSnapshot,
   playerName: string,
+  opponentName: string,
 ): void => {
   if (isActionResultDialogOpen) {
     return;
@@ -1774,7 +1811,12 @@ const showActionPlacementResultDialog = (
   }
 
   const openDialog = (): void => {
-    const body = createActionPlacementResultContent(actorCard, kurokoCard, playerName);
+    const body = createActionPlacementResultContent(
+      actorCard,
+      kurokoCard,
+      playerName,
+      opponentName,
+    );
     isActionResultDialogOpen = true;
 
     modal.open({
@@ -1813,7 +1855,10 @@ const finalizeActionPlacement = (): void => {
 
   const stateBefore = gameStore.getState();
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
-
+  const opponentName = getPlayerDisplayName(
+    stateBefore,
+    getOpponentId(stateBefore.activePlayer),
+  );
   isActionConfirmInProgress = true;
 
   const result = completeActionPlacement();
@@ -1830,7 +1875,12 @@ const finalizeActionPlacement = (): void => {
 
   isActionConfirmInProgress = false;
 
-  showActionPlacementResultDialog(result.actorCard, result.kurokoCard, playerName);
+  showActionPlacementResultDialog(
+    result.actorCard,
+    result.kurokoCard,
+    playerName,
+    opponentName,
+  );
 };
 
 const openActionConfirmDialog = (): void => {
@@ -2099,7 +2149,7 @@ const ROUTES: RouteDescriptor[] = [
     subtitle: 'ハンドオフを完了するまで秘匿情報は表示されません。',
     phase: 'scout',
     gate: createHandOffGateConfig({
-      message: 'スカウトフェーズに入ります。端末を次のプレイヤーへ渡し、準備が整ったら進んでください。',
+      resolveMessage: (state) => createPhaseGateMessage(state, 'スカウトフェーズ'),
     }),
   },
   {
@@ -2116,7 +2166,7 @@ const ROUTES: RouteDescriptor[] = [
     subtitle: 'ステージ情報の表示前に通過するゲートです。',
     phase: 'action',
     gate: createHandOffGateConfig({
-      message: 'アクションフェーズを開始する前に端末の受け渡しを完了してください。',
+      resolveMessage: (state) => createPhaseGateMessage(state, 'アクションフェーズ'),
     }),
   },
   {
@@ -2133,7 +2183,7 @@ const ROUTES: RouteDescriptor[] = [
     subtitle: 'ウォッチフェーズ開始前のゲート画面です。',
     phase: 'watch',
     gate: createHandOffGateConfig({
-      message: 'ウォッチフェーズに移行します。端末を相手に渡してから「準備完了」を押してください。',
+      resolveMessage: (state) => createPhaseGateMessage(state, 'ウォッチフェーズ'),
       onPass: (nextRouter) => {
         grantWatchSecretAccess();
         nextRouter.go('#/phase/watch');
@@ -2154,7 +2204,7 @@ const ROUTES: RouteDescriptor[] = [
     subtitle: '公開処理前の確認ゲートです。',
     phase: 'spotlight',
     gate: createHandOffGateConfig({
-      message: 'スポットライトフェーズの公開処理を行う前に端末の受け渡しを行ってください。',
+      resolveMessage: (state) => createPhaseGateMessage(state, 'スポットライトフェーズ'),
     }),
   },
   {
@@ -2171,7 +2221,7 @@ const ROUTES: RouteDescriptor[] = [
     subtitle: '次のプレイヤーに交代するためのゲートです。',
     phase: 'intermission',
     gate: createHandOffGateConfig({
-      message: 'インターミッションを開始します。端末を次の担当者に渡してから進んでください。',
+      resolveMessage: (state) => createPhaseGateMessage(state, 'インターミッション'),
     }),
   },
   {
@@ -2188,7 +2238,7 @@ const ROUTES: RouteDescriptor[] = [
     subtitle: '結果表示前の確認ゲートです。',
     phase: 'curtaincall',
     gate: createHandOffGateConfig({
-      message: '結果の確認に入ります。全員の準備が整ったら「準備完了」を押してください。',
+      resolveMessage: (state) => createPhaseGateMessage(state, 'カーテンコール'),
     }),
   },
 ];
@@ -2205,11 +2255,18 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
       definition = {
         path: route.path,
         title: route.title,
-        render: () =>
-          createGateView({
+        render: () => {
+          const state = gameStore.getState();
+          const confirmLabel = route.gate?.confirmLabel ?? DEFAULT_GATE_CONFIRM_LABEL;
+          const resolvedMessage =
+            route.gate?.resolveMessage?.(state) ??
+            route.gate?.message ??
+            createTurnGateMessage(state, confirmLabel);
+
+          return createGateView({
             title: route.heading,
             subtitle: route.subtitle,
-            message: route.gate?.message,
+            message: resolvedMessage,
             confirmLabel: route.gate?.confirmLabel,
             hints: route.gate?.hints,
             modalNotes: route.gate?.modalNotes,
@@ -2232,7 +2289,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
                 router.go(target);
               }
             },
-          }),
+          });
+        },
       };
     } else if (route.path === '#/') {
       definition = {
