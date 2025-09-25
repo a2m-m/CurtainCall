@@ -539,5 +539,6 @@ export const showBoardCheck = (options: BoardCheckOptions = {}): void => {
         variant: 'ghost',
       },
     ],
+    className: 'modal--board-check',
   });
 };
