@@ -219,9 +219,11 @@ const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態で�
 const SPOTLIGHT_PAIR_CHECK_TITLE = 'ペアの判定';
 const SPOTLIGHT_PAIR_CHECK_MESSAGE =
   '公開された役者札と同じ数字の手札があるか確認してください。同じ数字を持っていたら場に出してペア成立、持っていなければペア不成立です。';
+const SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE = 'ペアをステージに出します。';
+const SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE = 'ペアはできませんでした！';
 const SPOTLIGHT_PAIR_CHECK_CAPTION =
-  '判定が終わったら「判定完了」を押してインターミッションへ進みましょう。';
-const SPOTLIGHT_PAIR_CHECK_CONFIRM_LABEL = '判定完了';
+  '判定が終わったら「OK」を押してインターミッションへ進みましょう。';
+const SPOTLIGHT_PAIR_CHECK_CONFIRM_LABEL = 'OK';
 const SPOTLIGHT_JOKER_BONUS_TITLE = 'JOKERボーナス';
 const SPOTLIGHT_JOKER_BONUS_MESSAGE = (playerName: string): string =>
   `${playerName}のターンです。JOKER！追加でもう1枚オープンして、自動でペアを作ります。`;
@@ -280,6 +282,8 @@ interface SpotlightSecretPairRequest {
 let spotlightSecretAccessGranted = false;
 let pendingSpotlightSecretPair: SpotlightSecretPairRequest | null = null;
 let isSpotlightSecretPairInProgress = false;
+type SpotlightPairCheckOutcome = 'paired' | 'unpaired';
+let latestSpotlightPairCheckOutcome: SpotlightPairCheckOutcome | null = null;
 
 const grantSpotlightSecretAccess = (): void => {
   spotlightSecretAccessGranted = true;
@@ -2242,6 +2246,7 @@ const finalizeSpotlightSecretPairSelection = (
     }
   }
 
+  latestSpotlightPairCheckOutcome = paired ? 'paired' : 'unpaired';
   completeSpotlightPhaseTransition();
 };
 
@@ -2360,6 +2365,7 @@ const maybeTriggerSpotlightSecretPair = (reveal: SetReveal): void => {
 
   const candidates = findSpotlightSecretPairCandidates(player, reveal.card.rank);
   if (candidates.length === 0) {
+    latestSpotlightPairCheckOutcome = 'unpaired';
     completeSpotlightPhaseTransition();
     return;
   }
@@ -2578,23 +2584,27 @@ const completeSpotlightPhaseTransition = (): void => {
   const remainingSetCards = state.set.cards.filter((entry) => entry.card.face !== 'up').length;
   const nextPath =
     remainingSetCards === 1 ? SPOTLIGHT_TO_CURTAINCALL_PATH : SPOTLIGHT_TO_INTERMISSION_PATH;
+  const pairCheckOutcome = latestSpotlightPairCheckOutcome;
 
   isSpotlightExitInProgress = true;
 
   saveLatestGame(state);
 
   if (nextPath === SPOTLIGHT_TO_CURTAINCALL_PATH) {
+    latestSpotlightPairCheckOutcome = null;
     navigateToCurtainCallGate();
     return;
   }
 
   if (typeof window === 'undefined') {
+    latestSpotlightPairCheckOutcome = null;
     navigateToIntermissionGate();
     return;
   }
 
   const modal = window.curtainCall?.modal;
   if (!modal) {
+    latestSpotlightPairCheckOutcome = null;
     navigateToIntermissionGate();
     return;
   }
@@ -2604,7 +2614,13 @@ const completeSpotlightPhaseTransition = (): void => {
 
   const message = document.createElement('p');
   message.className = 'spotlight-pair-check__message';
-  message.textContent = SPOTLIGHT_PAIR_CHECK_MESSAGE;
+  const messageText =
+    pairCheckOutcome === 'paired'
+      ? SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE
+      : pairCheckOutcome === 'unpaired'
+        ? SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE
+        : SPOTLIGHT_PAIR_CHECK_MESSAGE;
+  message.textContent = messageText;
   body.append(message);
 
   const caption = document.createElement('p');
@@ -2612,6 +2628,7 @@ const completeSpotlightPhaseTransition = (): void => {
   caption.textContent = SPOTLIGHT_PAIR_CHECK_CAPTION;
   body.append(caption);
 
+  latestSpotlightPairCheckOutcome = null;
   modal.open({
     title: SPOTLIGHT_PAIR_CHECK_TITLE,
     body,
