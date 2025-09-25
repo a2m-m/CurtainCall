@@ -1,10 +1,6 @@
 import { Router, RouteDefinition } from './router.js';
 import type { RouteContext } from './router.js';
-import {
-  createSeededRandom,
-  dealInitialSetup,
-  sortCardsByDescendingValue,
-} from './cards.js';
+import { createSeededRandom, dealInitialSetup, sortCardsByDescendingValue } from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
   deleteResultHistoryEntry,
@@ -37,11 +33,7 @@ import {
   ActionHandSelectionState,
   createActionView,
 } from './views/action.js';
-import {
-  createWatchView,
-  WatchStageViewModel,
-  WatchStatusViewModel,
-} from './views/watch.js';
+import { createWatchView, WatchStageViewModel, WatchStatusViewModel } from './views/watch.js';
 import { createScoutView } from './views/scout.js';
 import type {
   ScoutOpponentHandCardViewModel,
@@ -86,9 +78,7 @@ const HANDOFF_GATE_HINTS = Object.freeze([
   'ゲートを通過した後に秘匿情報が画面へ描画されます。',
 ]);
 
-const HANDOFF_GATE_MODAL_NOTES = Object.freeze([
-  'ゲート通過前は秘匿情報を DOM に出力しません。',
-]);
+const HANDOFF_GATE_MODAL_NOTES = Object.freeze(['ゲート通過前は秘匿情報を DOM に出力しません。']);
 
 const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateDescriptor => ({
   hints: [...HANDOFF_GATE_HINTS],
@@ -183,18 +173,13 @@ const WATCH_REDIRECTING_SUBTITLE = '宣言結果に応じた画面へ移動し�
 const WATCH_GUARD_REDIRECTING_SUBTITLE =
   '秘匿情報を再表示するにはウォッチゲートを通過してください。';
 
-const createWatchDecisionConfirmMessage = (
-  decision: WatchDecision,
-  playerName: string,
-): string => {
+const createWatchDecisionConfirmMessage = (decision: WatchDecision, playerName: string): string => {
   const base = WATCH_DECISION_CONFIRM_MESSAGES[decision];
   return `${playerName}のターンです。${base}`;
 };
 
-const createWatchResultMessage = (
-  decision: WatchDecision,
-  playerName: string,
-): string => `${playerName}が${WATCH_RESULT_MESSAGES[decision]}`;
+const createWatchResultMessage = (decision: WatchDecision, playerName: string): string =>
+  `${playerName}が${WATCH_RESULT_MESSAGES[decision]}`;
 
 let watchSecretAccessGranted = false;
 
@@ -234,22 +219,23 @@ const createPlayersForInitialDeal = (
   previous: GameState,
   deal: InitialDealResult,
 ): Record<PlayerId, PlayerState> =>
-  PLAYER_IDS.reduce<Record<PlayerId, PlayerState>>((acc, id) => {
-    const basePlayer = template.players[id];
-    const previousPlayer = previous.players[id];
-    acc[id] = {
-      ...basePlayer,
-      name: previousPlayer?.name ?? basePlayer.name,
-      hand: {
-        ...basePlayer.hand,
-        cards: sortCardsByDescendingValue(
-          deal.hands[id].map((card) => cloneCardSnapshot(card)),
-        ),
-        lastDrawnCardId: null,
-      },
-    };
-    return acc;
-  }, {} as Record<PlayerId, PlayerState>);
+  PLAYER_IDS.reduce<Record<PlayerId, PlayerState>>(
+    (acc, id) => {
+      const basePlayer = template.players[id];
+      const previousPlayer = previous.players[id];
+      acc[id] = {
+        ...basePlayer,
+        name: previousPlayer?.name ?? basePlayer.name,
+        hand: {
+          ...basePlayer.hand,
+          cards: sortCardsByDescendingValue(deal.hands[id].map((card) => cloneCardSnapshot(card))),
+          lastDrawnCardId: null,
+        },
+      };
+      return acc;
+    },
+    {} as Record<PlayerId, PlayerState>,
+  );
 
 const createInitialDealState = (
   current: GameState,
@@ -372,9 +358,7 @@ const DEFAULT_GATE_CONFIRM_LABEL = '準備完了';
 
 const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
 
-const getTurnPlayerNames = (
-  state: GameState,
-): { activeName: string; opponentName: string } => {
+const getTurnPlayerNames = (state: GameState): { activeName: string; opponentName: string } => {
   const activeName = getPlayerDisplayName(state, state.activePlayer);
   const opponentName = getPlayerDisplayName(state, getOpponentId(state.activePlayer));
   return { activeName, opponentName };
@@ -392,7 +376,8 @@ const createPhaseGateMessage = (
   state: GameState,
   phaseLabel: string,
   confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
-): string => `${createTurnGateMessage(state, confirmLabel)}${phaseLabel ? `${phaseLabel}を始めましょう。` : ''}`;
+): string =>
+  `${createTurnGateMessage(state, confirmLabel)}${phaseLabel ? `${phaseLabel}を始めましょう。` : ''}`;
 
 const PHASE_LABELS: Record<PhaseKey, string> = {
   home: 'HOME',
@@ -485,7 +470,9 @@ const openMyHandDialog = (): void => {
 
   const modal = window.curtainCall?.modal;
   if (!modal) {
-    console.warn('自分の手札モーダルを表示するためのモーダルコントローラーが初期化されていません。');
+    console.warn(
+      '自分の手札モーダルを表示するためのモーダルコントローラーが初期化されていません。',
+    );
     return;
   }
 
@@ -787,16 +774,19 @@ const calculateRemainingWatchCounts = (
   const effectivePhase = options.phase ?? state.phase;
   const activeWatcher = effectivePhase === 'watch' ? state.activePlayer : null;
 
-  return PLAYER_IDS.reduce<Record<PlayerId, number>>((acc, playerId) => {
-    const opponentId = getOpponentId(playerId);
-    const opponent = state.players[opponentId];
-    const opponentHandSize = opponent?.hand.cards.length ?? 0;
-    const base = Math.ceil(opponentHandSize / 2);
-    const includeCurrent = activeWatcher === playerId ? 1 : 0;
-    const remaining = base + includeCurrent;
-    acc[playerId] = remaining > 0 ? remaining : 0;
-    return acc;
-  }, {} as Record<PlayerId, number>);
+  return PLAYER_IDS.reduce<Record<PlayerId, number>>(
+    (acc, playerId) => {
+      const opponentId = getOpponentId(playerId);
+      const opponent = state.players[opponentId];
+      const opponentHandSize = opponent?.hand.cards.length ?? 0;
+      const base = Math.ceil(opponentHandSize / 2);
+      const includeCurrent = activeWatcher === playerId ? 1 : 0;
+      const remaining = base + includeCurrent;
+      acc[playerId] = remaining > 0 ? remaining : 0;
+      return acc;
+    },
+    {} as Record<PlayerId, number>,
+  );
 };
 
 const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
@@ -851,7 +841,6 @@ const createScoutPickResultContent = (
 
   return container;
 };
-
 
 let isScoutResultDialogOpen = false;
 
@@ -958,17 +947,12 @@ const completeScoutPick = (): CardSnapshot | null => {
     const recentCard = cloneCardSnapshot(sourceCard);
     const takenHistoryCard = cloneCardSnapshot(sourceCard);
 
-    const nextOpponentCards = opponent.hand.cards.filter(
-      (_card, index) => index !== selectedIndex,
-    );
+    const nextOpponentCards = opponent.hand.cards.filter((_card, index) => index !== selectedIndex);
     const nextPlayerCards = sortCardsByDescendingValue([
       ...activePlayer.hand.cards,
       transferredCard,
     ]);
-    const nextOpponentTakenHistory = [
-      ...opponent.takenByOpponent,
-      takenHistoryCard,
-    ];
+    const nextOpponentTakenHistory = [...opponent.takenByOpponent, takenHistoryCard];
     const trimmedOpponentTakenHistory =
       SCOUT_RECENT_TAKEN_HISTORY_LIMIT > 0 &&
       nextOpponentTakenHistory.length > SCOUT_RECENT_TAKEN_HISTORY_LIMIT
@@ -1021,10 +1005,7 @@ const finalizeScoutPick = (): void => {
 
   const stateBefore = gameStore.getState();
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
-  const opponentName = getPlayerDisplayName(
-    stateBefore,
-    getOpponentId(stateBefore.activePlayer),
-  );
+  const opponentName = getPlayerDisplayName(stateBefore, getOpponentId(stateBefore.activePlayer));
 
   isScoutPickInProgress = true;
 
@@ -1100,8 +1081,7 @@ const getOpponentHandCount = (state: GameState): number => {
   return opponent?.hand.cards.length ?? 0;
 };
 
-const shouldAutoAdvanceFromScout = (state: GameState): boolean =>
-  getOpponentHandCount(state) === 0;
+const shouldAutoAdvanceFromScout = (state: GameState): boolean => getOpponentHandCount(state) === 0;
 
 const mapRecentTakenCards = (state: GameState): ScoutRecentTakenCardViewModel[] => {
   const player = state.players[state.activePlayer];
@@ -1130,9 +1110,7 @@ const mapActionHandCards = (state: GameState): ActionHandCardViewModel[] => {
   }));
 };
 
-const mapActionHandSelection = (
-  state: GameState,
-): Partial<ActionHandSelectionState> => ({
+const mapActionHandSelection = (state: GameState): Partial<ActionHandSelectionState> => ({
   selectedCardId: state.action.selectedCardId,
   actorCardId: state.action.actorCardId,
   kurokoCardId: state.action.kurokoCardId,
@@ -1188,10 +1166,7 @@ const getActionPlacementGuardMessage = (state: GameState): string | null => {
   return null;
 };
 
-const notifyActionGuardStatus = (
-  state: GameState,
-  options: { force?: boolean } = {},
-): void => {
+const notifyActionGuardStatus = (state: GameState, options: { force?: boolean } = {}): void => {
   const message = getActionPlacementGuardMessage(state);
 
   if (!message) {
@@ -1322,8 +1297,7 @@ const mapWatchStatus = (state: GameState): WatchStatusViewModel => {
 
   const turnLabel = `ターン：#${state.turn.count}`;
   const booLabel = `あなたのブーイング：${booCount} / ${WATCH_REQUIRED_BOO_COUNT}`;
-  const remainingLabelValue =
-    remaining !== null ? String(remaining) : WATCH_REMAINING_PLACEHOLDER;
+  const remainingLabelValue = remaining !== null ? String(remaining) : WATCH_REMAINING_PLACEHOLDER;
   const remainingLabel = `残りウォッチ機会：${remainingLabelValue}`;
 
   return {
@@ -1399,9 +1373,7 @@ const WATCH_DECISION_TO_PATH: Record<WatchDecision, string> = {
   boo: WATCH_TO_SPOTLIGHT_PATH,
 };
 
-const completeWatchDecision = (
-  decision: WatchDecision,
-): CompleteWatchDecisionResult | null => {
+const completeWatchDecision = (decision: WatchDecision): CompleteWatchDecisionResult | null => {
   let result: CompleteWatchDecisionResult | null = null;
 
   gameStore.setState((current) => {
@@ -1516,10 +1488,7 @@ const finalizeWatchDecision = (decision: WatchDecision): void => {
 
   const stateBefore = gameStore.getState();
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
-  const opponentName = getPlayerDisplayName(
-    stateBefore,
-    getOpponentId(stateBefore.activePlayer),
-  );
+  const opponentName = getPlayerDisplayName(stateBefore, getOpponentId(stateBefore.activePlayer));
 
   isWatchDecisionInProgress = true;
 
@@ -1855,10 +1824,7 @@ const finalizeActionPlacement = (): void => {
 
   const stateBefore = gameStore.getState();
   const playerName = getPlayerDisplayName(stateBefore, stateBefore.activePlayer);
-  const opponentName = getPlayerDisplayName(
-    stateBefore,
-    getOpponentId(stateBefore.activePlayer),
-  );
+  const opponentName = getPlayerDisplayName(stateBefore, getOpponentId(stateBefore.activePlayer));
   isActionConfirmInProgress = true;
 
   const result = completeActionPlacement();
@@ -1875,12 +1841,7 @@ const finalizeActionPlacement = (): void => {
 
   isActionConfirmInProgress = false;
 
-  showActionPlacementResultDialog(
-    result.actorCard,
-    result.kurokoCard,
-    playerName,
-    opponentName,
-  );
+  showActionPlacementResultDialog(result.actorCard, result.kurokoCard, playerName, opponentName);
 };
 
 const openActionConfirmDialog = (): void => {
@@ -2123,7 +2084,8 @@ const ROUTES: RouteDescriptor[] = [
     phase: 'home',
     gate: {
       confirmLabel: '準備OK',
-      message: 'セーブデータの復元フローは今後のタスクで実装されます。画面の共有準備のみ行ってください。',
+      message:
+        'セーブデータの復元フローは今後のタスクで実装されます。画面の共有準備のみ行ってください。',
       modalNotes: ['現在はプレースホルダーのゲート画面です。'],
       nextPath: null,
     },
@@ -2281,9 +2243,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               if (route.gate?.nextPath === null) {
                 return;
               }
-              const derived = route.path.endsWith('/gate')
-                ? route.path.slice(0, -5)
-                : route.path;
+              const derived = route.path.endsWith('/gate') ? route.path.slice(0, -5) : route.path;
               const target = route.gate?.nextPath ?? derived;
               if (target && target !== route.path) {
                 router.go(target);
@@ -2426,11 +2386,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           let hasTriggeredAutoAdvance = false;
 
           const triggerAutoAdvance = (): void => {
-            if (
-              hasTriggeredAutoAdvance ||
-              isScoutPickInProgress ||
-              isScoutResultDialogOpen
-            ) {
+            if (hasTriggeredAutoAdvance || isScoutPickInProgress || isScoutResultDialogOpen) {
               return;
             }
             hasTriggeredAutoAdvance = true;
@@ -2453,12 +2409,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               const opponent = current.players[opponentId];
               const handSize = opponent?.hand.cards.length ?? 0;
               const normalizedIndex =
-                index === null ||
-                handSize === 0 ||
-                index < 0 ||
-                index >= handSize
-                  ? null
-                  : index;
+                index === null || handSize === 0 || index < 0 || index >= handSize ? null : index;
               if (current.scout.selectedOpponentCardIndex === normalizedIndex) {
                 return current;
               }
@@ -2550,10 +2501,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           notifyActionGuardStatus(state);
 
           const unsubscribe = gameStore.subscribe((nextState) => {
-            view.updateHand(
-              mapActionHandCards(nextState),
-              mapActionHandSelection(nextState),
-            );
+            view.updateHand(mapActionHandCards(nextState), mapActionHandSelection(nextState));
             view.setConfirmDisabled(!canConfirmActionPlacement(nextState));
             notifyActionGuardStatus(nextState);
           });

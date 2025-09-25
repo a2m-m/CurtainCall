@@ -41,9 +41,7 @@ export interface ActionViewElement extends HTMLElement {
   setConfirmDisabled: (disabled: boolean) => void;
 }
 
-const createInitialSelection = (
-  options: ActionViewOptions,
-): ActionHandSelectionState => ({
+const createInitialSelection = (options: ActionViewOptions): ActionHandSelectionState => ({
   selectedCardId: options.selectedCardId ?? null,
   actorCardId: options.actorCardId ?? null,
   kurokoCardId: options.kurokoCardId ?? null,
@@ -210,13 +208,9 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
         ? selection.selectedCardId
         : currentSelection.selectedCardId,
     actorCardId:
-      selection.actorCardId !== undefined
-        ? selection.actorCardId
-        : currentSelection.actorCardId,
+      selection.actorCardId !== undefined ? selection.actorCardId : currentSelection.actorCardId,
     kurokoCardId:
-      selection.kurokoCardId !== undefined
-        ? selection.kurokoCardId
-        : currentSelection.kurokoCardId,
+      selection.kurokoCardId !== undefined ? selection.kurokoCardId : currentSelection.kurokoCardId,
   });
 
   renderCards();
