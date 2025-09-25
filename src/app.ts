@@ -179,6 +179,7 @@ const WATCH_RESULT_OK_LABELS = Object.freeze({
   clap: 'インターミッションへ',
   boo: 'スポットライトへ',
 } as const);
+const WATCH_REDIRECTING_SUBTITLE = '宣言結果に応じた画面へ移動しています…';
 
 let lastActionGuardMessage: string | null = null;
 
@@ -2388,8 +2389,23 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
       definition = {
         path: route.path,
         title: route.title,
-        render: () => {
+        render: ({ router: contextRouter }) => {
           const state = gameStore.getState();
+          const nextRoute = state.watch?.nextRoute;
+
+          if (nextRoute && nextRoute !== route.path) {
+            if (contextRouter) {
+              contextRouter.go(nextRoute);
+            } else {
+              navigateFromWatchTo(nextRoute);
+            }
+
+            return createPlaceholderView({
+              title: route.heading,
+              subtitle: WATCH_REDIRECTING_SUBTITLE,
+            });
+          }
+
           const view = createWatchView({
             title: route.heading,
             status: mapWatchStatus(state),
