@@ -183,6 +183,20 @@ const WATCH_RESULT_OK_LABELS = Object.freeze({
   boo: 'スポットライトへ',
 } as const);
 const WATCH_REDIRECTING_SUBTITLE = '宣言結果に応じた画面へ移動しています…';
+const WATCH_GUARD_REDIRECTING_SUBTITLE =
+  '秘匿情報を再表示するにはウォッチゲートを通過してください。';
+
+let watchSecretAccessGranted = false;
+
+const grantWatchSecretAccess = (): void => {
+  watchSecretAccessGranted = true;
+};
+
+const revokeWatchSecretAccess = (): void => {
+  watchSecretAccessGranted = false;
+};
+
+const hasWatchSecretAccess = (): boolean => watchSecretAccessGranted;
 
 let lastActionGuardMessage: string | null = null;
 
@@ -1928,6 +1942,9 @@ const cleanupActiveWatchView = (): void => {
     const cleanup = activeWatchCleanup;
     activeWatchCleanup = null;
     cleanup();
+    revokeWatchSecretAccess();
+    isWatchDecisionInProgress = false;
+    isWatchResultDialogOpen = false;
   }
 };
 
@@ -2019,6 +2036,10 @@ const ROUTES: RouteDescriptor[] = [
     phase: 'watch',
     gate: createHandOffGateConfig({
       message: 'ウォッチフェーズに移行します。端末を相手に渡してから「準備完了」を押してください。',
+      onPass: (nextRouter) => {
+        grantWatchSecretAccess();
+        nextRouter.go('#/phase/watch');
+      },
     }),
   },
   {
@@ -2406,6 +2427,19 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             return createPlaceholderView({
               title: route.heading,
               subtitle: WATCH_REDIRECTING_SUBTITLE,
+            });
+          }
+
+          if (!hasWatchSecretAccess()) {
+            if (contextRouter) {
+              contextRouter.go(ACTION_TO_WATCH_PATH);
+            } else {
+              navigateToWatchGate();
+            }
+
+            return createPlaceholderView({
+              title: route.heading,
+              subtitle: WATCH_GUARD_REDIRECTING_SUBTITLE,
             });
           }
 
