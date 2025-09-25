@@ -1921,3 +1921,125 @@ p {
   color: var(--color-muted);
   text-align: center;
 }
+
+.spotlight-reveal-result {
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+}
+
+.spotlight-reveal-result__summary {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.spotlight-reveal-result__detail {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.spotlight-reveal-result__cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+
+.spotlight-reveal-result__card {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.spotlight-reveal-result__card .card {
+  width: clamp(100px, 18vw, 140px);
+  height: clamp(140px, 26vw, 200px);
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.3);
+}
+
+.spotlight-reveal-result__card-label {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.spotlight-set-picker {
+  display: grid;
+  gap: 1rem;
+}
+
+.spotlight-set-picker__message,
+.spotlight-set-picker__empty {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.spotlight-set-picker__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.spotlight-set-picker__item {
+  display: flex;
+  justify-content: center;
+}
+
+.spotlight-set-picker__button {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.2);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.spotlight-set-picker__button:hover,
+.spotlight-set-picker__button:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.spotlight-set-picker__button .card {
+  width: clamp(90px, 16vw, 120px);
+  height: clamp(126px, 22vw, 168px);
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+}
+
+.spotlight-set-picker__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.spotlight-set-confirm {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.spotlight-set-confirm__message {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.spotlight-set-confirm__preview .card {
+  width: clamp(110px, 18vw, 150px);
+  height: clamp(154px, 24vw, 210px);
+  font-size: clamp(1.4rem, 2.1vw, 2rem);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.3);
+}
