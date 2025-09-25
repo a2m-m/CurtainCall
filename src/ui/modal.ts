@@ -16,12 +16,17 @@ export interface ModalOptions {
   body?: string | HTMLElement;
   actions?: ModalAction[];
   dismissible?: boolean;
+  className?: string;
 }
 
 class ModalView extends UIComponent<HTMLDivElement> {
   constructor() {
     super(document.createElement('div'));
     this.element.className = 'modal';
+  }
+
+  setClassName(className: string | undefined): void {
+    this.element.className = ['modal', className].filter(Boolean).join(' ');
   }
 
   setTitle(title: string | undefined): void {
@@ -122,6 +127,7 @@ export class ModalController {
 
   open(options: ModalOptions): void {
     this.dismissible = options.dismissible ?? true;
+    this.modalView.setClassName(options.className);
     this.modalView.setTitle(options.title);
     this.modalView.setBody(options.body);
     this.modalView.setActions(options.actions, () => this.close());

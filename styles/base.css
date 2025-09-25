@@ -1385,6 +1385,28 @@ p {
   box-shadow: var(--shadow-lg);
 }
 
+.modal--board-check {
+  width: min(960px, calc(100vw - 3rem));
+  max-height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal--board-check .modal__body {
+  flex: 1 1 auto;
+  display: flex;
+  overflow: hidden;
+}
+
+.modal--board-check .modal__footer {
+  margin-top: 1.5rem;
+}
+
+.modal--board-check .board-check {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
 .modal__title {
   font-size: clamp(1.25rem, 1.6vw + 1rem, 1.75rem);
   margin-bottom: 1rem;
@@ -1535,14 +1557,14 @@ p {
 }
 
 .card {
-  width: 72px;
-  height: 104px;
-  border-radius: 12px;
+  width: 64px;
+  height: 92px;
+  border-radius: 10px;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.35);
   display: grid;
   place-items: center;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 600;
 }
 
@@ -1578,7 +1600,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  max-height: min(65vh, 520px);
+  max-height: min(80vh, 640px);
 }
 
 .board-check__tabs {
@@ -1685,7 +1707,7 @@ p {
 }
 
 .board-check__card-list--grid {
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
   gap: 0.75rem;
   justify-items: center;
 }
@@ -1735,7 +1757,7 @@ p {
 
 .board-check__stage-card {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: 88px 1fr;
   gap: 1rem;
   align-items: start;
 }
