@@ -1716,6 +1716,7 @@ const openSpotlightSetPickerDialog = (playerName: string): void => {
         faceDown: setCard.card.face !== 'up',
         annotation: setCard.card.annotation,
       });
+      cardComponent.el.classList.add('spotlight-set-picker__card');
       button.append(cardComponent.el);
 
       const label = document.createElement('span');
@@ -1928,6 +1929,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
       faceDown: setCard.card.face !== 'up',
       annotation: setCard.card.annotation,
     });
+    cardComponent.el.classList.add('spotlight-set-picker__card');
     button.append(cardComponent.el);
 
     const label = document.createElement('span');
@@ -2300,6 +2302,7 @@ const openSpotlightSecretPairDialog = (request: SpotlightSecretPairRequest): voi
         faceDown: false,
         annotation: card.annotation,
       });
+      cardComponent.el.classList.add('spotlight-set-picker__card');
       button.append(cardComponent.el);
 
       const label = document.createElement('span');
