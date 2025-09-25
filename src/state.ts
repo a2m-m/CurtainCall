@@ -202,6 +202,7 @@ export interface GameState extends Record<string, unknown> {
   scout: ScoutState;
   action: ActionState;
   watch: WatchState;
+  remainingWatchIncludingCurrent?: Record<PlayerId, number>;
 }
 
 export type StateListener<TState> = (state: TState) => void;

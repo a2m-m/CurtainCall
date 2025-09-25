@@ -735,6 +735,25 @@ const openHistoryDialog = (): void => {
 
 const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
 
+const calculateRemainingWatchCounts = (
+  state: GameState,
+  options: { phase?: PhaseKey } = {},
+): Record<PlayerId, number> => {
+  const effectivePhase = options.phase ?? state.phase;
+  const activeWatcher = effectivePhase === 'watch' ? state.activePlayer : null;
+
+  return PLAYER_IDS.reduce<Record<PlayerId, number>>((acc, playerId) => {
+    const opponentId = getOpponentId(playerId);
+    const opponent = state.players[opponentId];
+    const opponentHandSize = opponent?.hand.cards.length ?? 0;
+    const base = Math.ceil(opponentHandSize / 2);
+    const includeCurrent = activeWatcher === playerId ? 1 : 0;
+    const remaining = base + includeCurrent;
+    acc[playerId] = remaining > 0 ? remaining : 0;
+    return acc;
+  }, {} as Record<PlayerId, number>);
+};
+
 const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
 const SCOUT_PICK_RESULT_OK_LABEL = 'OK';
 const createScoutPickResultContent = (card: CardSnapshot): HTMLElement => {
@@ -2516,7 +2535,7 @@ const initializeApp = (): void => {
     }
     const phase = inferPhaseFromPath(path);
     const timestamp = Date.now();
-    gameStore.patch({
+    const patch: Partial<GameState> = {
       route: path,
       phase,
       revision: current.revision + 1,
@@ -2527,7 +2546,13 @@ const initializeApp = (): void => {
         player: current.activePlayer,
         route: path,
       },
-    });
+    };
+
+    if (phase === 'watch') {
+      patch.remainingWatchIncludingCurrent = calculateRemainingWatchCounts(current, { phase });
+    }
+
+    gameStore.patch(patch);
   });
 
   gameStore.subscribe((state) => {
