@@ -85,6 +85,7 @@ export interface PlayerScore {
 export interface PlayerHand {
   cards: CardSnapshot[];
   maxSize: number;
+  lastDrawnCardId: string | null;
 }
 
 export interface PlayerState {
@@ -267,6 +268,7 @@ const createEmptyStage = (): StageArea => ({
 const createEmptyHand = (): PlayerHand => ({
   cards: [],
   maxSize: CARD_COMPOSITION.perHand,
+  lastDrawnCardId: null,
 });
 
 const createPlayerState = (id: PlayerId): PlayerState => ({

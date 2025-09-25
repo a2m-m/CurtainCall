@@ -8,6 +8,7 @@ export interface ActionHandCardViewModel {
   suit: CardSuit;
   annotation?: string;
   disabled?: boolean;
+  recentlyDrawn?: boolean;
 }
 
 export interface ActionHandSelectionState {
@@ -152,6 +153,7 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
       const isSelected = currentSelection.selectedCardId === card.id;
       const isActor = currentSelection.actorCardId === card.id;
       const isKuroko = currentSelection.kurokoCardId === card.id;
+      const isRecent = Boolean(card.recentlyDrawn);
 
       if (isSelected) {
         item.classList.add('is-selected');
@@ -168,6 +170,14 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
       if (isKuroko) {
         item.classList.add('is-kuroko');
         item.append(createBadge('黒子', 'kuroko'));
+      }
+
+      if (isRecent) {
+        item.classList.add('is-recent');
+        const recentLabel = document.createElement('span');
+        recentLabel.className = 'action-hand__recent-label';
+        recentLabel.textContent = '直前に引いたカード';
+        item.append(recentLabel);
       }
 
       button.addEventListener('click', () => {

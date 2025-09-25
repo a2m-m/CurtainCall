@@ -1,6 +1,10 @@
 import { Router, RouteDefinition } from './router.js';
 import type { RouteContext } from './router.js';
-import { createSeededRandom, dealInitialSetup } from './cards.js';
+import {
+  createSeededRandom,
+  dealInitialSetup,
+  sortCardsByDescendingValue,
+} from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
   deleteResultHistoryEntry,
@@ -160,7 +164,10 @@ const createPlayersForInitialDeal = (
       name: previousPlayer?.name ?? basePlayer.name,
       hand: {
         ...basePlayer.hand,
-        cards: deal.hands[id].map((card) => cloneCardSnapshot(card)),
+        cards: sortCardsByDescendingValue(
+          deal.hands[id].map((card) => cloneCardSnapshot(card)),
+        ),
+        lastDrawnCardId: null,
       },
     };
     return acc;
@@ -417,6 +424,15 @@ const openScoutMyHandDialog = (): void => {
       const cardLabel = formatCardLabel(card);
       cardComponent.el.classList.add('scout-myhand__card');
       cardComponent.el.setAttribute('aria-label', cardLabel);
+
+      const isRecent = player.hand.lastDrawnCardId === card.id;
+      if (isRecent) {
+        item.classList.add('is-recent');
+        const badge = document.createElement('span');
+        badge.className = 'scout-myhand__badge';
+        badge.textContent = '直前に引いたカード';
+        item.append(badge);
+      }
 
       const label = document.createElement('span');
       label.className = 'scout-myhand__card-label';
@@ -794,7 +810,10 @@ const completeScoutPick = (): CardSnapshot | null => {
     const nextOpponentCards = opponent.hand.cards.filter(
       (_card, index) => index !== selectedIndex,
     );
-    const nextPlayerCards = [...activePlayer.hand.cards, transferredCard];
+    const nextPlayerCards = sortCardsByDescendingValue([
+      ...activePlayer.hand.cards,
+      transferredCard,
+    ]);
     const nextOpponentTakenHistory = [
       ...opponent.takenByOpponent,
       takenHistoryCard,
@@ -818,6 +837,7 @@ const completeScoutPick = (): CardSnapshot | null => {
           hand: {
             ...activePlayer.hand,
             cards: nextPlayerCards,
+            lastDrawnCardId: transferredCard.id,
           },
         },
         [opponentId]: {
@@ -946,6 +966,7 @@ const mapActionHandCards = (state: GameState): ActionHandCardViewModel[] => {
     rank: card.rank,
     suit: card.suit,
     annotation: card.annotation,
+    recentlyDrawn: player.hand.lastDrawnCardId === card.id,
   }));
 };
 
@@ -1094,6 +1115,11 @@ const completeActionPlacement = (): CompleteActionPlacementResult => {
     const nextHandCards = player.hand.cards.filter(
       (card) => card.id !== actorId && card.id !== kurokoId,
     );
+    const removedCardIds = new Set([actorId, kurokoId]);
+    const nextLastDrawnCardId =
+      player.hand.lastDrawnCardId && removedCardIds.has(player.hand.lastDrawnCardId)
+        ? null
+        : player.hand.lastDrawnCardId;
 
     result.placed = true;
     result.actorCard = cloneCardSnapshot(actorCard);
@@ -1108,6 +1134,7 @@ const completeActionPlacement = (): CompleteActionPlacementResult => {
           hand: {
             ...player.hand,
             cards: nextHandCards,
+            lastDrawnCardId: nextLastDrawnCardId,
           },
           stage: {
             ...player.stage,
