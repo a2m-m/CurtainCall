@@ -151,7 +151,7 @@ const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されてい
 const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
 const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
-const WATCH_TO_SPOTLIGHT_PATH = SPOTLIGHT_GATE_PATH;
+const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight';
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
 const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
@@ -181,6 +181,8 @@ const WATCH_GUARD_REDIRECTING_SUBTITLE =
   '秘匿情報を再表示するにはウォッチゲートを通過してください。';
 const SPOTLIGHT_SECRET_GUARD_REDIRECTING_SUBTITLE =
   'シークレットペア処理のためゲートへ移動します…';
+const SPOTLIGHT_SET_OPEN_GUARD_REDIRECTING_SUBTITLE =
+  'セット公開の準備のためゲートへ移動します…';
 
 const SPOTLIGHT_BOARD_CHECK_LABEL = 'ボードチェック';
 const SPOTLIGHT_HELP_BUTTON_LABEL = '？';
@@ -216,6 +218,8 @@ const SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL = '戻る';
 const SPOTLIGHT_SET_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
   `${playerName}が${cardLabel}をオープンしました。`;
 const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態ではありません。';
+const SPOTLIGHT_SET_OPEN_GATE_MESSAGE = (playerName: string): string =>
+  `${playerName}がセットをオープンします。準備ができたら「${DEFAULT_GATE_CONFIRM_LABEL}」を押してください。`;
 const SPOTLIGHT_PAIR_CHECK_TITLE = 'ペアの判定';
 const SPOTLIGHT_PAIR_CHECK_MESSAGE =
   '公開された役者札と同じ数字の手札があるか確認してください。同じ数字を持っていたら場に出してペア成立、持っていなければペア不成立です。';
@@ -279,6 +283,10 @@ interface SpotlightSecretPairRequest {
 
 let spotlightSecretAccessGranted = false;
 let pendingSpotlightSecretPair: SpotlightSecretPairRequest | null = null;
+interface SpotlightSetOpenRequest {
+  playerId: PlayerId;
+}
+let pendingSpotlightSetOpen: SpotlightSetOpenRequest | null = null;
 let isSpotlightSecretPairInProgress = false;
 type SpotlightPairCheckOutcome = 'paired' | 'unpaired' | 'skipped';
 let latestSpotlightPairCheckOutcome: SpotlightPairCheckOutcome | null = null;
@@ -1611,7 +1619,7 @@ const showSpotlightRevealResultDialog = (
   result: RevealSpotlightKurokoResult,
   presenterName: string,
   booerName: string,
-  openPlayerName: string,
+  openPlayerId: PlayerId,
   canOpenSet: boolean,
 ): void => {
   if (typeof window === 'undefined') {
@@ -1623,6 +1631,8 @@ const showSpotlightRevealResultDialog = (
     return;
   }
 
+  const state = gameStore.getState();
+  const openPlayerName = getPlayerDisplayName(state, openPlayerId);
   const body = createSpotlightRevealResultContent(result, presenterName, booerName, openPlayerName);
   const skipAction = {
     label: SPOTLIGHT_RESULT_SKIP_LABEL,
@@ -1648,7 +1658,7 @@ const showSpotlightRevealResultDialog = (
           dismiss: false,
           onSelect: () => {
             modal.close();
-            openSpotlightSetPickerDialog(openPlayerName);
+            requestSpotlightSetOpen(openPlayerId);
           },
         },
       ]
@@ -1667,7 +1677,35 @@ const showSpotlightRevealResultDialog = (
   });
 };
 
-const openSpotlightSetPickerDialog = (playerName: string): void => {
+const requestSpotlightSetOpen = (playerId: PlayerId): void => {
+  const state = gameStore.getState();
+  if (!canOpenSpotlightSet(state)) {
+    console.warn(SPOTLIGHT_SET_OPEN_GUARD_MESSAGE);
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    openSpotlightSetPickerDialog(playerId);
+    return;
+  }
+
+  const router = window.curtainCall?.router;
+
+  pendingSpotlightSetOpen = { playerId };
+  revokeSpotlightSecretAccess();
+
+  if (state.route === SPOTLIGHT_GATE_PATH) {
+    return;
+  }
+
+  if (router) {
+    router.go(SPOTLIGHT_GATE_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_GATE_PATH;
+  }
+};
+
+const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
   if (typeof window === 'undefined') {
     return;
   }
@@ -1683,6 +1721,7 @@ const openSpotlightSetPickerDialog = (playerName: string): void => {
     return;
   }
 
+  const playerName = getPlayerDisplayName(state, playerId);
   const availableCards = getAvailableSpotlightSetCards(state)
     .slice()
     .sort((a, b) => a.position - b.position);
@@ -2631,13 +2670,21 @@ const completeSpotlightPhaseTransition = (): void => {
 const handleSpotlightGatePass = (router: Router): void => {
   grantSpotlightSecretAccess();
   router.go('#/phase/spotlight');
-  const request = pendingSpotlightSecretPair;
-  if (!request) {
-    return;
-  }
+  const secretPairRequest = pendingSpotlightSecretPair;
+  const setOpenRequest = pendingSpotlightSetOpen;
+
   queueMicrotask(() => {
-    if (pendingSpotlightSecretPair?.revealId === request.revealId) {
-      openSpotlightSecretPairDialog(request);
+    if (
+      secretPairRequest &&
+      pendingSpotlightSecretPair?.revealId === secretPairRequest.revealId
+    ) {
+      openSpotlightSecretPairDialog(secretPairRequest);
+      return;
+    }
+
+    if (setOpenRequest && pendingSpotlightSetOpen?.playerId === setOpenRequest.playerId) {
+      pendingSpotlightSetOpen = null;
+      openSpotlightSetPickerDialog(setOpenRequest.playerId);
     }
   });
 };
@@ -3012,7 +3059,6 @@ const finalizeSpotlightReveal = (): void => {
   const latest = gameStore.getState();
   saveLatestGame(latest);
 
-  const openPlayerName = getPlayerDisplayName(latest, result.owner);
   const canOpenSet = canOpenSpotlightSet(latest);
 
   const summary = `${playerName}が黒子を公開しました：役者=${formatCardLabel(
@@ -3028,7 +3074,7 @@ const finalizeSpotlightReveal = (): void => {
 
   console.info(summary);
   window.curtainCall?.modal?.close();
-  showSpotlightRevealResultDialog(result, presenterName, booerName, openPlayerName, canOpenSet);
+  showSpotlightRevealResultDialog(result, presenterName, booerName, result.owner, canOpenSet);
 };
 
 const openSpotlightRevealConfirmDialog = (): void => {
@@ -3699,10 +3745,16 @@ const ROUTES: RouteDescriptor[] = [
     phase: 'spotlight',
     gate: createHandOffGateConfig({
       resolveMessage: (state) => {
-        const request = pendingSpotlightSecretPair;
-        if (request) {
-          const playerName = getPlayerDisplayName(state, request.playerId);
+        const secretPairRequest = pendingSpotlightSecretPair;
+        if (secretPairRequest) {
+          const playerName = getPlayerDisplayName(state, secretPairRequest.playerId);
           return SPOTLIGHT_SECRET_PAIR_GATE_MESSAGE(playerName);
+        }
+
+        const setOpenRequest = pendingSpotlightSetOpen;
+        if (setOpenRequest) {
+          const playerName = getPlayerDisplayName(state, setOpenRequest.playerId);
+          return SPOTLIGHT_SET_OPEN_GATE_MESSAGE(playerName);
         }
         return createPhaseGateMessage(state, 'スポットライトフェーズ');
       },
@@ -4122,7 +4174,13 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
         title: route.title,
         render: ({ router: contextRouter }) => {
           const state = gameStore.getState();
-          if (pendingSpotlightSecretPair && !hasSpotlightSecretAccess()) {
+          if (
+            (pendingSpotlightSecretPair || pendingSpotlightSetOpen) &&
+            !hasSpotlightSecretAccess()
+          ) {
+            const subtitle = pendingSpotlightSecretPair
+              ? SPOTLIGHT_SECRET_GUARD_REDIRECTING_SUBTITLE
+              : SPOTLIGHT_SET_OPEN_GUARD_REDIRECTING_SUBTITLE;
             if (contextRouter) {
               contextRouter.go(SPOTLIGHT_GATE_PATH);
             } else {
@@ -4131,7 +4189,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
 
             return createPlaceholderView({
               title: route.heading,
-              subtitle: SPOTLIGHT_SECRET_GUARD_REDIRECTING_SUBTITLE,
+              subtitle,
             });
           }
           const view = createSpotlightView({
