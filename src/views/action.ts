@@ -1,3 +1,4 @@
+import { UIButton } from '../ui/button.js';
 import { CardComponent } from '../ui/card.js';
 import type { CardSuit } from '../ui/card.js';
 
@@ -22,7 +23,10 @@ export interface ActionViewOptions {
   selectedCardId?: string | null;
   actorCardId?: string | null;
   kurokoCardId?: string | null;
+  confirmLabel?: string;
+  confirmDisabled?: boolean;
   onSelectHandCard?: (cardId: string) => void;
+  onConfirm?: () => void;
 }
 
 export interface ActionViewElement extends HTMLElement {
@@ -31,6 +35,7 @@ export interface ActionViewElement extends HTMLElement {
     selection?: Partial<ActionHandSelectionState>,
   ) => void;
   setSelection: (selection: Partial<ActionHandSelectionState>) => void;
+  setConfirmDisabled: (disabled: boolean) => void;
 }
 
 const createInitialSelection = (
@@ -56,6 +61,20 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
   heading.className = 'action__title';
   heading.textContent = options.title;
   header.append(heading);
+
+  const actions = document.createElement('div');
+  actions.className = 'action__actions';
+
+  const confirmButton = new UIButton({
+    label: options.confirmLabel ?? '配置を確定',
+    disabled: Boolean(options.confirmDisabled),
+  });
+  confirmButton.onClick(() => {
+    options.onConfirm?.();
+  });
+
+  actions.append(confirmButton.el);
+  header.append(actions);
 
   main.append(header);
 
@@ -195,6 +214,14 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
     currentSelection = mergeSelection(selection);
     renderCards();
   };
+
+  view.setConfirmDisabled = (disabled: boolean) => {
+    confirmButton.setDisabled(disabled);
+  };
+
+  if (options.confirmDisabled !== undefined) {
+    confirmButton.setDisabled(Boolean(options.confirmDisabled));
+  }
 
   return view;
 };
