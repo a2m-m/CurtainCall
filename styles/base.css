@@ -274,7 +274,6 @@ p {
   display: grid;
   gap: clamp(0.5rem, 2vh, 0.75rem);
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-}
 
 .standby__first-player-options .button {
   width: 100%;
@@ -1791,6 +1790,11 @@ p {
   grid-template-columns: auto 1fr;
   gap: 1rem;
   align-items: center;
+}
+
+.board-check__card-label {
+  color: var(--color-text);
+  font-weight: 500;
 }
 
 .board-check__card-grid-item {
