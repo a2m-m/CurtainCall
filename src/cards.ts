@@ -47,9 +47,8 @@ const createCardSnapshot = (suit: CardSuit, rank: CardRank): CardSnapshot => ({
   face: 'down',
 });
 
-export const sortCardsByDescendingValue = <T extends { value: number }>(
-  cards: readonly T[],
-): T[] => cards.slice().sort((a, b) => b.value - a.value);
+export const sortCardsByDescendingValue = <T extends { value: number }>(cards: readonly T[]): T[] =>
+  cards.slice().sort((a, b) => b.value - a.value);
 
 export const createStandardDeck = (): CardSnapshot[] => {
   const deck: CardSnapshot[] = [];

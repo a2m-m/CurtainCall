@@ -15,12 +15,7 @@ import { CardComponent } from './card.js';
 import { UIComponent } from './component.js';
 import type { ModalController } from './modal.js';
 
-export type BoardCheckTabKey =
-  | 'overview'
-  | 'set'
-  | 'luminaStage'
-  | 'noxStage'
-  | 'score';
+export type BoardCheckTabKey = 'overview' | 'set' | 'luminaStage' | 'noxStage' | 'score';
 
 export interface BoardCheckOptions {
   initialTab?: BoardCheckTabKey;
@@ -316,7 +311,10 @@ const describeCardFace = (placement: StageCardPlacement | undefined): string => 
   return placement.card.face === 'up' ? formatCardLabel(placement.card) : '伏せ札';
 };
 
-const renderStageCardRow = (label: string, placement: StageCardPlacement | undefined): HTMLElement => {
+const renderStageCardRow = (
+  label: string,
+  placement: StageCardPlacement | undefined,
+): HTMLElement => {
   const row = document.createElement('div');
   row.className = 'board-check__stage-card';
 
@@ -543,4 +541,3 @@ export const showBoardCheck = (options: BoardCheckOptions = {}): void => {
     ],
   });
 };
-

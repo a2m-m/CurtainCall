@@ -113,9 +113,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
 
   main.append(header);
 
-  const opponentTitle = options.opponentLabel
-    ? `${options.opponentLabel}の手札`
-    : '相手の手札';
+  const opponentTitle = options.opponentLabel ? `${options.opponentLabel}の手札` : '相手の手札';
 
   const handSection = document.createElement('section');
   handSection.className = 'scout-hand';
@@ -144,8 +142,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   const recentSection = document.createElement('section');
   recentSection.className = 'scout-recent';
 
-  const recentTitleText =
-    options.recentTakenTitle ?? '最近あなたから取られたカード';
+  const recentTitleText = options.recentTakenTitle ?? '最近あなたから取られたカード';
   const recentTitle = document.createElement('h2');
   recentTitle.className = 'scout-recent__title';
   recentTitle.textContent = recentTitleText;
@@ -160,9 +157,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
 
   let currentCards = options.cards.slice();
   let currentSelectedIndex = options.selectedIndex ?? null;
-  let currentRecentTaken = options.recentTakenCards
-    ? options.recentTakenCards.slice()
-    : [];
+  let currentRecentTaken = options.recentTakenCards ? options.recentTakenCards.slice() : [];
 
   const actions = document.createElement('div');
   actions.className = 'scout-actions';
@@ -207,10 +202,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     options.onSelectCard?.(next);
   };
 
-  const renderCards = (
-    cards: ScoutOpponentHandCardViewModel[],
-    selectedIndex: number | null,
-  ) => {
+  const renderCards = (cards: ScoutOpponentHandCardViewModel[], selectedIndex: number | null) => {
     handGrid.replaceChildren();
 
     if (cards.length === 0) {
@@ -253,9 +245,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     });
   };
 
-  const renderRecentTaken = (
-    cards: ScoutRecentTakenCardViewModel[],
-  ): void => {
+  const renderRecentTaken = (cards: ScoutRecentTakenCardViewModel[]): void => {
     recentList.replaceChildren();
 
     if (cards.length === 0) {
@@ -290,9 +280,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     currentSelectedIndex = selectedIndex ?? null;
     updateCount(currentCards.length);
     renderCards(currentCards, currentSelectedIndex);
-    confirmButton.setDisabled(
-      currentSelectedIndex === null || currentCards.length === 0,
-    );
+    confirmButton.setDisabled(currentSelectedIndex === null || currentCards.length === 0);
     clearButton.setDisabled(currentSelectedIndex === null);
   };
 

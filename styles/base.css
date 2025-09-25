@@ -171,16 +171,6 @@ p {
   gap: clamp(1.25rem, min(2.5vw, 4vh), 2rem);
 }
 
-@media (max-height: 760px) {
-  .standby__content {
-    gap: clamp(1rem, 2.4vh, 1.5rem);
-  }
-
-  .standby__fieldset {
-    padding: clamp(0.95rem, 3vh, 1.3rem);
-  }
-}
-
 .standby__fieldset {
   margin: 0;
   padding: clamp(1.1rem, 3.5vh, 1.5rem);
@@ -200,37 +190,20 @@ p {
 
 .standby__players {
   display: grid;
-  gap: clamp(0.85rem, min(2vw, 3vh), 1.25rem);
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  align-items: start;
-}
-
-@media (max-height: 720px) {
-  .standby__players {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
+  gap: clamp(1rem, 3.5vh, 1.25rem);
 }
 
 .standby-player {
   display: grid;
-  grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(0.6rem, 1.5vw, 0.85rem);
-}
-
-@media (max-width: 640px) {
-  .standby-player {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
+  gap: 0.6rem;
 }
 
 .standby-player__label {
-  display: grid;
-  gap: 0.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
   font-weight: 600;
   color: var(--color-text);
-  letter-spacing: 0.02em;
 }
 
 .standby-player__role {
@@ -240,7 +213,6 @@ p {
 
 .standby-player__input {
   width: 100%;
-  min-width: 0;
   padding: 0.75rem 1rem;
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.35);
@@ -272,8 +244,9 @@ p {
 
 .standby__first-player-options {
   display: grid;
-  gap: clamp(0.5rem, 2vh, 0.75rem);
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: clamp(0.6rem, 2.5vh, 0.75rem);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
 
 .standby__first-player-options .button {
   width: 100%;
@@ -319,15 +292,14 @@ p {
 
 .standby__actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .standby__actions .button {
-  flex: 1 1 160px;
+  min-width: 140px;
   justify-content: center;
-  min-width: 0;
 }
 
 .standby-overlay {
@@ -400,41 +372,11 @@ p {
 .scout {
   width: min(960px, 100%);
   display: grid;
-  gap: clamp(1.5rem, 4.5vh, var(--panel-gap));
+  gap: var(--panel-gap);
   padding: var(--panel-padding);
   border-radius: 32px;
   background: var(--color-surface);
   box-shadow: var(--shadow-lg);
-  grid-auto-rows: min-content;
-}
-
-@media (min-width: 900px) {
-  .scout {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    grid-template-areas:
-      'header header'
-      'hand recent'
-      'actions recent';
-    align-items: start;
-  }
-
-  .scout__header {
-    grid-area: header;
-  }
-
-  .scout-hand {
-    grid-area: hand;
-  }
-
-  .scout-recent {
-    grid-area: recent;
-    align-self: stretch;
-  }
-
-  .scout-actions {
-    grid-area: actions;
-    justify-self: end;
-  }
 }
 
 .scout__header {
@@ -444,25 +386,10 @@ p {
   gap: clamp(0.75rem, 2vw, 1.5rem);
 }
 
-@media (max-height: 760px) {
-  .scout__header {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    row-gap: 0.5rem;
-  }
-}
-
 .scout__header-actions {
   display: flex;
   align-items: center;
   gap: clamp(0.5rem, 1vw, 0.75rem);
-}
-
-@media (max-height: 760px) {
-  .scout__header-actions {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-  }
 }
 
 .scout__header-button {
@@ -487,7 +414,7 @@ p {
 
 .scout-hand {
   display: grid;
-  gap: clamp(1rem, 2.75vh, 1.5rem);
+  gap: 1.25rem;
 }
 
 .scout-hand__header {
@@ -516,14 +443,8 @@ p {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  gap: clamp(0.65rem, 1.2vw, 1.1rem);
-}
-
-@media (max-height: 680px) {
-  .scout-hand__grid {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  }
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
 }
 
 .scout-hand__item {
@@ -566,19 +487,15 @@ p {
   background: rgba(251, 191, 36, 0.12);
 }
 
-@media (max-height: 680px) {
-  .scout-hand__card-button {
-    padding: 0.65rem;
-  }
-}
-
 .scout-hand__card-button.is-selected .card {
   border-color: rgba(251, 191, 36, 0.85);
   box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
 }
 
 .scout-hand__card {
-  transition: box-shadow 120ms ease, border-color 120ms ease;
+  transition:
+    box-shadow 120ms ease,
+    border-color 120ms ease;
 }
 
 .scout-hand__empty {
@@ -595,7 +512,7 @@ p {
 .scout-recent {
   display: grid;
   gap: 0.75rem;
-  padding: clamp(1rem, 2.5vh, 1.25rem);
+  padding: 1.25rem;
   border-radius: 20px;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(15, 23, 42, 0.45);
@@ -616,12 +533,6 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-}
-
-@media (max-height: 680px) {
-  .scout-recent__list {
-    gap: 0.6rem;
-  }
 }
 
 .scout-recent__item {
@@ -733,17 +644,10 @@ p {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 0.25rem;
-  align-items: center;
 }
 
 .scout-actions__button {
-  min-width: min(100%, 150px);
-}
-
-@media (max-height: 720px) {
-  .scout-actions__button {
-    min-width: min(100%, 135px);
-  }
+  min-width: min(100%, 160px);
 }
 
 .scout-actions__button--secondary {
@@ -886,8 +790,7 @@ p {
     clamp(calc(var(--action-padding-x) - 0.5rem), 2vh, calc(var(--action-padding-x) - 0.15rem));
   border-top: 1px solid rgba(148, 163, 184, 0.25);
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.98)),
-    rgba(15, 23, 42, 0.92);
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.98)), rgba(15, 23, 42, 0.92);
   box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(14px);
   z-index: 5;
@@ -1693,7 +1596,9 @@ p {
   color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .board-check__tab.is-active {
@@ -1790,11 +1695,6 @@ p {
   grid-template-columns: auto 1fr;
   gap: 1rem;
   align-items: center;
-}
-
-.board-check__card-label {
-  color: var(--color-text);
-  font-weight: 500;
 }
 
 .board-check__card-grid-item {

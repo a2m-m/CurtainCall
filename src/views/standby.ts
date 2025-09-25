@@ -326,9 +326,10 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
       return;
     }
 
-    const firstPlayerLabel = currentFirstPlayer && playerLabelMap.has(currentFirstPlayer)
-      ? playerLabelMap.get(currentFirstPlayer) ?? currentFirstPlayer
-      : '未決定';
+    const firstPlayerLabel =
+      currentFirstPlayer && playerLabelMap.has(currentFirstPlayer)
+        ? (playerLabelMap.get(currentFirstPlayer) ?? currentFirstPlayer)
+        : '未決定';
     const nextPhaseLabel = options.nextPhaseLabel ?? 'スカウト';
 
     overlayTitle.textContent = 'スタンバイ完了';

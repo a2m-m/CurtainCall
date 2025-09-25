@@ -247,7 +247,8 @@ export const saveLatestGame = (state: GameState): void => {
   }
   const meta = createSaveMetadata(state);
   const resume =
-    state.resume ?? ({
+    state.resume ??
+    ({
       at: meta.savedAt,
       phase: state.phase,
       player: state.activePlayer,
