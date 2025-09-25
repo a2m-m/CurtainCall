@@ -608,6 +608,192 @@ p {
   box-shadow: 0 18px 36px rgba(251, 191, 36, 0.22);
 }
 
+.action-view {
+  --action-padding-x: clamp(1.5rem, 3vw, 2.5rem);
+  --action-hand-height: clamp(9rem, 18vh, 11rem);
+  --action-actor-color: var(--color-accent);
+  --action-actor-shadow: rgba(251, 191, 36, 0.18);
+  --action-kuroko-color: #38bdf8;
+  --action-kuroko-shadow: rgba(56, 189, 248, 0.18);
+  --action-kuroko-shadow-strong: rgba(56, 189, 248, 0.25);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: var(--action-padding-x);
+  padding-bottom: calc(var(--action-padding-x) + var(--action-hand-height));
+}
+
+.action {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 2.5vw, 2rem);
+}
+
+.action__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.action__title {
+  margin: 0;
+  font-size: clamp(1.85rem, 2.5vw + 1rem, 2.35rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.action-hand {
+  position: sticky;
+  bottom: 0;
+  margin: clamp(2rem, 3vw, 2.5rem) calc(var(--action-padding-x) * -1) 0;
+  padding: 1.25rem var(--action-padding-x) calc(var(--action-padding-x) - 0.25rem);
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.98)),
+    rgba(15, 23, 42, 0.92);
+  box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(14px);
+  z-index: 5;
+}
+
+.action-hand__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.action-hand__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.action-hand__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scroll-snap-type: x proximity;
+}
+
+.action-hand__list::-webkit-scrollbar {
+  height: 6px;
+}
+
+.action-hand__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.action-hand__list::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.action-hand__item {
+  position: relative;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  transition: transform 140ms ease;
+}
+
+.action-hand__card {
+  display: grid;
+  place-items: center;
+  min-width: clamp(84px, 16vw, 112px);
+  padding: 0.75rem;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.action-hand__card:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.action-hand__card:focus-visible {
+  outline: 3px solid rgba(251, 191, 36, 0.55);
+  outline-offset: 3px;
+}
+
+.action-hand__card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action-hand__item.is-selected {
+  transform: translateY(-6px);
+}
+
+.action-hand__item.is-selected .action-hand__card {
+  border-color: rgba(251, 191, 36, 0.85);
+  box-shadow: 0 18px 36px rgba(251, 191, 36, 0.22);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.action-hand__item.is-actor .action-hand__card {
+  border-color: var(--action-actor-color);
+  box-shadow: 0 16px 32px var(--action-actor-shadow);
+}
+
+.action-hand__item.is-kuroko .action-hand__card {
+  border-color: var(--action-kuroko-color);
+  box-shadow: 0 16px 32px var(--action-kuroko-shadow);
+}
+
+.action-hand__badge {
+  position: absolute;
+  top: -0.6rem;
+  left: 0.65rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--action-actor-color);
+  color: #1f2937;
+  box-shadow: 0 8px 18px var(--action-actor-shadow);
+}
+
+.action-hand__badge--actor {
+  background: var(--action-actor-color);
+}
+
+.action-hand__badge--kuroko {
+  background: var(--action-kuroko-color);
+  color: #0f172a;
+  box-shadow: 0 8px 20px var(--action-kuroko-shadow-strong);
+}
+
+.action-hand__empty {
+  flex: 1 1 auto;
+  min-width: 100%;
+  padding: 1.5rem;
+  border-radius: 20px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--color-muted);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
 .home__subtitle {
   margin: 0;
   color: var(--color-muted);
