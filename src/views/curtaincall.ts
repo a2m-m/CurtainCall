@@ -57,6 +57,7 @@ export interface CurtainCallViewOptions {
   homeLabel?: string;
   newGameLabel?: string;
   saveLabel?: string;
+  saveDisabled?: boolean;
   onOpenBoardCheck?: () => void;
   onGoHome?: () => void;
   onStartNewGame?: () => void;
@@ -66,6 +67,7 @@ export interface CurtainCallViewOptions {
 export interface CurtainCallViewElement extends HTMLElement {
   updateResult: (result: CurtainCallResultViewModel) => void;
   updatePlayers: (players: CurtainCallPlayerSummaryViewModel[]) => void;
+  setSaveDisabled: (disabled: boolean) => void;
 }
 
 const DEFAULT_BOARD_CHECK_LABEL = 'ボードチェック';
@@ -275,6 +277,7 @@ export const createCurtainCallView = (options: CurtainCallViewOptions): CurtainC
     variant: 'ghost',
   });
   saveButton.el.classList.add('curtaincall__action-button');
+  saveButton.setDisabled(Boolean(options.saveDisabled));
   saveButton.onClick(() => options.onSaveResult?.());
   actions.append(saveButton.el);
 
@@ -291,6 +294,10 @@ export const createCurtainCallView = (options: CurtainCallViewOptions): CurtainC
 
   section.updatePlayers = (players) => {
     renderPlayers(players);
+  };
+
+  section.setSaveDisabled = (disabled) => {
+    saveButton.setDisabled(disabled);
   };
 
   return section;
