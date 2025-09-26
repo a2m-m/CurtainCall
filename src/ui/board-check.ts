@@ -12,6 +12,7 @@ import {
   StagePair,
   gameStore,
 } from '../state.js';
+import { BOARD_CHECK_MODAL_TITLE, DEFAULT_CLOSE_LABEL } from '../messages.js';
 import { CardComponent } from './card.js';
 import { UIComponent } from './component.js';
 import type { ModalController } from './modal.js';
@@ -679,11 +680,11 @@ export const showBoardCheck = (options: BoardCheckOptions = {}): void => {
   const view = new BoardCheckView(state, initialTab);
 
   modal.open({
-    title: 'ボードチェック',
+    title: BOARD_CHECK_MODAL_TITLE,
     body: view.el,
     actions: [
       {
-        label: '閉じる',
+        label: DEFAULT_CLOSE_LABEL,
         variant: 'ghost',
       },
     ],

@@ -2,6 +2,7 @@ export const DEFAULT_GATE_TITLE = 'ハンドオフゲート';
 export const DEFAULT_GATE_CONFIRM_LABEL = '準備完了';
 export const DEFAULT_GATE_MESSAGE =
   '端末を次のプレイヤーに渡したら「準備完了」を押して、秘匿情報の閲覧を開始してください。';
+export const DEFAULT_CLOSE_LABEL = '閉じる';
 
 export const HANDOFF_GATE_HINTS = Object.freeze([
   '端末を次のプレイヤーに渡したら「準備完了」を押してください。',
@@ -41,6 +42,8 @@ export const INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE = 'バックステージア
 export const STANDBY_DEAL_ERROR_MESSAGE =
   'スタンバイの初期化に失敗しました。もう一度お試しください。';
 export const STANDBY_FIRST_PLAYER_ERROR_MESSAGE = '先手が未決定です。スタンバイに戻ります。';
+
+export const BOARD_CHECK_MODAL_TITLE = 'ボードチェック';
 
 export const SCOUT_PICK_CONFIRM_TITLE = 'カードを引く';
 export const SCOUT_PICK_CONFIRM_MESSAGE = 'このカードを引いて手札に加えます。元に戻せません。';
@@ -229,14 +232,28 @@ export const CURTAINCALL_SUMMARY_PREPARING_SUBTITLE = '結果データを準備�
 
 export const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
 export const SCOUT_PICK_RESULT_OK_LABEL = 'OK';
+export const SCOUT_PICK_RESULT_DRAWN_MESSAGE = (cardLabel: string): string => `${cardLabel}を引きました！`;
+export const SCOUT_PICK_RESULT_PREVIEW_CAPTION = '引いたカードは以下の通りです。';
+export const SCOUT_PICK_RESULT_ACTION_NOTICE = (
+  playerName: string,
+  opponentName: string,
+): string =>
+  `${playerName}は${opponentName}に画面が見えないことを確認し、「${SCOUT_PICK_RESULT_OK_LABEL}」を押してアクションフェーズへ進みましょう。`;
 
 export const HOME_SETTINGS_TITLE = '設定';
 export const HOME_SETTINGS_MESSAGE = '設定メニューは現在準備中です。';
+export const HELP_POPUP_BLOCKED_TOAST_MESSAGE =
+  'ヘルプを開けませんでした。ブラウザのポップアップ設定をご確認ください。';
+export const HELP_POPUP_BLOCKED_CONSOLE_MESSAGE =
+  'ヘルプ画面を開けませんでした。ポップアップブロックを解除してください。';
 
 export const HISTORY_DIALOG_TITLE = 'リザルト履歴';
 export const HISTORY_DIALOG_DESCRIPTION =
   '保存済みのリザルトを確認できます。コピーや削除が可能です（最大50件まで保持されます）。';
 export const HISTORY_EMPTY_MESSAGE = '保存されたリザルト履歴はまだありません。';
+export const HISTORY_UNKNOWN_TIMESTAMP = '日時不明';
+export const HISTORY_COPY_BUTTON_LABEL = 'コピー';
+export const HISTORY_DELETE_BUTTON_LABEL = '削除';
 export const HISTORY_COPY_SUCCESS = '履歴をコピーしました。';
 export const HISTORY_COPY_FAILURE = '履歴をコピーできませんでした。';
 export const HISTORY_DELETE_SUCCESS = '履歴を削除しました。';
