@@ -11,6 +11,7 @@ import {
   saveResult,
 } from './storage.js';
 import {
+  createInitialBackstageState,
   createInitialState,
   createInitialWatchState,
   gameStore,
@@ -18,6 +19,7 @@ import {
   REQUIRED_BOO_COUNT,
   type CurtainCallReason,
   type BackstageItemState,
+  type BackstageState,
   type CardSnapshot,
   type GameState,
   type PhaseKey,
@@ -118,6 +120,20 @@ const {
   INTERMISSION_SUMMARY_TITLE,
   INTERMISSION_SUMMARY_CAPTION,
   INTERMISSION_SUMMARY_EMPTY,
+  INTERMISSION_BACKSTAGE_ACTION_LABEL,
+  INTERMISSION_BACKSTAGE_DESCRIPTION,
+  INTERMISSION_BACKSTAGE_REVEAL_LABEL,
+  INTERMISSION_BACKSTAGE_SKIP_LABEL,
+  INTERMISSION_BACKSTAGE_REVEAL_TITLE,
+  INTERMISSION_BACKSTAGE_REVEAL_MESSAGE,
+  INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE,
+  INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE,
+  INTERMISSION_BACKSTAGE_RESULT_MATCH,
+  INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
+  INTERMISSION_BACKSTAGE_DRAW_TITLE,
+  INTERMISSION_BACKSTAGE_DRAW_MESSAGE,
+  INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE,
+  INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
   STANDBY_DEAL_ERROR_MESSAGE,
   STANDBY_FIRST_PLAYER_ERROR_MESSAGE,
   SCOUT_PICK_CONFIRM_TITLE,
@@ -1939,8 +1955,49 @@ const mapSpotlightStage = (state: GameState): SpotlightStageViewModel => {
   };
 };
 
+const getBackstageState = (state: GameState): BackstageState =>
+  state.backstage ?? createInitialBackstageState();
+
+const getLatestSpotlightSetReveal = (state: GameState): SetReveal | null => {
+  const opened = state.set?.opened ?? [];
+  if (opened.length === 0) {
+    return null;
+  }
+  return opened[opened.length - 1] ?? null;
+};
+
+const getBackstageRevealableItems = (state: GameState): BackstageItemState[] => {
+  const backstage = getBackstageState(state);
+  return backstage.items.filter((item) => item.status === 'backstage' && !item.isPublic);
+};
+
+const canPerformBackstageAction = (state: GameState): boolean => {
+  const backstage = getBackstageState(state);
+
+  if (backstage.actedThisIntermission) {
+    return false;
+  }
+
+  if (backstage.lastSpotlightPairFormed) {
+    return false;
+  }
+
+  if (!backstage.canActPlayer) {
+    return false;
+  }
+
+  const reveal = getLatestSpotlightSetReveal(state);
+  if (!reveal || reveal.assignedTo) {
+    return false;
+  }
+
+  return getBackstageRevealableItems(state).length > 0;
+};
+
 const createIntermissionGateSubtitle = (state: GameState): string => {
-  const nextPlayerName = getPlayerDisplayName(state, state.activePlayer);
+  const backstage = getBackstageState(state);
+  const nextPlayerId = backstage.canActPlayer ?? state.activePlayer;
+  const nextPlayerName = getPlayerDisplayName(state, nextPlayerId);
   return `次は${nextPlayerName}の番です`;
 };
 
@@ -2092,6 +2149,562 @@ const openIntermissionSummaryDialog = (): void => {
   });
 };
 
+const showIntermissionBackstageGuard = (message: string): void => {
+  if (typeof window === 'undefined') {
+    console.warn(message);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'warning' });
+  } else {
+    console.warn(message);
+  }
+};
+
+const completeBackstageSkip = (): void => {
+  let skipped = false;
+
+  gameStore.setState((current) => {
+    const backstage = getBackstageState(current);
+    if (backstage.actedThisIntermission || !backstage.canActPlayer) {
+      return current;
+    }
+
+    skipped = true;
+    const timestamp = Date.now();
+
+    return {
+      ...current,
+      backstage: {
+        ...backstage,
+        actedThisIntermission: true,
+        canActPlayer: backstage.canActPlayer,
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  if (!skipped) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return;
+  }
+
+  const latest = gameStore.getState();
+  saveGame(latest);
+
+  if (typeof window === 'undefined') {
+    console.info(INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE, variant: 'info' });
+  } else {
+    console.info(INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE);
+  }
+};
+
+const finalizeBackstageDraw = (itemId: string): void => {
+  if (isIntermissionBackstageActionInProgress) {
+    return;
+  }
+
+  const state = gameStore.getState();
+  const backstage = getBackstageState(state);
+  const actingPlayerId = backstage.canActPlayer;
+
+  if (!actingPlayerId) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return;
+  }
+
+  isIntermissionBackstageActionInProgress = true;
+
+  let drawn = false;
+
+  gameStore.setState((current) => {
+    const latestBackstage = getBackstageState(current);
+    const itemIndex = latestBackstage.items.findIndex((entry) => entry.id === itemId);
+    const player = current.players[actingPlayerId];
+
+    if (itemIndex === -1 || !player) {
+      return current;
+    }
+
+    const item = latestBackstage.items[itemIndex];
+    if (item.status !== 'backstage' || item.isPublic) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const nextItems = latestBackstage.items.slice();
+    const cardForHand = cloneCardSnapshot(item.card);
+    cardForHand.face = 'down';
+
+    nextItems[itemIndex] = {
+      ...item,
+      status: 'hand',
+      holder: actingPlayerId,
+      isPublic: false,
+    };
+
+    const nextBackstage: BackstageState = {
+      ...latestBackstage,
+      items: nextItems,
+      actedThisIntermission: true,
+      canActPlayer: latestBackstage.canActPlayer,
+      pile: Math.max(0, latestBackstage.pile - 1),
+    };
+
+    drawn = true;
+
+    return {
+      ...current,
+      players: {
+        ...current.players,
+        [actingPlayerId]: {
+          ...player,
+          hand: {
+            ...player.hand,
+            cards: sortCardsByDescendingValue([...player.hand.cards, cardForHand]),
+            lastDrawnCardId: cardForHand.id,
+          },
+        },
+      },
+      backstage: nextBackstage,
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  isIntermissionBackstageActionInProgress = false;
+
+  if (!drawn) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return;
+  }
+
+  const latest = gameStore.getState();
+  saveGame(latest);
+
+  if (typeof window === 'undefined') {
+    console.info(INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE);
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (modal) {
+    isIntermissionBackstageDialogOpen = false;
+    modal.close();
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE, variant: 'info' });
+  } else {
+    console.info(INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE);
+  }
+};
+
+interface BackstageRevealResult {
+  matched: boolean;
+  revealedItem: BackstageItemState;
+  reveal: SetReveal;
+}
+
+const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null => {
+  if (isIntermissionBackstageActionInProgress) {
+    return null;
+  }
+
+  const state = gameStore.getState();
+  const backstage = getBackstageState(state);
+  const actingPlayerId = backstage.canActPlayer;
+
+  if (!actingPlayerId) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return null;
+  }
+
+  const revealableItems = getBackstageRevealableItems(state);
+  if (!revealableItems.some((item) => item.id === itemId)) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return null;
+  }
+
+  const setReveal = getLatestSpotlightSetReveal(state);
+  if (!setReveal || setReveal.assignedTo) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return null;
+  }
+
+  isIntermissionBackstageActionInProgress = true;
+
+  let result: BackstageRevealResult | null = null;
+
+  gameStore.setState((current) => {
+    const latestBackstage = getBackstageState(current);
+    const itemIndex = latestBackstage.items.findIndex((entry) => entry.id === itemId);
+    const player = current.players[actingPlayerId];
+    const revealIndex = current.set.opened.findIndex((entry) => entry.id === setReveal.id);
+
+    if (itemIndex === -1 || !player || revealIndex === -1) {
+      return current;
+    }
+
+    const item = latestBackstage.items[itemIndex];
+    if (item.status !== 'backstage' || item.isPublic) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const nextItems = latestBackstage.items.slice();
+    const revealedCard = cloneCardSnapshot(item.card);
+    revealedCard.face = 'up';
+
+    const updatedItem: BackstageItemState = {
+      ...item,
+      card: revealedCard,
+      isPublic: true,
+      revealedAt: timestamp,
+      revealedBy: actingPlayerId,
+    };
+
+    nextItems[itemIndex] = updatedItem;
+
+    const matches = revealedCard.rank === setReveal.card.rank;
+    const nextBackstageBase: BackstageState = {
+      ...latestBackstage,
+      items: nextItems,
+      pile: Math.max(0, latestBackstage.pile - 1),
+    };
+
+    if (matches) {
+      const actorCard = cloneCardSnapshot(setReveal.card);
+      actorCard.face = 'up';
+      const actorPlacement: StageCardPlacement = {
+        card: actorCard,
+        from: 'set',
+        placedAt: timestamp,
+        revealedAt: setReveal.openedAt,
+      };
+      const kurokoPlacement: StageCardPlacement = {
+        card: revealedCard,
+        from: 'backstage',
+        placedAt: timestamp,
+        revealedAt: timestamp,
+      };
+      const pairId = createStagePairId(timestamp);
+
+      const nextBackstage: BackstageState = {
+        ...nextBackstageBase,
+        items: nextItems.map((entry, index) =>
+          index === itemIndex
+            ? {
+                ...updatedItem,
+                status: 'stage',
+                holder: actingPlayerId,
+                stagePairId: pairId,
+              }
+            : entry,
+        ),
+        lastSpotlightPairFormed: true,
+        canActPlayer: latestBackstage.canActPlayer,
+        actedThisIntermission: true,
+      };
+
+      const updatedReveal: SetReveal = {
+        ...setReveal,
+        assignedTo: actingPlayerId,
+        bonus: 'pair',
+      };
+
+      result = { matched: true, revealedItem: updatedItem, reveal: updatedReveal };
+
+      const nextOpened = current.set.opened.slice();
+      nextOpened[revealIndex] = updatedReveal;
+
+      return {
+        ...current,
+        players: {
+          ...current.players,
+          [actingPlayerId]: {
+            ...player,
+            stage: {
+              ...player.stage,
+              pairs: [
+                ...player.stage.pairs,
+                {
+                  id: pairId,
+                  owner: actingPlayerId,
+                  origin: 'spotlight',
+                  actor: actorPlacement,
+                  kuroko: kurokoPlacement,
+                  createdAt: timestamp,
+                },
+              ],
+            },
+          },
+        },
+        set: {
+          ...current.set,
+          opened: nextOpened,
+        },
+        backstage: nextBackstage,
+        revision: current.revision + 1,
+        updatedAt: timestamp,
+      };
+    }
+
+    result = { matched: false, revealedItem: updatedItem, reveal: setReveal };
+
+    return {
+      ...current,
+      backstage: nextBackstageBase,
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  isIntermissionBackstageActionInProgress = false;
+
+  if (!result) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return null;
+  }
+
+  const latest = gameStore.getState();
+  saveGame(latest);
+
+  return result;
+};
+
+const createBackstageCardButton = (
+  item: BackstageItemState,
+  onSelect: () => void,
+): HTMLLIElement => {
+  const listItem = document.createElement('li');
+  listItem.className = 'intermission-backstage__item';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'intermission-backstage__button';
+  button.addEventListener('click', () => onSelect());
+  button.setAttribute(
+    'aria-label',
+    `${INTERMISSION_BACKSTAGE_REVEAL_LABEL}：カード #${String(item.position + 1).padStart(2, '0')}`,
+  );
+
+  const cardComponent = new CardComponent({
+    rank: item.card.rank,
+    suit: item.card.suit,
+    faceDown: true,
+    annotation: item.card.annotation,
+  });
+  cardComponent.el.classList.add('intermission-backstage__card');
+  button.append(cardComponent.el);
+
+  const label = document.createElement('span');
+  label.className = 'intermission-backstage__label';
+  label.textContent = `カード #${String(item.position + 1).padStart(2, '0')}`;
+  button.append(label);
+
+  listItem.append(button);
+  return listItem;
+};
+
+const openIntermissionBackstageDrawDialog = (): void => {
+  const state = gameStore.getState();
+  const hiddenItems = getBackstageRevealableItems(state);
+
+  if (hiddenItems.length === 0) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE);
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    finalizeBackstageDraw(hiddenItems[0].id);
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    finalizeBackstageDraw(hiddenItems[0].id);
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'intermission-backstage';
+
+  const message = document.createElement('p');
+  message.className = 'intermission-backstage__message';
+  message.textContent = INTERMISSION_BACKSTAGE_DRAW_MESSAGE;
+  container.append(message);
+
+  const list = document.createElement('ul');
+  list.className = 'intermission-backstage__list';
+
+  hiddenItems.forEach((item) => {
+    list.append(
+      createBackstageCardButton(item, () => {
+        isIntermissionBackstageDialogOpen = false;
+        modal.close();
+        finalizeBackstageDraw(item.id);
+      }),
+    );
+  });
+
+  container.append(list);
+
+  isIntermissionBackstageDialogOpen = true;
+
+  modal.open({
+    title: INTERMISSION_BACKSTAGE_DRAW_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [],
+  });
+};
+
+const openIntermissionBackstageActionDialog = (): void => {
+  const state = gameStore.getState();
+
+  if (!canPerformBackstageAction(state)) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return;
+  }
+
+  const revealableItems = getBackstageRevealableItems(state);
+  if (revealableItems.length === 0) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE);
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    const outcome = finalizeBackstageReveal(revealableItems[0].id);
+    if (!outcome) {
+      return;
+    }
+    if (outcome.matched) {
+      if (typeof window === 'undefined') {
+        console.info(INTERMISSION_BACKSTAGE_RESULT_MATCH);
+      }
+    } else {
+      console.info(INTERMISSION_BACKSTAGE_RESULT_MISMATCH);
+      openIntermissionBackstageDrawDialog();
+    }
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    const outcome = finalizeBackstageReveal(revealableItems[0].id);
+    if (!outcome) {
+      return;
+    }
+    if (!outcome.matched) {
+      if (typeof window !== 'undefined') {
+        const toast = window.curtainCall?.toast;
+        if (toast) {
+          toast.show({ message: INTERMISSION_BACKSTAGE_RESULT_MISMATCH, variant: 'info' });
+        } else {
+          console.info(INTERMISSION_BACKSTAGE_RESULT_MISMATCH);
+        }
+      }
+      openIntermissionBackstageDrawDialog();
+    } else if (typeof window !== 'undefined') {
+      const toast = window.curtainCall?.toast;
+      if (toast) {
+        toast.show({ message: INTERMISSION_BACKSTAGE_RESULT_MATCH, variant: 'success' });
+      } else {
+        console.info(INTERMISSION_BACKSTAGE_RESULT_MATCH);
+      }
+    }
+    return;
+  }
+
+  if (isIntermissionBackstageDialogOpen) {
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'intermission-backstage';
+
+  const message = document.createElement('p');
+  message.className = 'intermission-backstage__message';
+  message.textContent = INTERMISSION_BACKSTAGE_DESCRIPTION;
+  container.append(message);
+
+  const instruction = document.createElement('p');
+  instruction.className = 'intermission-backstage__instruction';
+  instruction.textContent = INTERMISSION_BACKSTAGE_REVEAL_MESSAGE;
+  container.append(instruction);
+
+  const list = document.createElement('ul');
+  list.className = 'intermission-backstage__list';
+
+  revealableItems.forEach((item) => {
+    list.append(
+      createBackstageCardButton(item, () => {
+        modal.close();
+        isIntermissionBackstageDialogOpen = false;
+        const outcome = finalizeBackstageReveal(item.id);
+        if (!outcome) {
+          return;
+        }
+
+        if (typeof window !== 'undefined') {
+          const toast = window.curtainCall?.toast;
+          if (toast) {
+            toast.show({
+              message: outcome.matched
+                ? INTERMISSION_BACKSTAGE_RESULT_MATCH
+                : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
+              variant: outcome.matched ? 'success' : 'info',
+            });
+          } else {
+            console.info(
+              outcome.matched
+                ? INTERMISSION_BACKSTAGE_RESULT_MATCH
+                : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
+            );
+          }
+        }
+
+        if (!outcome.matched) {
+          openIntermissionBackstageDrawDialog();
+        }
+      }),
+    );
+  });
+
+  container.append(list);
+
+  isIntermissionBackstageDialogOpen = true;
+
+  modal.open({
+    title: INTERMISSION_BACKSTAGE_REVEAL_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [
+      {
+        label: INTERMISSION_BACKSTAGE_SKIP_LABEL,
+        variant: 'ghost',
+        preventRapid: true,
+        onSelect: () => {
+          modal.close();
+          isIntermissionBackstageDialogOpen = false;
+          completeBackstageSkip();
+        },
+      },
+    ],
+  });
+};
+
 const canRevealSpotlightKuroko = (state: GameState): boolean => {
   const targetPair = findLatestSpotlightPair(state);
   if (!targetPair?.actor?.card || !targetPair.kuroko?.card) {
@@ -2208,6 +2821,15 @@ const openSpotlightSetCard = (setCardId: string): SetReveal | null => {
 
     reveal = nextReveal;
 
+    const previousBackstage = getBackstageState(current);
+    const openerId = current.activePlayer;
+    const nextBackstage: BackstageState = {
+      ...previousBackstage,
+      lastSpotlightPairFormed: false,
+      canActPlayer: getOpponentId(openerId),
+      actedThisIntermission: false,
+    };
+
     return {
       ...current,
       set: {
@@ -2216,6 +2838,7 @@ const openSpotlightSetCard = (setCardId: string): SetReveal | null => {
         ),
         opened: [...current.set.opened, nextReveal],
       },
+      backstage: nextBackstage,
       revision: current.revision + 1,
       updatedAt: timestamp,
     };
@@ -2897,6 +3520,15 @@ const finalizeSpotlightSecretPairSelection = (
       hand: cloneCardSnapshot(kurokoPlacement.card),
     };
 
+    const nextBackstage: BackstageState = paired
+      ? {
+          ...getBackstageState(current),
+          lastSpotlightPairFormed: true,
+          canActPlayer: null,
+          actedThisIntermission: false,
+        }
+      : getBackstageState(current);
+
     return {
       ...current,
       players: {
@@ -2928,6 +3560,7 @@ const finalizeSpotlightSecretPairSelection = (
         ...current.set,
         opened: nextOpened,
       },
+      backstage: nextBackstage,
       revision: current.revision + 1,
       updatedAt: timestamp,
     };
@@ -3849,6 +4482,8 @@ let isSpotlightJokerBonusInProgress = false;
 let isSpotlightExitInProgress = false;
 let isCurtainCallSaveDialogOpen = false;
 let isCurtainCallSaveInProgress = false;
+let isIntermissionBackstageActionInProgress = false;
+let isIntermissionBackstageDialogOpen = false;
 
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
@@ -4866,20 +5501,31 @@ const ROUTES: RouteDescriptor[] = [
       resolveMessage: (state) =>
         createPhaseGateMessage(state, 'インターミッション', INTERMISSION_GATE_CONFIRM_LABEL),
       resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
-      resolveActions: (context) => {
-        void context;
-        return [
-          {
-            label: INTERMISSION_BOARD_CHECK_LABEL,
-            variant: 'ghost',
-            onSelect: () => showBoardCheck(),
-          },
-          {
-            label: INTERMISSION_SUMMARY_LABEL,
-            variant: 'ghost',
-            onSelect: () => openIntermissionSummaryDialog(),
-          },
-        ];
+      resolveActions: ({ state }) => {
+        const actions: GateActionDescriptor[] = [];
+
+        if (canPerformBackstageAction(state)) {
+          actions.push({
+            label: INTERMISSION_BACKSTAGE_ACTION_LABEL,
+            variant: 'primary',
+            preventRapid: true,
+            onSelect: () => openIntermissionBackstageActionDialog(),
+          });
+        }
+
+        actions.push({
+          label: INTERMISSION_BOARD_CHECK_LABEL,
+          variant: 'ghost',
+          onSelect: () => showBoardCheck(),
+        });
+
+        actions.push({
+          label: INTERMISSION_SUMMARY_LABEL,
+          variant: 'ghost',
+          onSelect: () => openIntermissionSummaryDialog(),
+        });
+
+        return actions;
       },
       onPass: (nextRouter) => handleIntermissionGatePass(nextRouter),
     }),

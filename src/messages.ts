@@ -19,6 +19,24 @@ export const INTERMISSION_SUMMARY_LABEL = '前ラウンド要約';
 export const INTERMISSION_SUMMARY_TITLE = '前ラウンド要約';
 export const INTERMISSION_SUMMARY_CAPTION = '前ラウンドで公開された情報のみが表示されます。';
 export const INTERMISSION_SUMMARY_EMPTY = '公開情報はまだありません。';
+export const INTERMISSION_BACKSTAGE_ACTION_LABEL = 'バックステージ';
+export const INTERMISSION_BACKSTAGE_DESCRIPTION =
+  '直前のスポットライトでペア不成立でした。あなたはバックステージから1枚公開できます（1回）。';
+export const INTERMISSION_BACKSTAGE_REVEAL_LABEL = 'バックステージを公開';
+export const INTERMISSION_BACKSTAGE_SKIP_LABEL = 'スキップ';
+export const INTERMISSION_BACKSTAGE_REVEAL_TITLE = 'バックステージを公開';
+export const INTERMISSION_BACKSTAGE_REVEAL_MESSAGE = '公開するカードを選んでください。';
+export const INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE = '公開できるカードは残っていません。';
+export const INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE =
+  'バックステージアクションを実行できる状態ではありません。';
+export const INTERMISSION_BACKSTAGE_RESULT_MATCH = '一致！セットのカードとペアが成立しました。';
+export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH =
+  '一致しませんでした。さらに1枚を手札に加えてください。';
+export const INTERMISSION_BACKSTAGE_DRAW_TITLE = 'バックステージから取得';
+export const INTERMISSION_BACKSTAGE_DRAW_MESSAGE = '手札に加えるカードを選んでください（非公開）';
+export const INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE =
+  'これ以上取得できるカードはありません。';
+export const INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE = 'バックステージアクションを完了しました。';
 
 export const STANDBY_DEAL_ERROR_MESSAGE =
   'スタンバイの初期化に失敗しました。もう一度お試しください。';
