@@ -14,6 +14,13 @@ export interface RouterOptions {
   baseTitle?: string;
 }
 
+export interface RouterNavigationGuardContext {
+  from: string;
+  to: string;
+}
+
+export type RouterNavigationGuard = (context: RouterNavigationGuardContext) => boolean;
+
 export type RouterListener = (path: string) => void;
 
 export class Router {
@@ -22,6 +29,8 @@ export class Router {
   private readonly baseTitle: string;
   private readonly routes = new Map<string, RouteDefinition>();
   private readonly listeners = new Set<RouterListener>();
+  private navigationGuard?: RouterNavigationGuard;
+  private skipGuardOnce = false;
   private started = false;
   private currentPath: string;
 
@@ -60,6 +69,7 @@ export class Router {
       return;
     }
 
+    this.skipGuardOnce = true;
     window.location.hash = normalized;
   }
 
@@ -74,6 +84,10 @@ export class Router {
     return this.currentPath;
   }
 
+  setNavigationGuard(guard: RouterNavigationGuard | undefined): void {
+    this.navigationGuard = guard;
+  }
+
   private handleChange = (): void => {
     this.renderCurrent();
   };
@@ -81,6 +95,14 @@ export class Router {
   private renderCurrent(): void {
     const rawHash = window.location.hash;
     const nextPath = this.normalize(rawHash || this.fallback);
+
+    if (!this.shouldAllowNavigation(nextPath)) {
+      if (nextPath !== this.currentPath) {
+        this.skipGuardOnce = true;
+        window.location.hash = this.currentPath;
+      }
+      return;
+    }
     const definition = this.routes.get(nextPath);
 
     if (!definition) {
@@ -142,5 +164,22 @@ export class Router {
 
       focusTarget.focus({ preventScroll: true });
     });
+  }
+
+  private shouldAllowNavigation(nextPath: string): boolean {
+    if (this.skipGuardOnce) {
+      this.skipGuardOnce = false;
+      return true;
+    }
+
+    if (!this.navigationGuard) {
+      return true;
+    }
+
+    if (nextPath === this.currentPath) {
+      return true;
+    }
+
+    return this.navigationGuard({ from: this.currentPath, to: nextPath });
   }
 }
