@@ -371,6 +371,12 @@ const revokeSpotlightSecretAccess = (): void => {
 
 const hasSpotlightSecretAccess = (): boolean => spotlightSecretAccessGranted;
 
+const resetPendingSpotlightSecrets = (): void => {
+  pendingSpotlightSecretPair = null;
+  pendingSpotlightSetOpen = null;
+  revokeSpotlightSecretAccess();
+};
+
 let lastActionGuardMessage: string | null = null;
 
 const formatCardLabel = (card: CardSnapshot): string => {
@@ -6071,11 +6077,20 @@ const initializeApp = (): void => {
   router.subscribe((path) => {
     const current = gameStore.getState();
 
-    if (path !== WATCH_TO_SPOTLIGHT_PATH && path !== SPOTLIGHT_GATE_PATH) {
+    const isSpotlightRoute = path === WATCH_TO_SPOTLIGHT_PATH;
+    const isSpotlightGateRoute = path === SPOTLIGHT_GATE_PATH;
+
+    if (!isSpotlightRoute && !isSpotlightGateRoute) {
+      if (pendingSpotlightSecretPair || pendingSpotlightSetOpen || hasSpotlightSecretAccess()) {
+        resetPendingSpotlightSecrets();
+      }
+    } else if (
+      isSpotlightRoute &&
+      current.route === SPOTLIGHT_GATE_PATH &&
+      !hasSpotlightSecretAccess()
+    ) {
       if (pendingSpotlightSecretPair || pendingSpotlightSetOpen) {
-        pendingSpotlightSecretPair = null;
-        pendingSpotlightSetOpen = null;
-        revokeSpotlightSecretAccess();
+        resetPendingSpotlightSecrets();
       }
     }
 
