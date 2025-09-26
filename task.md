@@ -118,7 +118,7 @@
 
 | No | branchName               | 概要           | 詳細                      | 参照                |
 | -: | ------------------------ | ------------ | ----------------------- | ----------------- |
-| 57 | chore/report-curtaincall | カーテンコール章レポート | 着手「58–62」／終了時「#9横断へ」。   | -                 |
+| 57 | chore/report-curtaincall | カーテンコール章レポート | 着手「58–62」／終了時「#9バックステージへ」。 | -                 |
 | 58 | feat/cc-gate             | 開始ポップ        | 「カーテンコール開始」通知→OK。       | curtaincall\_spec |
 | 59 | feat/cc-calc             | 集計           | Kami合計-手札合計-ペナルティ。終局判定。 | curtaincall\_spec |
 | 60 | feat/cc-view             | 結果UI         | 勝敗/詳細/ボタン群。             | curtaincall\_spec |
@@ -127,39 +127,51 @@
 
 ---
 
-## 9. 横断
+## 9. バックステージ＆アイテム
+
+| No | branchName                         | 概要                 | 詳細                                                                 | 参照                  |
+| -: | ---------------------------------- | ------------------ | -------------------------------------------------------------------- | ------------------- |
+| 70 | chore/report-backstage             | バックステージ章レポート | 着手「71–74」／終了時「#10横断へ」。                                    | -                    |
+| 71 | feat/backstage-state               | バックステージ状態管理   | GameStateにbackstage/items領域と公開情報フラグを追加し、保存・復元を整備。 | rulebook.md          |
+| 72 | feat/standby-backstage-deal        | バックステージ配布      | スタンバイ完了時に10枚をbackstageへ割当。UI文言と保存処理を最新仕様へ更新。 | 1.standby\_spec.md   |
+| 73 | feat/boardcheck-backstage-view     | ボードチェック表示      | ボードチェックにbackstageタブを追加し、公開済みアイテム一覧を表示。秘匿は伏せ札。 | 8.boardcheck\_spec.md |
+| 74 | feat/intermission-backstage-action | バックステージアクション | インターミッションでの公開→判定→手札取得フローとガード処理を実装。             | 6.intermission\_spec.md |
+
+---
+
+## 10. 横断
 
 | No | branchName               | 概要        | 詳細                             | 参照              |
 | -: | ------------------------ | --------- | ------------------------------ | --------------- |
-| 63 | chore/report-shared      | 横断章レポート   | 着手「64–69」／終了時「#10テストへ」。        | -               |
-| 64 | feat/boardcheck-tabs     | ボードチェックUI | bc=1/ボタン起動。非公開は隠す。             | 共通              |
-| 65 | feat/secret-redraw-guard | 秘匿ガード     | gate通過前は描画しない。戻るでクリア。          | spotlight\_spec |
-| 66 | feat/popup-copy          | 文言集約      | messages.tsに集約。                | 各spec           |
-| 67 | chore/storage-abstract   | 保存抽象化     | saveGame/loadGame/saveResult層。 | base\_spec.md   |
-| 68 | chore/animation-core     | 演出共通      | フェード/スライド適用。無効化可。              | base\_spec.md   |
-| 69 | chore/a11y-pass          | A11y対応    | キーボード操作/aria属性。                | 共通              |
+| 75 | chore/report-shared      | 横断章レポート   | 着手「76–81」／終了時「#11テストへ」。        | -               |
+| 76 | feat/boardcheck-tabs     | ボードチェックUI | bc=1/ボタン起動。非公開は隠す。             | 共通              |
+| 77 | feat/secret-redraw-guard | 秘匿ガード     | gate通過前は描画しない。戻るでクリア。          | spotlight\_spec |
+| 78 | feat/popup-copy          | 文言集約      | messages.tsに集約。                | 各spec           |
+| 79 | chore/storage-abstract   | 保存抽象化     | saveGame/loadGame/saveResult層。 | base\_spec.md   |
+| 80 | chore/animation-core     | 演出共通      | フェード/スライド適用。無効化可。              | base\_spec.md   |
+| 81 | chore/a11y-pass          | A11y対応    | キーボード操作/aria属性。                | 共通              |
 
 ---
 
-## 10. テスト
+## 11. テスト
 
 | No | branchName        | 概要         | 詳細                     | 参照                |
 | -: | ----------------- | ---------- | ---------------------- | ----------------- |
-| 70 | chore/report-test | テスト章レポート   | 着手「71–77」／終了時「#11整合へ」。 | -                 |
-| 71 | test/scaffold     | 基盤テスト      | store/ルータ/ランク関数境界値。    | base\_spec.md     |
-| 72 | test/scout        | スカウトテスト    | ピック→確定。最近取られたUI。       | scout\_spec       |
-| 73 | test/action       | アクションテスト   | 役者/黒子選択とガード。確定反映。      | action\_spec      |
-| 74 | test/watch        | ウォッチテスト    | ブー不足警告境界。遷移分岐。       | watch\_spec       |
-| 75 | test/spotlight    | スポットライトテスト | 黒子公開/JOKER/秘密ペア。       | spotlight\_spec   |
-| 76 | test/curtaincall  | カーテンコールテスト | 通常/SET1/JOEKR終局。保存整合。  | curtaincall\_spec |
-| 77 | test/guard-shared | 共有ガードテスト   | 秘匿再描画/連打ロック。           | 共通                |
+| 82 | chore/report-test | テスト章レポート   | 着手「83–89」／終了時「#12整合へ」。 | -                 |
+| 83 | test/scaffold     | 基盤テスト      | store/ルータ/ランク関数境界値。    | base\_spec.md     |
+| 84 | test/scout        | スカウトテスト    | ピック→確定。最近取られたUI。       | scout\_spec       |
+| 85 | test/action       | アクションテスト   | 役者/黒子選択とガード。確定反映。      | action\_spec      |
+| 86 | test/watch        | ウォッチテスト    | ブー不足警告境界。遷移分岐。       | watch\_spec       |
+| 87 | test/spotlight    | スポットライトテスト | 黒子公開/JOKER/秘密ペア。       | spotlight\_spec   |
+| 88 | test/curtaincall  | カーテンコールテスト | 通常/SET1/JOEKR終局。保存整合。  | curtaincall\_spec |
+| 89 | test/guard-shared | 共有ガードテスト   | 秘匿再描画/連打ロック。           | 共通                |
 
 ---
 
-## 11. 整合
+## 12. 整合
 
 | No | branchName          | 概要      | 詳細                                  | 参照          |
 | -: | ------------------- | ------- | ----------------------------------- | ----------- |
-| 78 | chore/report-sync   | 整合章レポート | 着手「79–80」／終了で全完了宣言。                 | -           |
-| 79 | chore/rulebook-sync | rule整合  | 用語/フロー/終了条件/集計式/ランク値を確認。差分は修正タスク追加。 | rulebook.md |
-| 80 | chore/spec-lint     | specリンタ | 各specの整合・リンタリング。誤記修正。               | 各spec       |
+| 90 | chore/report-sync   | 整合章レポート | 着手「91–92」／終了で全完了宣言。                 | -           |
+| 91 | chore/rulebook-sync | rule整合  | 用語/フロー/終了条件/集計式/ランク値を確認。差分は修正タスク追加。 | rulebook.md |
+| 92 | chore/spec-lint     | specリンタ | 各specの整合・リンタリング。誤記修正。               | 各spec       |
