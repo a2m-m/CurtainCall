@@ -405,34 +405,10 @@ const renderBackstageTab = (state: GameState): HTMLElement => {
   if (hiddenItems.length === 0) {
     hiddenSection.append(createEmptyMessage('秘匿されているアイテムはありません。'));
   } else {
-    const list = document.createElement('ul');
-    list.className = 'board-check__card-list board-check__card-list--grid';
-
-    hiddenItems
-      .slice()
-      .sort((a, b) => a.position - b.position)
-      .forEach((item) => {
-        const listItem = document.createElement('li');
-        listItem.className = 'board-check__card-grid-item';
-
-        const card = new CardComponent({
-          rank: '?',
-          suit: 'spades',
-          faceDown: true,
-        });
-
-        const location = formatBackstageLocation(state, item);
-        card.el.setAttribute('aria-label', `伏せ札（${location}）`);
-
-        const label = document.createElement('span');
-        label.className = 'board-check__card-label';
-        label.textContent = location;
-
-        listItem.append(card.el, label);
-        list.append(listItem);
-      });
-
-    hiddenSection.append(list);
+    const message = document.createElement('p');
+    message.className = 'board-check__empty';
+    message.textContent = `秘匿アイテムが${hiddenItems.length}枚あります。詳細は非公開情報のため表示されません。`;
+    hiddenSection.append(message);
   }
   container.append(hiddenSection);
 
@@ -440,18 +416,18 @@ const renderBackstageTab = (state: GameState): HTMLElement => {
 };
 
 const createStageCardElement = (placement: StageCardPlacement | undefined): HTMLElement | null => {
-  if (!placement) {
+  if (!placement || placement.card.face !== 'up') {
     return null;
   }
 
   const card = new CardComponent({
     rank: placement.card.rank,
     suit: placement.card.suit,
-    faceDown: placement.card.face !== 'up',
+    faceDown: false,
     annotation: placement.card.annotation,
   });
 
-  const cardLabel = placement.card.face === 'up' ? formatCardLabel(placement.card) : '伏せ札';
+  const cardLabel = formatCardLabel(placement.card);
   card.el.setAttribute('aria-label', cardLabel);
 
   return card.el;
