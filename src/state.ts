@@ -1,3 +1,5 @@
+import type { RankValueRuleId } from './rank.js';
+
 export type PhaseKey =
   | 'home'
   | 'standby'
@@ -131,6 +133,27 @@ export interface SetState {
   opened: SetReveal[];
 }
 
+export type CurtainCallReason = 'jokerBonus' | 'setRemaining1';
+
+export interface CurtainCallPlayerSummary {
+  kamiCards: CardSnapshot[];
+  handCards: CardSnapshot[];
+  sumKami: number;
+  sumHand: number;
+  penalty: number;
+  final: number;
+}
+
+export interface CurtainCallSummary {
+  reason: CurtainCallReason;
+  preparedAt: number;
+  rankValueRule: RankValueRuleId;
+  booCount: Record<PlayerId, number>;
+  winner: PlayerId | 'draw';
+  margin: number;
+  players: Record<PlayerId, CurtainCallPlayerSummary>;
+}
+
 export type HistoryEntryType =
   | 'setup'
   | 'standby'
@@ -203,6 +226,7 @@ export interface GameState extends Record<string, unknown> {
   action: ActionState;
   watch: WatchState;
   remainingWatchIncludingCurrent?: Record<PlayerId, number>;
+  curtainCall?: CurtainCallSummary;
 }
 
 export type StateListener<TState> = (state: TState) => void;
