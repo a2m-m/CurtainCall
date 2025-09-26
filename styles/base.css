@@ -1782,46 +1782,37 @@ p {
   font-style: italic;
 }
 
-.board-check__stage-pair {
+.board-check__stage-layout {
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-radius: 16px;
-  background: rgba(148, 163, 184, 0.08);
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
-.board-check__stage-pair-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.board-check__stage-meta {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.5rem 1rem;
-}
-
-.board-check__stage-card {
+.board-check__stage-column {
   display: grid;
-  grid-template-columns: 88px 1fr;
   gap: 1rem;
-  align-items: start;
 }
 
-.board-check__stage-card-label {
+.board-check__stage-column-title {
+  margin: 0;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--color-text);
 }
 
-.board-check__stage-card-content {
+.board-check__stage-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
   gap: 0.75rem;
 }
 
-.board-check__stage-card-details {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.5rem 1rem;
+.board-check__stage-card-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .board-check__score-table {
