@@ -286,8 +286,10 @@ const SPOTLIGHT_SET_CONFIRM_TITLE = 'セットをオープン';
 const SPOTLIGHT_SET_CONFIRM_MESSAGE = '公開後は取り消せません。';
 const SPOTLIGHT_SET_CONFIRM_OK_LABEL = '公開する';
 const SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL = '戻る';
+const SPOTLIGHT_SET_RESULT_TITLE = 'セット公開結果';
 const SPOTLIGHT_SET_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
   `${playerName}が${cardLabel}をオープンしました。`;
+const SPOTLIGHT_SET_RESULT_OK_LABEL = 'OK';
 const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態ではありません。';
 const SPOTLIGHT_SET_OPEN_GATE_MESSAGE = (playerName: string): string =>
   `${playerName}がセットをオープンします。準備ができたら「${DEFAULT_GATE_CONFIRM_LABEL}」を押してください。`;
@@ -361,6 +363,13 @@ let pendingSpotlightSetOpen: SpotlightSetOpenRequest | null = null;
 let isSpotlightSecretPairInProgress = false;
 type SpotlightPairCheckOutcome = 'paired' | 'unpaired' | 'skipped';
 let latestSpotlightPairCheckOutcome: SpotlightPairCheckOutcome | null = null;
+
+interface SpotlightPairCards {
+  actor: CardSnapshot;
+  hand: CardSnapshot;
+}
+
+let latestSpotlightPairCards: SpotlightPairCards | null = null;
 
 const grantSpotlightSecretAccess = (): void => {
   spotlightSecretAccessGranted = true;
@@ -2392,6 +2401,31 @@ const requestSpotlightSetOpen = (playerId: PlayerId): void => {
   }
 };
 
+const requestSpotlightSecretPair = (
+  request: SpotlightSecretPairRequest,
+  candidates: CardSnapshot[],
+): void => {
+  if (typeof window === 'undefined') {
+    finalizeSpotlightSecretPairSelection(request, candidates[0]?.id ?? null);
+    return;
+  }
+
+  pendingSpotlightSecretPair = request;
+  revokeSpotlightSecretAccess();
+
+  const state = gameStore.getState();
+  if (state.route === SPOTLIGHT_GATE_PATH) {
+    return;
+  }
+
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(SPOTLIGHT_GATE_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_GATE_PATH;
+  }
+};
+
 const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
   if (typeof window === 'undefined') {
     return;
@@ -2831,6 +2865,7 @@ const finalizeSpotlightSecretPairSelection = (
   let handCardLabel: string | null = null;
 
   isSpotlightSecretPairInProgress = true;
+  latestSpotlightPairCards = null;
 
   gameStore.setState((current) => {
     const player = current.players[request.playerId];
@@ -2865,7 +2900,7 @@ const finalizeSpotlightSecretPairSelection = (
       placedAt: timestamp,
       revealedAt: revealEntry.openedAt,
     };
-    const kurokoPlacement = createStagePlacementFromHand(handCard, 'down', timestamp);
+    const kurokoPlacement = createStagePlacementFromHand(handCard, 'up', timestamp);
     const pairId = createStagePairId(timestamp);
 
     const nextHandCards = player.hand.cards.filter((card) => card.id !== handCardId);
@@ -2881,6 +2916,10 @@ const finalizeSpotlightSecretPairSelection = (
 
     handCardLabel = formatCardLabel(handCard);
     paired = true;
+    latestSpotlightPairCards = {
+      actor: cloneCardSnapshot(actorPlacement.card),
+      hand: cloneCardSnapshot(kurokoPlacement.card),
+    };
 
     return {
       ...current,
@@ -3068,12 +3107,73 @@ const maybeTriggerSpotlightSecretPair = (reveal: SetReveal): void => {
   const candidates = findSpotlightSecretPairCandidates(player, reveal.card.rank);
   if (candidates.length === 0) {
     latestSpotlightPairCheckOutcome = 'unpaired';
+    latestSpotlightPairCards = null;
     completeSpotlightPhaseTransition();
     return;
   }
 
   const request: SpotlightSecretPairRequest = { revealId: reveal.id, playerId };
-  finalizeSpotlightSecretPairSelection(request, candidates[0]?.id ?? null);
+  requestSpotlightSecretPair(request, candidates);
+};
+
+const presentSpotlightSetOpenResult = (
+  playerName: string,
+  reveal: SetReveal,
+  onConfirm: () => void,
+): void => {
+  const cardLabel = formatCardLabel(reveal.card);
+  const message = SPOTLIGHT_SET_RESULT_MESSAGE(playerName, cardLabel);
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    onConfirm();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (!modal) {
+    console.info(message);
+    onConfirm();
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'spotlight-set-result';
+
+  const text = document.createElement('p');
+  text.className = 'spotlight-set-result__message';
+  text.textContent = message;
+  container.append(text);
+
+  const preview = document.createElement('div');
+  preview.className = 'spotlight-set-result__preview';
+  const cardComponent = new CardComponent({
+    rank: reveal.card.rank,
+    suit: reveal.card.suit,
+    faceDown: false,
+    annotation: reveal.card.annotation,
+  });
+  cardComponent.el.classList.add('spotlight-set-result__card');
+  preview.append(cardComponent.el);
+  container.append(preview);
+
+  modal.open({
+    title: SPOTLIGHT_SET_RESULT_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [
+      {
+        label: SPOTLIGHT_SET_RESULT_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => {
+          modal.close();
+          onConfirm();
+        },
+      },
+    ],
+  });
 };
 
 const finalizeSpotlightSetOpen = (setCardId: string): void => {
@@ -3106,33 +3206,25 @@ const finalizeSpotlightSetOpen = (setCardId: string): void => {
     saveLatestGame(latest);
   }
 
-  const message = SPOTLIGHT_SET_RESULT_MESSAGE(playerName, formatCardLabel(reveal.card));
+  const proceed = () => {
+    if (pendingJokerBefore) {
+      completeSpotlightJokerBonus(pendingJokerBefore, reveal);
+      return;
+    }
 
-  if (typeof window === 'undefined') {
-    console.info(message);
-    return;
+    if (reveal.bonus === 'joker') {
+      openSpotlightJokerBonusDialog(reveal, playerName);
+      return;
+    }
+
+    maybeTriggerSpotlightSecretPair(reveal);
+  };
+
+  if (typeof window !== 'undefined') {
+    window.curtainCall?.modal?.close();
   }
 
-  window.curtainCall?.modal?.close();
-
-  const toast = window.curtainCall?.toast;
-  if (toast) {
-    toast.show({ message, variant: 'info' });
-  } else {
-    console.info(message);
-  }
-
-  if (pendingJokerBefore) {
-    completeSpotlightJokerBonus(pendingJokerBefore, reveal);
-    return;
-  }
-
-  if (reveal.bonus === 'joker') {
-    openSpotlightJokerBonusDialog(reveal, playerName);
-    return;
-  }
-
-  maybeTriggerSpotlightSecretPair(reveal);
+  presentSpotlightSetOpenResult(playerName, reveal, proceed);
 };
 
 const getRemainingWatchCount = (state: GameState): number | null => {
@@ -3555,6 +3647,7 @@ const completeSpotlightPhaseTransition = (): void => {
   }
 
   const state = gameStore.getState();
+  const pairCards = latestSpotlightPairCards;
 
   if (pendingSpotlightSecretPair) {
     return;
@@ -3576,6 +3669,7 @@ const completeSpotlightPhaseTransition = (): void => {
   if (nextPath === SPOTLIGHT_TO_CURTAINCALL_PATH) {
     prepareCurtainCall('setRemaining1');
     latestSpotlightPairCheckOutcome = null;
+    latestSpotlightPairCards = null;
     const latestState = gameStore.getState();
     saveLatestGame(latestState);
     navigateToCurtainCallGate();
@@ -3586,6 +3680,7 @@ const completeSpotlightPhaseTransition = (): void => {
 
   if (typeof window === 'undefined') {
     latestSpotlightPairCheckOutcome = null;
+    latestSpotlightPairCards = null;
     navigateToIntermissionGate();
     return;
   }
@@ -3593,6 +3688,7 @@ const completeSpotlightPhaseTransition = (): void => {
   const modal = window.curtainCall?.modal;
   if (!modal) {
     latestSpotlightPairCheckOutcome = null;
+    latestSpotlightPairCards = null;
     navigateToIntermissionGate();
     return;
   }
@@ -3613,12 +3709,43 @@ const completeSpotlightPhaseTransition = (): void => {
   message.textContent = messageText;
   body.append(message);
 
+  if (pairCheckOutcome === 'paired' && pairCards) {
+    const cards = document.createElement('div');
+    cards.className = 'spotlight-pair-check__cards';
+
+    const createCardPreview = (labelText: string, card: CardSnapshot): HTMLDivElement => {
+      const container = document.createElement('div');
+      container.className = 'spotlight-pair-check__card';
+
+      const label = document.createElement('p');
+      label.className = 'spotlight-pair-check__card-label';
+      label.textContent = labelText;
+      container.append(label);
+
+      const cardComponent = new CardComponent({
+        rank: card.rank,
+        suit: card.suit,
+        faceDown: false,
+        annotation: card.annotation,
+      });
+      cardComponent.el.classList.add('spotlight-pair-check__card-image');
+      container.append(cardComponent.el);
+
+      return container;
+    };
+
+    cards.append(createCardPreview('カミ', pairCards.actor));
+    cards.append(createCardPreview('シモ', pairCards.hand));
+    body.append(cards);
+  }
+
   const caption = document.createElement('p');
   caption.className = 'spotlight-pair-check__caption';
   caption.textContent = SPOTLIGHT_PAIR_CHECK_CAPTION;
   body.append(caption);
 
   latestSpotlightPairCheckOutcome = null;
+  latestSpotlightPairCards = null;
   modal.open({
     title: SPOTLIGHT_PAIR_CHECK_TITLE,
     body,

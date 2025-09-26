@@ -2134,6 +2134,74 @@ p {
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.3);
 }
 
+.spotlight-set-result {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.spotlight-set-result__message {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.spotlight-set-result__preview {
+  display: flex;
+  justify-content: center;
+}
+
+.spotlight-set-result__card {
+  width: clamp(110px, 18vw, 150px);
+  height: clamp(154px, 24vw, 210px);
+  font-size: clamp(1.4rem, 2.1vw, 2rem);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.3);
+}
+
+.spotlight-pair-check {
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+}
+
+.spotlight-pair-check__message {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.spotlight-pair-check__cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.spotlight-pair-check__card {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.spotlight-pair-check__card-label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.spotlight-pair-check__card-image {
+  width: clamp(96px, 17vw, 140px);
+  height: clamp(136px, 25vw, 200px);
+  font-size: clamp(1.3rem, 2.2vw, 2rem);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
+}
+
+.spotlight-pair-check__caption {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
 .curtaincall-view {
   min-height: var(--viewport-height);
   display: flex;
