@@ -42,6 +42,12 @@ import {
 } from './views/action.js';
 import { createWatchView, WatchStageViewModel, WatchStatusViewModel } from './views/watch.js';
 import { createSpotlightView, SpotlightStageViewModel } from './views/spotlight.js';
+import {
+  createCurtainCallView,
+  CurtainCallPlayerSummaryViewModel,
+  CurtainCallResultViewModel,
+  CurtainCallCardViewModel,
+} from './views/curtaincall.js';
 import { createScoutView } from './views/scout.js';
 import type {
   ScoutOpponentHandCardViewModel,
@@ -181,6 +187,25 @@ const CURTAINCALL_GATE_MODAL_TITLE = 'カーテンコール（結果発表）が
 const CURTAINCALL_GATE_MESSAGE = 'この結果は両者で確認できます。';
 const CURTAINCALL_GATE_CONFIRM_LABEL = 'OK（結果を見る）';
 const CURTAINCALL_BOO_PENALTY = 15;
+const CURTAINCALL_BOARD_CHECK_LABEL = 'ボードチェック';
+const CURTAINCALL_HOME_BUTTON_LABEL = 'HOME';
+const CURTAINCALL_NEW_GAME_BUTTON_LABEL = '新しいゲーム';
+const CURTAINCALL_SAVE_BUTTON_LABEL = '結果の保存';
+const CURTAINCALL_BREAKDOWN_KAMI_LABEL = 'カミ合計';
+const CURTAINCALL_BREAKDOWN_HAND_LABEL = '手札合計';
+const CURTAINCALL_BREAKDOWN_PENALTY_LABEL = 'ブーイングペナルティ';
+const CURTAINCALL_BREAKDOWN_FINAL_LABEL = '最終ポイント';
+const CURTAINCALL_BOO_PROGRESS_LABEL = 'ブーイング達成';
+const CURTAINCALL_KAMI_SECTION_LABEL = 'カミ';
+const CURTAINCALL_HAND_SECTION_LABEL = '手札';
+const CURTAINCALL_KAMI_EMPTY_MESSAGE = 'カミ札はありません。';
+const CURTAINCALL_HAND_EMPTY_MESSAGE = '手札はありません。';
+const CURTAINCALL_REASON_DESCRIPTIONS: Record<CurtainCallReason, string> = {
+  jokerBonus: '終了条件：JOKERボーナス',
+  setRemaining1: '終了条件：山札残り1枚',
+};
+const CURTAINCALL_SAVE_PLACEHOLDER_MESSAGE = '結果の保存機能は現在準備中です。';
+const CURTAINCALL_SUMMARY_PREPARING_SUBTITLE = '結果データを準備しています…';
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
   clap: 'クラップの宣言',
   boo: 'ブーイングの宣言',
@@ -431,6 +456,96 @@ const determineCurtainCallOutcome = (
   }
 
   return { winner: 'draw', margin: 0 };
+};
+
+const formatInteger = (value: number): string => value.toLocaleString('ja-JP');
+
+const formatSignedInteger = (value: number): string => {
+  if (value > 0) {
+    return `+${formatInteger(value)}`;
+  }
+  if (value < 0) {
+    return formatInteger(value);
+  }
+  return '0';
+};
+
+const mapCurtainCallCard = (card: CardSnapshot): CurtainCallCardViewModel => ({
+  id: card.id,
+  rank: card.rank,
+  suit: card.suit,
+  annotation: card.annotation,
+  label: formatCardLabel(card),
+});
+
+const mapCurtainCallPlayerSummary = (
+  state: GameState,
+  playerId: PlayerId,
+): CurtainCallPlayerSummaryViewModel => {
+  const summary = state.curtainCall?.players[playerId];
+  const booCount = state.curtainCall?.booCount[playerId] ?? 0;
+  const finalScore = summary?.final ?? 0;
+  const trend: CurtainCallPlayerSummaryViewModel['final']['trend'] =
+    finalScore > 0 ? 'positive' : finalScore < 0 ? 'negative' : 'zero';
+
+  return {
+    id: playerId,
+    name: getPlayerDisplayName(state, playerId),
+    breakdown: [
+      { label: CURTAINCALL_BREAKDOWN_KAMI_LABEL, value: formatInteger(summary?.sumKami ?? 0) },
+      { label: CURTAINCALL_BREAKDOWN_HAND_LABEL, value: formatInteger(summary?.sumHand ?? 0) },
+      {
+        label: CURTAINCALL_BREAKDOWN_PENALTY_LABEL,
+        value: formatInteger(summary?.penalty ?? 0),
+      },
+    ],
+    final: {
+      label: CURTAINCALL_BREAKDOWN_FINAL_LABEL,
+      value: formatSignedInteger(finalScore),
+      trend,
+    },
+    booProgress: {
+      label: CURTAINCALL_BOO_PROGRESS_LABEL,
+      value: `${Math.min(booCount, WATCH_REQUIRED_BOO_COUNT)}/${WATCH_REQUIRED_BOO_COUNT}`,
+    },
+    kami: {
+      label: CURTAINCALL_KAMI_SECTION_LABEL,
+      cards: (summary?.kamiCards ?? []).map((card) => mapCurtainCallCard(card)),
+      emptyMessage: CURTAINCALL_KAMI_EMPTY_MESSAGE,
+    },
+    hand: {
+      label: CURTAINCALL_HAND_SECTION_LABEL,
+      cards: (summary?.handCards ?? []).map((card) => mapCurtainCallCard(card)),
+      emptyMessage: CURTAINCALL_HAND_EMPTY_MESSAGE,
+    },
+  };
+};
+
+const mapCurtainCallPlayers = (state: GameState): CurtainCallPlayerSummaryViewModel[] =>
+  PLAYER_IDS.map((playerId) => mapCurtainCallPlayerSummary(state, playerId));
+
+const mapCurtainCallResult = (state: GameState): CurtainCallResultViewModel => {
+  const summary = state.curtainCall;
+  if (!summary) {
+    return { label: '結果を表示できません。' };
+  }
+
+  const description = CURTAINCALL_REASON_DESCRIPTIONS[summary.reason];
+
+  if (summary.winner === 'draw') {
+    return {
+      label: '引き分け',
+      description,
+    };
+  }
+
+  const winnerName = getPlayerDisplayName(state, summary.winner);
+  const marginLabel = summary.margin > 0 ? `（${formatSignedInteger(summary.margin)}）` : '';
+
+  return {
+    label: `${winnerName}の勝ち${marginLabel}`,
+    description,
+  };
 };
 
 const prepareCurtainCall = (reason: CurtainCallReason): void => {
@@ -2865,6 +2980,27 @@ const navigateToCurtainCallGate = (): void => {
   }
 };
 
+const handleCurtainCallGoHome = (router: Router): void => {
+  router.go('#/');
+};
+
+const handleCurtainCallStartNewGame = (router: Router): void => {
+  router.go(HOME_START_PATH);
+};
+
+const handleCurtainCallSaveRequest = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message: CURTAINCALL_SAVE_PLACEHOLDER_MESSAGE, variant: 'info' });
+  } else {
+    console.warn('結果の保存機能はまだ利用できません。');
+  }
+};
+
 const navigateToIntermissionGate = (): void => {
   if (typeof window === 'undefined') {
     return;
@@ -3914,6 +4050,7 @@ let activeScoutCleanup: (() => void) | null = null;
 let activeActionCleanup: (() => void) | null = null;
 let activeWatchCleanup: (() => void) | null = null;
 let activeSpotlightCleanup: (() => void) | null = null;
+let activeCurtainCallCleanup: (() => void) | null = null;
 
 const cleanupActiveScoutView = (): void => {
   if (activeScoutCleanup) {
@@ -3959,6 +4096,14 @@ const cleanupActiveSpotlightView = (): void => {
   isSpotlightExitInProgress = false;
 };
 
+const cleanupActiveCurtainCallView = (): void => {
+  if (activeCurtainCallCleanup) {
+    const cleanup = activeCurtainCallCleanup;
+    activeCurtainCallCleanup = null;
+    cleanup();
+  }
+};
+
 const withRouteCleanup = (
   render: (context: RouteContext) => HTMLElement,
 ): ((context: RouteContext) => HTMLElement) => {
@@ -3967,6 +4112,7 @@ const withRouteCleanup = (
     cleanupActiveActionView();
     cleanupActiveWatchView();
     cleanupActiveSpotlightView();
+    cleanupActiveCurtainCallView();
     return render(context);
   };
 };
@@ -4126,7 +4272,7 @@ const ROUTES: RouteDescriptor[] = [
     path: '#/phase/curtaincall',
     title: 'カーテンコール',
     heading: 'カーテンコール',
-    subtitle: '最終集計と結果表示は今後実装予定です。',
+    subtitle: '最終結果を確認できます。',
     phase: 'curtaincall',
   },
   {
@@ -4572,6 +4718,50 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             revokeSpotlightSecretAccess();
             isSpotlightSecretPairInProgress = false;
             isSpotlightExitInProgress = false;
+          };
+
+          return view;
+        },
+      };
+    } else if (route.path === '#/phase/curtaincall') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: ({ router: contextRouter }) => {
+          const state = gameStore.getState();
+          const summary = state.curtainCall;
+
+          if (!summary) {
+            return createPlaceholderView({
+              title: route.heading,
+              subtitle: CURTAINCALL_SUMMARY_PREPARING_SUBTITLE,
+            });
+          }
+
+          const view = createCurtainCallView({
+            title: route.heading,
+            result: mapCurtainCallResult(state),
+            players: mapCurtainCallPlayers(state),
+            boardCheckLabel: CURTAINCALL_BOARD_CHECK_LABEL,
+            homeLabel: CURTAINCALL_HOME_BUTTON_LABEL,
+            newGameLabel: CURTAINCALL_NEW_GAME_BUTTON_LABEL,
+            saveLabel: CURTAINCALL_SAVE_BUTTON_LABEL,
+            onOpenBoardCheck: () => showBoardCheck(),
+            onGoHome: () => handleCurtainCallGoHome(contextRouter),
+            onStartNewGame: () => handleCurtainCallStartNewGame(contextRouter),
+            onSaveResult: () => handleCurtainCallSaveRequest(),
+          });
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            if (!nextState.curtainCall) {
+              return;
+            }
+            view.updateResult(mapCurtainCallResult(nextState));
+            view.updatePlayers(mapCurtainCallPlayers(nextState));
+          });
+
+          activeCurtainCallCleanup = () => {
+            unsubscribe();
           };
 
           return view;
