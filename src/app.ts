@@ -109,9 +109,21 @@ declare global {
   }
 }
 
+const NAVIGATION_BLOCKED_PHASES = new Set<PhaseKey>([
+  'standby',
+  'scout',
+  'action',
+  'watch',
+  'spotlight',
+  'intermission',
+]);
+
 const {
   DEFAULT_GATE_CONFIRM_LABEL,
   DEFAULT_CLOSE_LABEL,
+  NAVIGATION_BLOCK_TITLE,
+  NAVIGATION_BLOCK_MESSAGE,
+  NAVIGATION_BLOCK_CONFIRM_LABEL,
   HANDOFF_GATE_HINTS,
   HANDOFF_GATE_MODAL_NOTES,
   INTERMISSION_GATE_TITLE,
@@ -6084,6 +6096,49 @@ const initializeApp = (): void => {
   const router = new Router(root, { fallback: '#/' });
   const modal = new ModalController(modalRoot);
   const toast = new ToastManager(toastRoot);
+
+  let navigationBlockToastId: number | null = null;
+
+  const notifyNavigationBlocked = (): void => {
+    if (modal.opened) {
+      if (navigationBlockToastId !== null) {
+        toast.dismiss(navigationBlockToastId);
+      }
+      navigationBlockToastId = toast.show({
+        message: NAVIGATION_BLOCK_MESSAGE,
+        variant: 'warning',
+      });
+      return;
+    }
+
+    if (navigationBlockToastId !== null) {
+      toast.dismiss(navigationBlockToastId);
+      navigationBlockToastId = null;
+    }
+
+    modal.open({
+      title: NAVIGATION_BLOCK_TITLE,
+      body: NAVIGATION_BLOCK_MESSAGE,
+      dismissible: false,
+      actions: [
+        {
+          label: NAVIGATION_BLOCK_CONFIRM_LABEL,
+          variant: 'primary',
+          preventRapid: true,
+        },
+      ],
+    });
+  };
+
+  router.setNavigationGuard(() => {
+    const state = gameStore.getState();
+    if (!NAVIGATION_BLOCKED_PHASES.has(state.phase)) {
+      return true;
+    }
+
+    notifyNavigationBlocked();
+    return false;
+  });
 
   window.curtainCall = { router, modal, toast, animation: animationManager };
 
