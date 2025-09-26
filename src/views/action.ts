@@ -60,8 +60,10 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
 
   const heading = document.createElement('h1');
   heading.className = 'action__title';
+  heading.id = 'action-view-title';
   heading.textContent = options.title;
   header.append(heading);
+  main.setAttribute('aria-labelledby', heading.id);
 
   const actions = document.createElement('div');
   actions.className = 'action__actions';

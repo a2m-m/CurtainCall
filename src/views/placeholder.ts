@@ -19,19 +19,22 @@ export const createPlaceholderView = (options: PlaceholderOptions): HTMLElement 
   const section = document.createElement('section');
   section.className = 'view';
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'placeholder';
+  const main = document.createElement('main');
+  main.className = 'placeholder';
+
+  const headingId = `placeholder-title-${Math.random().toString(36).slice(2, 8)}`;
 
   const title = document.createElement('h1');
   title.className = 'placeholder__title';
+  title.id = headingId;
   title.textContent = options.title;
-  wrapper.append(title);
+  main.append(title);
 
   if (options.subtitle) {
     const subtitle = document.createElement('p');
     subtitle.className = 'placeholder__subtitle';
     subtitle.textContent = options.subtitle;
-    wrapper.append(subtitle);
+    main.append(subtitle);
   }
 
   if (options.actions && options.actions.length > 0) {
@@ -48,9 +51,10 @@ export const createPlaceholderView = (options: PlaceholderOptions): HTMLElement 
       button.onClick(() => action.onSelect());
       actions.append(button.el);
     });
-    wrapper.append(actions);
+    main.append(actions);
   }
 
-  section.append(wrapper);
+  main.setAttribute('aria-labelledby', headingId);
+  section.append(main);
   return section;
 };

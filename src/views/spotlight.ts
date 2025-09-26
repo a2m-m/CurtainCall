@@ -138,8 +138,10 @@ export const createSpotlightView = (options: SpotlightViewOptions): SpotlightVie
 
   const heading = document.createElement('h1');
   heading.className = 'spotlight__title';
+  heading.id = 'spotlight-view-title';
   heading.textContent = options.title;
   header.append(heading);
+  main.setAttribute('aria-labelledby', heading.id);
 
   const headerActions = document.createElement('div');
   headerActions.className = 'spotlight__header-actions';

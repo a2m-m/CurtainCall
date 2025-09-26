@@ -59,8 +59,10 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
 
   const heading = document.createElement('h1');
   heading.className = 'scout__title';
+  heading.id = 'scout-view-title';
   heading.textContent = options.title;
   header.append(heading);
+  main.setAttribute('aria-labelledby', heading.id);
 
   const headerActions = document.createElement('div');
   headerActions.className = 'scout__header-actions';

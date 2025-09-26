@@ -74,31 +74,35 @@ export const createGateView = (options: GateViewOptions): HTMLElement => {
   const section = document.createElement('section');
   section.className = 'view gate-view';
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'gate-view__panel';
+  const main = document.createElement('main');
+  main.className = 'gate-view__panel';
+
+  const headingId = `gate-view-title-${Math.random().toString(36).slice(2, 8)}`;
 
   const heading = document.createElement('h1');
   heading.className = 'gate-view__title';
+  heading.id = headingId;
   heading.textContent = options.title;
-  wrapper.append(heading);
+  main.append(heading);
 
   if (options.subtitle) {
     const subtitle = createTextParagraph(options.subtitle);
     subtitle.className = 'gate-view__subtitle';
-    wrapper.append(subtitle);
+    main.append(subtitle);
   }
 
   const hints = renderHintList(options.hints);
   if (hints) {
-    wrapper.append(hints);
+    main.append(hints);
   }
 
   const actions = renderActions(options.actions);
   if (actions) {
-    wrapper.append(actions);
+    main.append(actions);
   }
 
-  section.append(wrapper);
+  main.setAttribute('aria-labelledby', headingId);
+  section.append(main);
 
   if (typeof window !== 'undefined') {
     queueMicrotask(() => {
