@@ -174,6 +174,9 @@ const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
 const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight';
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
 const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
+const CURTAINCALL_GATE_MODAL_TITLE = 'カーテンコール（結果発表）が始まります';
+const CURTAINCALL_GATE_MESSAGE = 'この結果は両者で確認できます。';
+const CURTAINCALL_GATE_CONFIRM_LABEL = 'OK（結果を見る）';
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
   clap: 'クラップの宣言',
   boo: 'ブーイングの宣言',
@@ -3986,12 +3989,14 @@ const ROUTES: RouteDescriptor[] = [
   },
   {
     path: '#/phase/curtaincall/gate',
-    title: 'カーテンコールゲート',
-    heading: 'カーテンコールゲート',
-    subtitle: '結果表示前の確認ゲートです。',
+    title: 'カーテンコール開始',
+    heading: 'カーテンコール開始',
+    subtitle: '結果を見る準備ができたらOKを押してください。',
     phase: 'curtaincall',
     gate: createHandOffGateConfig({
-      resolveMessage: (state) => createPhaseGateMessage(state, 'カーテンコール'),
+      confirmLabel: CURTAINCALL_GATE_CONFIRM_LABEL,
+      message: CURTAINCALL_GATE_MESSAGE,
+      modalTitle: CURTAINCALL_GATE_MODAL_TITLE,
     }),
   },
 ];
