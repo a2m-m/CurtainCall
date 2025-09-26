@@ -133,6 +133,28 @@ export interface SetState {
   opened: SetReveal[];
 }
 
+export type BackstageItemStatus = 'backstage' | 'stage' | 'hand';
+
+export interface BackstageItemState {
+  id: string;
+  card: CardSnapshot;
+  position: number;
+  status: BackstageItemStatus;
+  holder: PlayerId | null;
+  isPublic: boolean;
+  revealedAt?: number;
+  revealedBy?: PlayerId;
+  stagePairId?: string;
+}
+
+export interface BackstageState {
+  items: BackstageItemState[];
+  pile: number;
+  lastSpotlightPairFormed: boolean;
+  canActPlayer: PlayerId | null;
+  actedThisIntermission: boolean;
+}
+
 export type CurtainCallReason = 'jokerBonus' | 'setRemaining1';
 
 export interface CurtainCallPlayerSummary {
@@ -220,6 +242,7 @@ export interface GameState extends Record<string, unknown> {
   activePlayer: PlayerId;
   turn: TurnState;
   set: SetState;
+  backstage: BackstageState;
   history: HistoryEntry[];
   meta: GameMeta;
   resume?: ResumeSnapshot;
@@ -339,6 +362,14 @@ export const createInitialActionState = (): ActionState => ({
   kurokoCardId: null,
 });
 
+export const createInitialBackstageState = (): BackstageState => ({
+  items: [],
+  pile: 0,
+  lastSpotlightPairFormed: false,
+  canActPlayer: null,
+  actedThisIntermission: false,
+});
+
 export const createInitialState = (): GameState => {
   const timestamp = Date.now();
   return {
@@ -361,6 +392,7 @@ export const createInitialState = (): GameState => {
       cards: [],
       opened: [],
     },
+    backstage: createInitialBackstageState(),
     history: [],
     meta: {
       createdAt: timestamp,

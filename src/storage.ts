@@ -1,4 +1,13 @@
-import { GameState, PhaseKey, PlayerId, TurnState } from './state.js';
+import {
+  BackstageItemState,
+  BackstageState,
+  CardSnapshot,
+  GameState,
+  PhaseKey,
+  PlayerId,
+  TurnState,
+  createInitialBackstageState,
+} from './state.js';
 
 const STORAGE_VERSION = 1;
 
@@ -14,6 +23,7 @@ const STORAGE_TEST_KEY = '__cc:storage:test__';
 
 const HISTORY_STORAGE_VERSION = 1;
 const HISTORY_MAX_ENTRIES = 50;
+const BACKSTAGE_ITEM_ID_PREFIX = 'backstage-';
 
 const createResultHistoryEntryId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -108,6 +118,119 @@ const cloneValue = <T>(value: T): T => {
   }
   return JSON.parse(JSON.stringify(value)) as T;
 };
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const isPlayerId = (value: unknown): value is PlayerId => value === 'lumina' || value === 'nox';
+
+const normalizeCardSnapshot = (value: unknown): CardSnapshot | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const record = value as Partial<CardSnapshot>;
+  if (
+    typeof record.id !== 'string' ||
+    typeof record.rank !== 'string' ||
+    typeof record.suit !== 'string' ||
+    !isFiniteNumber(record.value) ||
+    (record.face !== 'up' && record.face !== 'down')
+  ) {
+    return null;
+  }
+  const snapshot: CardSnapshot = {
+    id: record.id,
+    rank: record.rank as CardSnapshot['rank'],
+    suit: record.suit as CardSnapshot['suit'],
+    value: record.value,
+    face: record.face,
+  };
+  if (typeof record.annotation === 'string' && record.annotation.length > 0) {
+    snapshot.annotation = record.annotation;
+  }
+  return snapshot;
+};
+
+const normalizeBackstageItems = (items: unknown): BackstageItemState[] => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  return items.reduce<BackstageItemState[]>((acc, entry, index) => {
+    if (!entry || typeof entry !== 'object') {
+      return acc;
+    }
+    const record = entry as Partial<BackstageItemState> & { card?: unknown };
+    const card = normalizeCardSnapshot(record.card);
+    if (!card) {
+      return acc;
+    }
+    const position = isFiniteNumber(record.position) ? record.position : index;
+    const id =
+      typeof record.id === 'string' && record.id.length > 0
+        ? record.id
+        : `${BACKSTAGE_ITEM_ID_PREFIX}${String(position + 1).padStart(2, '0')}`;
+    const status: BackstageItemState['status'] =
+      record.status === 'stage' || record.status === 'hand' ? record.status : 'backstage';
+    const holder = isPlayerId(record.holder) ? record.holder : null;
+    const normalized: BackstageItemState = {
+      id,
+      card,
+      position,
+      status,
+      holder,
+      isPublic: record.isPublic === true,
+    };
+    if (isFiniteNumber(record.revealedAt)) {
+      normalized.revealedAt = record.revealedAt;
+    }
+    if (isPlayerId(record.revealedBy)) {
+      normalized.revealedBy = record.revealedBy;
+    }
+    if (typeof record.stagePairId === 'string' && record.stagePairId.length > 0) {
+      normalized.stagePairId = record.stagePairId;
+    }
+    acc.push(normalized);
+    return acc;
+  }, []);
+};
+
+const normalizeBackstageState = (value: unknown): BackstageState => {
+  const fallback = createInitialBackstageState();
+  if (!value || typeof value !== 'object') {
+    return fallback;
+  }
+  const record = value as Partial<BackstageState> & { items?: unknown };
+  const items = normalizeBackstageItems(record.items);
+  const pile =
+    isFiniteNumber(record.pile) && record.pile >= 0
+      ? Math.floor(record.pile)
+      : items.filter((item) => item.status === 'backstage').length;
+  const lastSpotlightPairFormed =
+    record.lastSpotlightPairFormed === true
+      ? true
+      : record.lastSpotlightPairFormed === false
+        ? false
+        : fallback.lastSpotlightPairFormed;
+  const canActPlayer = isPlayerId(record.canActPlayer) ? record.canActPlayer : fallback.canActPlayer;
+  const actedThisIntermission =
+    record.actedThisIntermission === true
+      ? true
+      : record.actedThisIntermission === false
+        ? false
+        : fallback.actedThisIntermission;
+  return {
+    items,
+    pile,
+    lastSpotlightPairFormed,
+    canActPlayer,
+    actedThisIntermission,
+  };
+};
+
+const normalizeGameStateForLoad = (state: GameState): GameState => ({
+  ...state,
+  backstage: normalizeBackstageState((state as Record<string, unknown>).backstage),
+});
 
 const isResultHistoryEntry = (value: unknown): value is ResultHistoryEntry => {
   if (!value || typeof value !== 'object') {
@@ -249,23 +372,24 @@ export const saveGame = (state: GameState): void => {
   if (!storage) {
     return;
   }
-  const signature = `${state.matchId}:${state.revision}:${state.updatedAt}`;
+  const normalizedState = normalizeGameStateForLoad(state);
+  const signature = `${normalizedState.matchId}:${normalizedState.revision}:${normalizedState.updatedAt}`;
   if (lastSavedSignature === signature) {
     return;
   }
-  const meta = createSaveMetadata(state);
+  const meta = createSaveMetadata(normalizedState);
   const resume =
-    state.resume ??
+    normalizedState.resume ??
     ({
       at: meta.savedAt,
-      phase: state.phase,
-      player: state.activePlayer,
-      route: state.route,
+      phase: normalizedState.phase,
+      player: normalizedState.activePlayer,
+      route: normalizedState.route,
     } as const);
   const payload: StoredGamePayload = {
     version: STORAGE_VERSION,
     state: cloneValue({
-      ...state,
+      ...normalizedState,
       resume,
     }),
     meta: { ...meta, turn: { ...meta.turn } },
@@ -284,9 +408,11 @@ export const loadGame = (options: LoadOptions = {}): StoredGamePayload | null =>
   if (!payload) {
     return null;
   }
+  const clonedState = cloneValue(payload.state);
+  const normalizedState = normalizeGameStateForLoad(clonedState);
   return {
     version: payload.version,
-    state: cloneValue(payload.state),
+    state: normalizedState,
     meta: { ...payload.meta, turn: { ...payload.meta.turn } },
   };
 };
