@@ -1,5 +1,6 @@
 import { UIButton, ButtonVariant } from '../ui/button.js';
 import { showGate, GateOptions } from '../ui/gate.js';
+import { DEFAULT_GATE_MESSAGE } from '../messages.js';
 
 export interface GateViewAction {
   label: string;
@@ -22,9 +23,6 @@ export interface GateViewOptions {
   onGatePass?: () => void;
   actions?: GateViewAction[];
 }
-
-const DEFAULT_GATE_MESSAGE =
-  '端末を次のプレイヤーに渡したら「準備完了」を押して、秘匿情報の閲覧を開始してください。';
 
 const createTextParagraph = (content: string): HTMLParagraphElement => {
   const paragraph = document.createElement('p');

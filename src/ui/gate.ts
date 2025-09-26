@@ -1,4 +1,5 @@
 import { ModalController } from './modal.js';
+import { DEFAULT_GATE_CONFIRM_LABEL, DEFAULT_GATE_TITLE } from '../messages.js';
 
 export interface GateOptions {
   /**
@@ -36,8 +37,6 @@ interface ActiveGate {
   handleHashChange: () => void;
 }
 
-const DEFAULT_TITLE = 'ハンドオフゲート';
-const DEFAULT_CONFIRM_LABEL = '準備完了';
 const DEFAULT_LOCK_DURATION = 320;
 
 let activeGate: ActiveGate | null = null;
@@ -118,11 +117,11 @@ export const showGate = (options: GateOptions): void => {
   };
 
   modal.open({
-    title: options.title ?? DEFAULT_TITLE,
+    title: options.title ?? DEFAULT_GATE_TITLE,
     body,
     actions: [
       {
-        label: options.confirmLabel ?? DEFAULT_CONFIRM_LABEL,
+        label: options.confirmLabel ?? DEFAULT_GATE_CONFIRM_LABEL,
         preventRapid: options.preventRapid ?? true,
         lockDuration: options.lockDuration ?? DEFAULT_LOCK_DURATION,
         dismiss: false,
