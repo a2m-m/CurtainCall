@@ -5448,6 +5448,15 @@ const initializeApp = (): void => {
 
   router.subscribe((path) => {
     const current = gameStore.getState();
+
+    if (path !== WATCH_TO_SPOTLIGHT_PATH && path !== SPOTLIGHT_GATE_PATH) {
+      if (pendingSpotlightSecretPair || pendingSpotlightSetOpen) {
+        pendingSpotlightSecretPair = null;
+        pendingSpotlightSetOpen = null;
+        revokeSpotlightSecretAccess();
+      }
+    }
+
     if (current.route === path) {
       return;
     }
