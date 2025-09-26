@@ -20,10 +20,20 @@ export interface ModalOptions {
   className?: string;
 }
 
+const MODAL_LABEL_FALLBACK = 'ダイアログ';
+
 class ModalView extends UIComponent<HTMLDivElement> {
+  private readonly headingId: string;
+  private readonly bodyId: string;
+
   constructor() {
     super(document.createElement('div'));
     this.element.className = 'modal';
+    this.element.setAttribute('role', 'dialog');
+    this.element.setAttribute('aria-modal', 'true');
+    this.element.tabIndex = -1;
+    this.headingId = `modal-title-${Math.random().toString(36).slice(2, 10)}`;
+    this.bodyId = `modal-body-${Math.random().toString(36).slice(2, 10)}`;
   }
 
   setClassName(className: string | undefined): void {
@@ -35,8 +45,12 @@ class ModalView extends UIComponent<HTMLDivElement> {
     if (title) {
       heading.textContent = title;
       heading.hidden = false;
+      this.element.setAttribute('aria-labelledby', this.headingId);
+      this.element.removeAttribute('aria-label');
     } else {
       heading.hidden = true;
+      this.element.removeAttribute('aria-labelledby');
+      this.element.setAttribute('aria-label', MODAL_LABEL_FALLBACK);
     }
   }
 
@@ -44,15 +58,23 @@ class ModalView extends UIComponent<HTMLDivElement> {
     const body = this.ensureBody();
     body.replaceChildren();
     if (!content) {
+      this.element.removeAttribute('aria-describedby');
+      if (!this.element.hasAttribute('aria-labelledby')) {
+        this.element.setAttribute('aria-label', MODAL_LABEL_FALLBACK);
+      }
       return;
     }
     if (typeof content === 'string') {
       const paragraph = document.createElement('p');
       paragraph.textContent = content;
       body.append(paragraph);
-      return;
+    } else {
+      body.append(content);
     }
-    body.append(content);
+    this.element.setAttribute('aria-describedby', this.bodyId);
+    if (this.element.hasAttribute('aria-labelledby')) {
+      this.element.removeAttribute('aria-label');
+    }
   }
 
   setActions(actions: ModalAction[] | undefined, close: () => void): void {
@@ -87,7 +109,11 @@ class ModalView extends UIComponent<HTMLDivElement> {
     if (!heading) {
       heading = document.createElement('h2');
       heading.className = 'modal__title';
+      heading.id = this.headingId;
       this.element.prepend(heading);
+    }
+    if (!heading.id) {
+      heading.id = this.headingId;
     }
     return heading;
   }
@@ -97,8 +123,12 @@ class ModalView extends UIComponent<HTMLDivElement> {
     if (!body) {
       body = document.createElement('div');
       body.className = 'modal__body';
+      body.id = this.bodyId;
       const heading = this.ensureHeading();
       heading.insertAdjacentElement('afterend', body);
+    }
+    if (!body.id) {
+      body.id = this.bodyId;
     }
     return body;
   }
@@ -122,6 +152,7 @@ export class ModalController {
   private overlayHandler?: (event: MouseEvent) => void;
   private keydownHandler?: (event: KeyboardEvent) => void;
   private closeAnimationCleanup?: () => void;
+  private previouslyFocusedElement: HTMLElement | null = null;
 
   constructor(host: HTMLElement) {
     this.host = host;
@@ -137,6 +168,7 @@ export class ModalController {
       this.completeClose();
     }
 
+    this.capturePreviouslyFocusedElement();
     this.dismissible = options.dismissible ?? true;
     this.modalView.setClassName(options.className);
     this.modalView.setTitle(options.title);
@@ -148,9 +180,8 @@ export class ModalController {
     this.host.replaceChildren(this.modalView.el);
     this.isActive = true;
 
-    if (this.dismissible) {
-      this.attachDismissEvents();
-    }
+    this.focusInitialElement();
+    this.attachDismissEvents();
   }
 
   close(): void {
@@ -198,6 +229,7 @@ export class ModalController {
     this.host.classList.remove('is-active', 'is-closing');
     this.host.replaceChildren();
     this.isActive = false;
+    this.restoreFocus();
   }
 
   private detachDismissEvents(): void {
@@ -206,25 +238,107 @@ export class ModalController {
       this.overlayHandler = undefined;
     }
     if (this.keydownHandler) {
-      window.removeEventListener('keydown', this.keydownHandler);
+      window.removeEventListener('keydown', this.keydownHandler, true);
       this.keydownHandler = undefined;
     }
   }
 
   private attachDismissEvents(): void {
-    this.overlayHandler = (event: MouseEvent) => {
-      if (event.target === this.host) {
-        this.close();
-      }
-    };
+    if (this.dismissible && !this.overlayHandler) {
+      this.overlayHandler = (event: MouseEvent) => {
+        if (event.target === this.host) {
+          this.close();
+        }
+      };
+      this.host.addEventListener('click', this.overlayHandler);
+    }
 
-    this.keydownHandler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        this.close();
-      }
-    };
+    if (!this.keydownHandler) {
+      this.keydownHandler = (event: KeyboardEvent) => {
+        if (!this.isActive) {
+          return;
+        }
+        if (event.key === 'Escape' && this.dismissible) {
+          event.preventDefault();
+          this.close();
+          return;
+        }
+        if (event.key === 'Tab') {
+          this.retainFocusWithinModal(event);
+        }
+      };
+      window.addEventListener('keydown', this.keydownHandler, true);
+    }
+  }
 
-    this.host.addEventListener('click', this.overlayHandler);
-    window.addEventListener('keydown', this.keydownHandler);
+  private capturePreviouslyFocusedElement(): void {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+      this.previouslyFocusedElement = activeElement;
+    } else {
+      this.previouslyFocusedElement = null;
+    }
+  }
+
+  private restoreFocus(): void {
+    if (this.previouslyFocusedElement) {
+      this.previouslyFocusedElement.focus({ preventScroll: true });
+    }
+    this.previouslyFocusedElement = null;
+  }
+
+  private focusInitialElement(): void {
+    const focusableElements = this.getFocusableElements();
+    if (focusableElements.length > 0) {
+      focusableElements[0].focus({ preventScroll: true });
+      return;
+    }
+    this.modalView.el.focus({ preventScroll: true });
+  }
+
+  private retainFocusWithinModal(event: KeyboardEvent): void {
+    const focusableElements = this.getFocusableElements();
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      this.modalView.el.focus({ preventScroll: true });
+      return;
+    }
+
+    const first = focusableElements[0];
+    const last = focusableElements[focusableElements.length - 1];
+    const activeElement = document.activeElement;
+
+    if (!(activeElement instanceof HTMLElement) || !this.modalView.el.contains(activeElement)) {
+      event.preventDefault();
+      if (event.shiftKey) {
+        last.focus({ preventScroll: true });
+      } else {
+        first.focus({ preventScroll: true });
+      }
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === last) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    } else if (event.shiftKey && activeElement === first) {
+      event.preventDefault();
+      last.focus({ preventScroll: true });
+    }
+  }
+
+  private getFocusableElements(): HTMLElement[] {
+    const focusableSelectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'textarea:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ];
+    const elements = Array.from(
+      this.modalView.el.querySelectorAll<HTMLElement>(focusableSelectors.join(',')),
+    );
+    return elements.filter((element) => !element.hasAttribute('disabled') && element.tabIndex !== -1);
   }
 }
