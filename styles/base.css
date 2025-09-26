@@ -154,6 +154,117 @@
   }
 }
 
+@media (max-width: 720px) {
+  :root {
+    --view-padding-block: clamp(1.5rem, 7vh, 2.25rem);
+    --view-padding-inline: clamp(0.75rem, 6vw, 1.5rem);
+    --panel-gap: clamp(1rem, 5vh, 1.75rem);
+    --panel-padding: clamp(1.25rem, 5.5vh, 1.85rem);
+    --button-padding-y: 0.65rem;
+    --button-padding-x: 1rem;
+  }
+
+  .home,
+  .standby,
+  .scout,
+  .watch,
+  .spotlight,
+  .curtaincall,
+  .gate-view__panel,
+  .standby-overlay__panel {
+    border-radius: 24px;
+  }
+
+  .standby__fieldset,
+  .watch-stage,
+  .spotlight-stage,
+  .curtaincall__result {
+    border-radius: 20px;
+    padding: clamp(1.25rem, 5.5vh, 1.75rem);
+  }
+
+  .standby__first-player-options {
+    grid-template-columns: 1fr;
+  }
+
+  .standby__actions {
+    justify-content: stretch;
+  }
+
+  .standby__actions .button {
+    flex: 1 1 100%;
+  }
+
+  .scout__header,
+  .action__header,
+  .curtaincall__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .scout__header-actions,
+  .action__actions,
+  .watch__header-actions,
+  .spotlight__header-actions,
+  .curtaincall__header {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .scout__header-actions .button,
+  .action__actions .button,
+  .watch__header-actions .button,
+  .spotlight__header-actions .button,
+  .curtaincall__header .button {
+    flex: 1 1 160px;
+  }
+
+  .scout__header-button--help,
+  .watch__header-button--help,
+  .spotlight__header-button--help {
+    flex: 0 0 auto;
+    width: 2.75rem;
+  }
+
+  .watch-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .spotlight-actions {
+    justify-items: stretch;
+  }
+
+  .spotlight-actions__button {
+    width: 100%;
+  }
+
+  .action-view {
+    --action-padding-x: clamp(1rem, 5vw, 1.5rem);
+    --action-hand-height: clamp(7rem, 20vh, 9rem);
+  }
+
+  .action-hand {
+    margin: clamp(1.25rem, min(4vw, 5vh), 2rem) calc(var(--action-padding-x) * -1) 0;
+  }
+
+  .action-hand__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .action-hand__list {
+    gap: clamp(0.5rem, 4vw, 0.85rem);
+  }
+
+  .modal {
+    border-radius: 18px;
+  }
+}
+
 *,
 *::before,
 *::after {
@@ -2624,8 +2735,67 @@ p {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --view-padding-block: clamp(1.25rem, 7vh, 1.75rem);
+    --view-padding-inline: clamp(0.75rem, 7vw, 1.35rem);
+    --panel-gap: clamp(0.9rem, 5vh, 1.5rem);
+    --panel-padding: clamp(1.1rem, 5.5vh, 1.6rem);
+    --button-padding-y: 0.55rem;
+    --button-padding-x: 0.9rem;
+  }
+
+  .standby__fieldset {
+    padding: clamp(0.9rem, 4.5vh, 1.25rem);
+  }
+
+  .standby-player__label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .scout__header-actions .button:not(.scout__header-button--help),
+  .action__actions .button,
+  .watch__header-actions .button:not(.watch__header-button--help),
+  .spotlight__header-actions .button:not(.spotlight__header-button--help),
+  .curtaincall__header .button {
+    flex-basis: 100%;
+  }
+
+  .scout-hand__grid,
+  .myhand__hand-list,
+  .spotlight-set-picker__list {
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  }
+
+  .scout-hand__card-button,
+  .spotlight-set-picker__button {
+    padding: 0.65rem;
+  }
+
+  .action-hand__card {
+    min-width: clamp(72px, 22vw, 96px);
+    padding: 0.65rem;
+  }
+
+  .watch-stage,
+  .spotlight-stage {
+    padding: clamp(1.1rem, 5vh, 1.6rem);
+  }
+
+  .watch-stage__card,
+  .spotlight-stage__card {
+    width: clamp(108px, 42vw, 140px);
+    height: clamp(150px, 56vw, 200px);
+  }
+
+  .watch-actions,
+  .spotlight-actions {
+    gap: 0.6rem;
+  }
+
   .curtaincall {
-    border-radius: 28px;
+    border-radius: 22px;
   }
 
   .curtaincall-summary {
@@ -2635,5 +2805,78 @@ p {
   .curtaincall__action-button {
     flex-basis: 100%;
     max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --view-padding-block: clamp(1rem, 8vh, 1.5rem);
+    --view-padding-inline: clamp(0.65rem, 8vw, 1rem);
+    --panel-gap: clamp(0.75rem, 5vh, 1.25rem);
+    --panel-padding: clamp(0.95rem, 5.5vh, 1.35rem);
+  }
+
+  .standby__players {
+    gap: clamp(0.75rem, 4.5vh, 1rem);
+  }
+
+  .standby-player__input {
+    padding: 0.7rem 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .standby__first-player-options,
+  .standby__actions {
+    gap: 0.5rem;
+  }
+
+  .scout__header-actions,
+  .action__actions,
+  .watch__header-actions,
+  .spotlight__header-actions,
+  .curtaincall__header {
+    gap: 0.6rem;
+  }
+
+  .scout__header-button--help,
+  .watch__header-button--help,
+  .spotlight__header-button--help {
+    width: 2.5rem;
+  }
+
+  .action-hand__card {
+    min-width: clamp(68px, 28vw, 92px);
+    padding: 0.6rem;
+  }
+
+  .action-hand__badge {
+    top: -0.5rem;
+    left: 0.5rem;
+  }
+
+  .watch-stage__card,
+  .spotlight-stage__card {
+    width: clamp(100px, 48vw, 132px);
+    height: clamp(140px, 64vw, 188px);
+  }
+
+  .modal {
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+
+  .modal--board-check {
+    width: min(960px, calc(100vw - 1.5rem));
+    max-height: calc(100vh - 1.5rem);
+  }
+
+  .toast {
+    min-width: min(280px, 100%);
+    padding: 0.65rem 1rem;
+    border-radius: 20px;
+  }
+
+  .gate-view__panel {
+    padding: clamp(1rem, 5.5vh, 1.4rem);
   }
 }
