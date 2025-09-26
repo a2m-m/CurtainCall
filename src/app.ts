@@ -35,6 +35,7 @@ import {
 import { getActiveRankValueRule, rankValue } from './rank.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
+import { animationManager } from './ui/animation.js';
 import { CardComponent } from './ui/card.js';
 import { showBoardCheck } from './ui/board-check.js';
 import { createGateView } from './views/gate.js';
@@ -100,6 +101,7 @@ declare global {
       router: Router;
       modal: ModalController;
       toast: ToastManager;
+      animation: typeof animationManager;
     };
   }
 }
@@ -5394,7 +5396,7 @@ const initializeApp = (): void => {
   const modal = new ModalController(modalRoot);
   const toast = new ToastManager(toastRoot);
 
-  window.curtainCall = { router, modal, toast };
+  window.curtainCall = { router, modal, toast, animation: animationManager };
 
   buildRouteDefinitions(router).forEach((definition) => router.register(definition));
 

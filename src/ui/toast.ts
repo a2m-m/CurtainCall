@@ -1,4 +1,5 @@
 import { UIComponent } from './component.js';
+import { animationManager } from './animation.js';
 
 export type ToastVariant = 'info' | 'success' | 'warning' | 'danger';
 
@@ -45,7 +46,19 @@ export class ToastManager {
   dismiss(id: number): void {
     const toast = this.host.querySelector<HTMLElement>(`.toast[data-toast-id="${id}"]`);
     if (toast) {
-      toast.remove();
+      // アニメーションが有効ならフェードアウトを待ってから DOM を取り除く。
+      if (animationManager.isEnabled()) {
+        if (!toast.classList.contains('is-leaving')) {
+          const handleRemoval = () => {
+            toast.remove();
+          };
+          toast.classList.add('is-leaving');
+          toast.addEventListener('animationend', handleRemoval, { once: true });
+          toast.addEventListener('animationcancel', handleRemoval, { once: true });
+        }
+      } else {
+        toast.remove();
+      }
     }
     const timer = this.timers.get(id);
     if (typeof timer === 'number') {
