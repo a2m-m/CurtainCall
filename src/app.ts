@@ -3829,7 +3829,6 @@ const cleanupActiveSpotlightView = (): void => {
     isSpotlightSetOpenInProgress = false;
     isSpotlightJokerBonusInProgress = false;
   }
-  revokeSpotlightSecretAccess();
   isSpotlightSecretPairInProgress = false;
   isSpotlightExitInProgress = false;
 };
@@ -4442,6 +4441,9 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
 
           activeSpotlightCleanup = () => {
             unsubscribe();
+            revokeSpotlightSecretAccess();
+            isSpotlightSecretPairInProgress = false;
+            isSpotlightExitInProgress = false;
           };
 
           return view;
