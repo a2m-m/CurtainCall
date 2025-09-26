@@ -198,7 +198,7 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
 
   const initializationStatus = document.createElement('p');
   initializationStatus.className = 'standby__initial-status';
-  initializationStatus.textContent = 'セットのシャッフル準備OK';
+  initializationStatus.textContent = 'セットとバックステージのシャッフル準備OK';
   initializationFieldset.append(initializationStatus);
 
   const seedToggle = document.createElement('label');

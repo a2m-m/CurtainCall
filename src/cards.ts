@@ -127,6 +127,7 @@ export interface InitialDealResult {
   deck: CardSnapshot[];
   set: SetCardState[];
   hands: Record<PlayerId, CardSnapshot[]>;
+  backstage: CardSnapshot[];
 }
 
 export type DealOptions = ShuffleOptions;
@@ -171,9 +172,15 @@ export const dealInitialSetup = (options: DealOptions = {}): InitialDealResult =
     offset = end;
   }
 
+  const backstageCards = deck.slice(offset, offset + CARD_COMPOSITION.backstage);
+  if (backstageCards.length !== CARD_COMPOSITION.backstage) {
+    throw new Error('バックステージに割り当てるカードが不足しています。');
+  }
+  offset += CARD_COMPOSITION.backstage;
+
   if (offset !== deck.length) {
     throw new Error('配布後に未使用のカードが残っています。');
   }
 
-  return { deck, set: setCards, hands };
+  return { deck, set: setCards, hands, backstage: backstageCards };
 };
