@@ -10,12 +10,17 @@
   --font-sans: 'Noto Sans JP', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   --viewport-height: 100vh;
-  --view-padding-block: clamp(2rem, 8vh, 3rem);
-  --view-padding-inline: clamp(1.25rem, 4vw, 2.5rem);
-  --panel-gap: clamp(1.75rem, 6vh, 2.75rem);
-  --panel-padding: clamp(2rem, 7vh, 3rem);
-  --button-padding-y: 0.75rem;
-  --button-padding-x: 1.25rem;
+  --view-padding-block: clamp(1.5rem, 6vh, 2.5rem);
+  --view-padding-inline: clamp(1rem, 4vw, 2rem);
+  --panel-gap: clamp(1.35rem, 5vh, 2.25rem);
+  --panel-padding: clamp(1.5rem, 6vh, 2.5rem);
+  --button-padding-y: 0.7rem;
+  --button-padding-x: 1.1rem;
+
+  --stage-card-wrapper-min-height: clamp(150px, 24vh, 200px);
+  --stage-card-wrapper-padding: clamp(1rem, 3vh, 1.35rem);
+  --stage-card-width: clamp(110px, 16vw, 150px);
+  --stage-card-height: clamp(150px, 22vw, 200px);
 
   --motion-duration-short: 180ms;
   --motion-duration-medium: 260ms;
@@ -114,23 +119,31 @@
 
 @media (max-height: 760px) {
   :root {
-    --view-padding-block: clamp(1.5rem, 6vh, 2.5rem);
-    --view-padding-inline: clamp(1.1rem, 4vw, 2rem);
-    --panel-gap: clamp(1.25rem, 4.5vh, 2.15rem);
-    --panel-padding: clamp(1.5rem, 5.5vh, 2.4rem);
-    --button-padding-y: 0.65rem;
-    --button-padding-x: 1.1rem;
+    --view-padding-block: clamp(1.25rem, 5vh, 2.1rem);
+    --view-padding-inline: clamp(0.9rem, 4vw, 1.7rem);
+    --panel-gap: clamp(1.1rem, 4vh, 1.85rem);
+    --panel-padding: clamp(1.3rem, 5vh, 2.1rem);
+    --button-padding-y: 0.6rem;
+    --button-padding-x: 1rem;
+    --stage-card-wrapper-min-height: clamp(140px, 22vh, 180px);
+    --stage-card-wrapper-padding: clamp(0.85rem, 2.5vh, 1.15rem);
+    --stage-card-width: clamp(102px, 14vw, 138px);
+    --stage-card-height: clamp(140px, 20vw, 188px);
   }
 }
 
 @media (max-height: 640px) {
   :root {
-    --view-padding-block: clamp(1.25rem, 5.5vh, 2.15rem);
-    --view-padding-inline: clamp(1rem, 4.5vw, 1.75rem);
-    --panel-gap: clamp(1rem, 3.75vh, 1.75rem);
-    --panel-padding: clamp(1.25rem, 4.5vh, 2.1rem);
-    --button-padding-y: 0.6rem;
-    --button-padding-x: 1rem;
+    --view-padding-block: clamp(1.1rem, 4.5vh, 1.8rem);
+    --view-padding-inline: clamp(0.85rem, 4vw, 1.5rem);
+    --panel-gap: clamp(0.95rem, 3.5vh, 1.6rem);
+    --panel-padding: clamp(1.15rem, 4vh, 1.85rem);
+    --button-padding-y: 0.55rem;
+    --button-padding-x: 0.95rem;
+    --stage-card-wrapper-min-height: clamp(130px, 20vh, 170px);
+    --stage-card-wrapper-padding: clamp(0.75rem, 2.2vh, 1rem);
+    --stage-card-width: clamp(98px, 13vw, 132px);
+    --stage-card-height: clamp(132px, 18vw, 176px);
   }
 
   .home__subtitle,
@@ -1266,18 +1279,18 @@ p {
 }
 
 .watch-stage {
-  padding: clamp(1.75rem, 2.5vw, 2.5rem);
+  padding: clamp(1.35rem, 2vw, 1.85rem);
   border-radius: 28px;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(15, 23, 42, 0.35);
   display: grid;
-  gap: clamp(1.5rem, 2vw, 2rem);
+  gap: clamp(1.15rem, 1.8vw, 1.65rem);
 }
 
 .watch-stage__slots {
   display: grid;
-  gap: clamp(1.5rem, 2vw, 2rem);
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: clamp(1.15rem, 1.8vw, 1.65rem);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .watch-stage__slot {
@@ -1295,20 +1308,20 @@ p {
 }
 
 .watch-stage__card-wrapper {
-  min-height: clamp(180px, 30vh, 220px);
+  min-height: var(--stage-card-wrapper-min-height);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
+  padding: var(--stage-card-wrapper-padding);
   border-radius: 24px;
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .watch-stage__card {
-  width: clamp(120px, 18vw, 160px);
-  height: clamp(168px, 26vw, 220px);
-  font-size: clamp(1.6rem, 2.5vw, 2.25rem);
+  width: var(--stage-card-width);
+  height: var(--stage-card-height);
+  font-size: clamp(1.45rem, 2.1vw, 2rem);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.35);
 }
 
@@ -2180,18 +2193,18 @@ p {
 }
 
 .spotlight-stage {
-  padding: clamp(1.75rem, 2.5vw, 2.5rem);
+  padding: clamp(1.35rem, 2vw, 1.85rem);
   border-radius: 28px;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(15, 23, 42, 0.35);
   display: grid;
-  gap: clamp(1.5rem, 2vw, 2rem);
+  gap: clamp(1.15rem, 1.8vw, 1.65rem);
 }
 
 .spotlight-stage__slots {
   display: grid;
-  gap: clamp(1.5rem, 2vw, 2rem);
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: clamp(1.15rem, 1.8vw, 1.65rem);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .spotlight-stage__slot {
@@ -2209,20 +2222,20 @@ p {
 }
 
 .spotlight-stage__card-wrapper {
-  min-height: clamp(180px, 30vh, 220px);
+  min-height: var(--stage-card-wrapper-min-height);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
+  padding: var(--stage-card-wrapper-padding);
   border-radius: 24px;
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .spotlight-stage__card {
-  width: clamp(120px, 18vw, 160px);
-  height: clamp(168px, 26vw, 220px);
-  font-size: clamp(1.6rem, 2.5vw, 2.25rem);
+  width: var(--stage-card-width);
+  height: var(--stage-card-height);
+  font-size: clamp(1.45rem, 2.1vw, 2rem);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.35);
 }
 
@@ -2742,6 +2755,10 @@ p {
     --panel-padding: clamp(1.1rem, 5.5vh, 1.6rem);
     --button-padding-y: 0.55rem;
     --button-padding-x: 0.9rem;
+    --stage-card-wrapper-min-height: clamp(140px, 38vh, 188px);
+    --stage-card-wrapper-padding: clamp(0.8rem, 4.5vh, 1.1rem);
+    --stage-card-width: clamp(104px, 42vw, 136px);
+    --stage-card-height: clamp(140px, 56vw, 188px);
   }
 
   .standby__fieldset {
@@ -2780,13 +2797,7 @@ p {
 
   .watch-stage,
   .spotlight-stage {
-    padding: clamp(1.1rem, 5vh, 1.6rem);
-  }
-
-  .watch-stage__card,
-  .spotlight-stage__card {
-    width: clamp(108px, 42vw, 140px);
-    height: clamp(150px, 56vw, 200px);
+    padding: clamp(1rem, 5vh, 1.4rem);
   }
 
   .watch-actions,
@@ -2814,6 +2825,9 @@ p {
     --view-padding-inline: clamp(0.65rem, 8vw, 1rem);
     --panel-gap: clamp(0.75rem, 5vh, 1.25rem);
     --panel-padding: clamp(0.95rem, 5.5vh, 1.35rem);
+    --stage-card-wrapper-padding: clamp(0.75rem, 5vh, 1rem);
+    --stage-card-width: clamp(98px, 48vw, 128px);
+    --stage-card-height: clamp(136px, 64vw, 180px);
   }
 
   .standby__players {
@@ -2852,12 +2866,6 @@ p {
   .action-hand__badge {
     top: -0.5rem;
     left: 0.5rem;
-  }
-
-  .watch-stage__card,
-  .spotlight-stage__card {
-    width: clamp(100px, 48vw, 132px);
-    height: clamp(140px, 64vw, 188px);
   }
 
   .modal {
