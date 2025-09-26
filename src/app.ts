@@ -11,6 +11,7 @@ import {
 } from './storage.js';
 import { createInitialState, createInitialWatchState, gameStore, PLAYER_IDS } from './state.js';
 import type {
+  CurtainCallReason,
   CardSnapshot,
   GameState,
   PhaseKey,
@@ -24,6 +25,8 @@ import type {
   StageJudgeResult,
   WatchDecision,
 } from './state.js';
+import type { CurtainCallPlayerSummary, CurtainCallSummary } from './state.js';
+import { getActiveRankValueRule, rankValue } from './rank.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
 import { CardComponent } from './ui/card.js';
@@ -177,6 +180,7 @@ const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const CURTAINCALL_GATE_MODAL_TITLE = 'カーテンコール（結果発表）が始まります';
 const CURTAINCALL_GATE_MESSAGE = 'この結果は両者で確認できます。';
 const CURTAINCALL_GATE_CONFIRM_LABEL = 'OK（結果を見る）';
+const CURTAINCALL_BOO_PENALTY = 15;
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
   clap: 'クラップの宣言',
   boo: 'ブーイングの宣言',
@@ -347,6 +351,139 @@ const cloneCardSnapshot = (card: CardSnapshot): CardSnapshot => ({
   face: card.face,
   annotation: card.annotation,
 });
+
+const cloneCurtainCallCard = (card: CardSnapshot): CardSnapshot => {
+  const cloned = cloneCardSnapshot(card);
+  cloned.value = rankValue(card.rank);
+  return cloned;
+};
+
+const collectCurtainCallKamiCards = (player: PlayerState | undefined): CardSnapshot[] => {
+  if (!player?.stage?.pairs?.length) {
+    return [];
+  }
+
+  return player.stage.pairs
+    .map((pair) => pair.actor?.card)
+    .filter((card): card is CardSnapshot => Boolean(card))
+    .map((card) => cloneCurtainCallCard(card));
+};
+
+const collectCurtainCallHandCards = (player: PlayerState | undefined): CardSnapshot[] => {
+  if (!player?.hand?.cards?.length) {
+    return [];
+  }
+
+  const clones = player.hand.cards.map((card) => cloneCurtainCallCard(card));
+  return sortCardsByDescendingValue(clones);
+};
+
+const sumCardValues = (cards: readonly CardSnapshot[]): number =>
+  cards.reduce((total, card) => total + card.value, 0);
+
+const createEmptyCurtainCallPlayerSummary = (): CurtainCallPlayerSummary => ({
+  kamiCards: [],
+  handCards: [],
+  sumKami: 0,
+  sumHand: 0,
+  penalty: 0,
+  final: 0,
+});
+
+const createCurtainCallPlayerSummary = (
+  player: PlayerState | undefined,
+  reason: CurtainCallReason,
+): CurtainCallPlayerSummary => {
+  if (!player) {
+    return createEmptyCurtainCallPlayerSummary();
+  }
+
+  const kamiCards = collectCurtainCallKamiCards(player);
+  const handCards = collectCurtainCallHandCards(player);
+  const sumKami = sumCardValues(kamiCards);
+  const sumHand = sumCardValues(handCards);
+  const missingBooCount = Math.max(0, WATCH_REQUIRED_BOO_COUNT - (player.booCount ?? 0));
+  const penalty = reason === 'setRemaining1' ? missingBooCount * CURTAINCALL_BOO_PENALTY : 0;
+  const final = sumKami - sumHand - penalty;
+
+  return {
+    kamiCards,
+    handCards,
+    sumKami,
+    sumHand,
+    penalty,
+    final,
+  };
+};
+
+const determineCurtainCallOutcome = (
+  summaries: Record<PlayerId, CurtainCallPlayerSummary>,
+): { winner: PlayerId | 'draw'; margin: number } => {
+  const luminaFinal = summaries.lumina?.final ?? 0;
+  const noxFinal = summaries.nox?.final ?? 0;
+
+  if (luminaFinal > noxFinal) {
+    return { winner: 'lumina', margin: luminaFinal - noxFinal };
+  }
+
+  if (luminaFinal < noxFinal) {
+    return { winner: 'nox', margin: noxFinal - luminaFinal };
+  }
+
+  return { winner: 'draw', margin: 0 };
+};
+
+const prepareCurtainCall = (reason: CurtainCallReason): void => {
+  gameStore.setState((current) => {
+    if (current.curtainCall?.reason === reason) {
+      return current;
+    }
+
+    const timestamp = Date.now();
+    const nextPlayers: Record<PlayerId, PlayerState> = { ...current.players };
+    const playerSummaries = {} as Record<PlayerId, CurtainCallPlayerSummary>;
+    const booCount = {} as Record<PlayerId, number>;
+
+    PLAYER_IDS.forEach((playerId) => {
+      const player = current.players[playerId];
+      const summary = createCurtainCallPlayerSummary(player, reason);
+      playerSummaries[playerId] = summary;
+      booCount[playerId] = player?.booCount ?? 0;
+
+      if (player) {
+        nextPlayers[playerId] = {
+          ...player,
+          score: {
+            sumKami: summary.sumKami,
+            sumHand: summary.sumHand,
+            penalty: summary.penalty,
+            final: summary.final,
+          },
+        };
+      }
+    });
+
+    const { winner, margin } = determineCurtainCallOutcome(playerSummaries);
+
+    const summary: CurtainCallSummary = {
+      reason,
+      preparedAt: timestamp,
+      rankValueRule: getActiveRankValueRule(),
+      booCount,
+      winner,
+      margin,
+      players: playerSummaries,
+    };
+
+    return {
+      ...current,
+      players: nextPlayers,
+      curtainCall: summary,
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+};
 
 const createPlayersForInitialDeal = (
   template: GameState,
@@ -2267,6 +2404,8 @@ const completeSpotlightJokerBonus = (
     };
   });
 
+  prepareCurtainCall('jokerBonus');
+
   const latest = gameStore.getState();
   saveLatestGame(latest);
 
@@ -2789,13 +2928,16 @@ const completeSpotlightPhaseTransition = (): void => {
 
   isSpotlightExitInProgress = true;
 
-  saveLatestGame(state);
-
   if (nextPath === SPOTLIGHT_TO_CURTAINCALL_PATH) {
+    prepareCurtainCall('setRemaining1');
     latestSpotlightPairCheckOutcome = null;
+    const latestState = gameStore.getState();
+    saveLatestGame(latestState);
     navigateToCurtainCallGate();
     return;
   }
+
+  saveLatestGame(state);
 
   if (typeof window === 'undefined') {
     latestSpotlightPairCheckOutcome = null;
