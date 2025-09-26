@@ -6,16 +6,20 @@ import {
   PLAYER_IDS,
   SetRevealBonus,
   StageCardPlacement,
-  StageCardOrigin,
-  StageJudgeResult,
-  StagePairOrigin,
+  StagePair,
   gameStore,
 } from '../state.js';
 import { CardComponent } from './card.js';
 import { UIComponent } from './component.js';
 import type { ModalController } from './modal.js';
 
-export type BoardCheckTabKey = 'overview' | 'set' | 'luminaStage' | 'noxStage' | 'score';
+export type BoardCheckTabKey =
+  | 'overview'
+  | 'set'
+  | 'stage'
+  | 'score'
+  | 'luminaStage'
+  | 'noxStage';
 
 export interface BoardCheckOptions {
   initialTab?: BoardCheckTabKey;
@@ -33,24 +37,6 @@ const SUIT_LABEL: Record<CardSnapshot['suit'], string> = {
   diamonds: 'ダイヤ',
   clubs: 'クラブ',
   joker: 'ジョーカー',
-};
-
-const STAGE_JUDGE_LABEL: Record<StageJudgeResult | 'pending', string> = {
-  match: '一致',
-  mismatch: '不一致',
-  pending: '未判定',
-};
-
-const STAGE_CARD_SOURCE_LABEL: Record<StageCardOrigin, string> = {
-  hand: '手札',
-  set: 'セット',
-  jokerBonus: 'JOKERボーナス',
-};
-
-const STAGE_PAIR_ORIGIN_LABEL: Record<StagePairOrigin, string> = {
-  action: 'アクション',
-  spotlight: 'スポットライト',
-  joker: 'JOKERボーナス',
 };
 
 const SET_BONUS_LABEL: Record<SetRevealBonus, string> = {
@@ -71,14 +57,9 @@ const TAB_DEFINITIONS: TabDefinition[] = [
     render: (state) => renderSetTab(state),
   },
   {
-    key: 'luminaStage',
-    label: 'ルミナステージ',
-    render: (state) => renderStageTab(state, 'lumina'),
-  },
-  {
-    key: 'noxStage',
-    label: 'ノクスステージ',
-    render: (state) => renderStageTab(state, 'nox'),
+    key: 'stage',
+    label: 'ステージ',
+    render: (state) => renderStagesTab(state),
   },
   {
     key: 'score',
@@ -304,32 +285,9 @@ const renderSetTab = (state: GameState): HTMLElement => {
   return container;
 };
 
-const describeCardFace = (placement: StageCardPlacement | undefined): string => {
+const createStageCardElement = (placement: StageCardPlacement | undefined): HTMLElement | null => {
   if (!placement) {
-    return '未配置';
-  }
-  return placement.card.face === 'up' ? formatCardLabel(placement.card) : '伏せ札';
-};
-
-const renderStageCardRow = (
-  label: string,
-  placement: StageCardPlacement | undefined,
-): HTMLElement => {
-  const row = document.createElement('div');
-  row.className = 'board-check__stage-card';
-
-  const title = document.createElement('span');
-  title.className = 'board-check__stage-card-label';
-  title.textContent = label;
-  row.append(title);
-
-  const content = document.createElement('div');
-  content.className = 'board-check__stage-card-content';
-
-  if (!placement) {
-    content.append(createEmptyMessage('未配置です。'));
-    row.append(content);
-    return row;
+    return null;
   }
 
   const card = new CardComponent({
@@ -338,67 +296,124 @@ const renderStageCardRow = (
     faceDown: placement.card.face !== 'up',
     annotation: placement.card.annotation,
   });
-  content.append(card.el);
 
-  const details = createDefinitionList(
-    [
-      { term: '状態', description: describeCardFace(placement) },
-      { term: '出所', description: STAGE_CARD_SOURCE_LABEL[placement.from] },
-    ],
-    'board-check__stage-card-details',
-  );
-  content.append(details);
+  const cardLabel = placement.card.face === 'up' ? formatCardLabel(placement.card) : '伏せ札';
+  card.el.setAttribute('aria-label', cardLabel);
 
-  row.append(content);
-  return row;
+  return card.el;
 };
 
-const renderStageTab = (state: GameState, playerId: PlayerId): HTMLElement => {
+const renderStageColumn = (
+  state: GameState,
+  playerId: PlayerId,
+  label: string,
+): HTMLElement => {
+  const column = document.createElement('section');
+  column.className = `board-check__stage-column board-check__stage-column--${playerId}`;
+
+  const heading = document.createElement('h3');
+  heading.className = 'board-check__stage-column-title';
+  heading.textContent = label;
+  column.append(heading);
+
+  const stage = state.players[playerId]?.stage;
+  const pairs = stage?.pairs.slice().sort((a, b) => a.createdAt - b.createdAt) ?? [];
+
+  if (pairs.length === 0) {
+    column.append(createEmptyMessage('公開されているカードはありません。'));
+    return column;
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'board-check__stage-card-list';
+
+  let hasVisibleCard = false;
+  pairs.forEach((pair) => {
+    const item = document.createElement('li');
+    item.className = 'board-check__stage-card-group';
+
+    [pair.actor, pair.kuroko].forEach((placement) => {
+      const cardElement = createStageCardElement(placement);
+      if (cardElement) {
+        hasVisibleCard = true;
+        item.append(cardElement);
+      }
+    });
+
+    if (item.childElementCount > 0) {
+      list.append(item);
+    }
+  });
+
+  if (!hasVisibleCard) {
+    column.append(createEmptyMessage('公開されているカードはありません。'));
+    return column;
+  }
+
+  column.append(list);
+  return column;
+};
+
+const renderStagesTab = (state: GameState): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'board-check__content';
 
-  const player = state.players[playerId];
-  const stage = player.stage;
+  const layout = document.createElement('div');
+  layout.className = 'board-check__stage-layout';
 
-  if (!stage || stage.pairs.length === 0) {
-    container.append(createEmptyMessage('公開されているステージ情報はありません。'));
-    return container;
+  layout.append(
+    renderStageColumn(state, 'lumina', 'ルミナステージ'),
+    renderStageColumn(state, 'nox', 'ノクスステージ'),
+  );
+
+  container.append(layout);
+  return container;
+};
+
+const sumVisibleStageKamiValues = (pairs: readonly StagePair[] | undefined): number => {
+  if (!pairs || pairs.length === 0) {
+    return 0;
   }
 
-  const pairs = stage.pairs.slice().sort((a, b) => a.createdAt - b.createdAt);
+  return pairs.reduce((total, pair) => {
+    const actorCard = pair.actor?.card;
+    if (!actorCard || actorCard.face !== 'up') {
+      return total;
+    }
+    return total + actorCard.value;
+  }, 0);
+};
 
-  pairs.forEach((pair, index) => {
-    const section = document.createElement('section');
-    section.className = 'board-check__stage-pair';
+const formatScoreValue = (value: number | null): string => {
+  if (value === null) {
+    return '—';
+  }
+  return value.toLocaleString('ja-JP');
+};
 
-    const heading = document.createElement('h3');
-    heading.className = 'board-check__stage-pair-title';
-    heading.textContent = `ペア ${index + 1}`;
-    section.append(heading);
+const resolvePlayerScoreSnapshot = (
+  state: GameState,
+  playerId: PlayerId,
+): { sumKami: number | null; sumHand: number | null; penalty: number | null; final: number | null } => {
+  const curtainSummary = state.curtainCall?.players?.[playerId];
+  if (curtainSummary) {
+    return {
+      sumKami: curtainSummary.sumKami,
+      sumHand: curtainSummary.sumHand,
+      penalty: curtainSummary.penalty,
+      final: curtainSummary.final,
+    };
+  }
 
-    const meta = createDefinitionList(
-      [
-        {
-          term: '所有者',
-          description: state.players[pair.owner]?.name ?? pair.owner,
-        },
-        { term: '出所', description: STAGE_PAIR_ORIGIN_LABEL[pair.origin] },
-        {
-          term: '判定',
-          description: STAGE_JUDGE_LABEL[pair.judge ?? 'pending'],
-        },
-      ],
-      'board-check__stage-meta',
-    );
-    section.append(meta);
+  const pairs = state.players[playerId]?.stage?.pairs;
+  const sumKami = sumVisibleStageKamiValues(pairs);
 
-    section.append(renderStageCardRow('役者', pair.actor));
-    section.append(renderStageCardRow('黒子', pair.kuroko));
-
-    container.append(section);
-  });
-
-  return container;
+  return {
+    sumKami,
+    sumHand: null,
+    penalty: null,
+    final: null,
+  };
 };
 
 const renderScoreTab = (state: GameState): HTMLElement => {
@@ -429,10 +444,10 @@ const renderScoreTab = (state: GameState): HTMLElement => {
     name.textContent = player.name;
     row.append(name);
 
-    const { sumKami, sumHand, penalty, final } = player.score;
-    [sumKami, sumHand, penalty, final].forEach((value) => {
+    const snapshot = resolvePlayerScoreSnapshot(state, id);
+    [snapshot.sumKami, snapshot.sumHand, snapshot.penalty, snapshot.final].forEach((value) => {
       const cell = document.createElement('td');
-      cell.textContent = `${value}`;
+      cell.textContent = formatScoreValue(value);
       row.append(cell);
     });
 
@@ -520,6 +535,9 @@ const resolveInitialTab = (tab: BoardCheckTabKey | undefined): BoardCheckTabKey 
   const fallback = TAB_DEFINITIONS[0]?.key ?? 'set';
   if (!tab) {
     return fallback;
+  }
+  if (tab === 'luminaStage' || tab === 'noxStage') {
+    return 'stage';
   }
   return TAB_DEFINITIONS.some((definition) => definition.key === tab) ? tab : fallback;
 };
