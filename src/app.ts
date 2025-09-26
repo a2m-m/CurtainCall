@@ -3,12 +3,12 @@ import type { RouteContext } from './router.js';
 import { createSeededRandom, dealInitialSetup, sortCardsByDescendingValue } from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
-  addResultHistoryEntry,
-  deleteResultHistoryEntry,
-  getLatestSaveMetadata,
-  getResultHistory,
+  deleteResult,
+  getSavedGameMetadata,
+  listResultHistory,
   ResultHistoryEntry,
-  saveLatestGame,
+  saveGame,
+  saveResult,
 } from './storage.js';
 import {
   createInitialState,
@@ -16,23 +16,22 @@ import {
   gameStore,
   PLAYER_IDS,
   REQUIRED_BOO_COUNT,
+  type CurtainCallReason,
+  type CardSnapshot,
+  type GameState,
+  type PhaseKey,
+  type PlayerId,
+  type PlayerState,
+  type SetCardState,
+  type SetReveal,
+  type StageArea,
+  type StageCardPlacement,
+  type StagePair,
+  type StageJudgeResult,
+  type WatchDecision,
+  type CurtainCallPlayerSummary,
+  type CurtainCallSummary,
 } from './state.js';
-import type {
-  CurtainCallReason,
-  CardSnapshot,
-  GameState,
-  PhaseKey,
-  PlayerId,
-  PlayerState,
-  SetCardState,
-  SetReveal,
-  StageArea,
-  StageCardPlacement,
-  StagePair,
-  StageJudgeResult,
-  WatchDecision,
-} from './state.js';
-import type { CurtainCallPlayerSummary, CurtainCallSummary } from './state.js';
 import { getActiveRankValueRule, rankValue } from './rank.js';
 import { ModalController } from './ui/modal.js';
 import { ToastManager } from './ui/toast.js';
@@ -1237,7 +1236,7 @@ const openHistoryDialog = (): void => {
   body.className = 'home-history__body';
   container.append(body);
 
-  let entries = getResultHistory();
+  let entries = listResultHistory();
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -1341,12 +1340,12 @@ const openHistoryDialog = (): void => {
       deleteButton.className = 'home-history__action home-history__action--danger';
       deleteButton.textContent = '削除';
       deleteButton.addEventListener('click', () => {
-        const removed = deleteResultHistoryEntry(entry.id);
+        const removed = deleteResult(entry.id);
         if (!removed) {
           toast?.show({ message: HISTORY_DELETE_FAILURE, variant: 'warning' });
           return;
         }
-        entries = getResultHistory();
+        entries = listResultHistory();
         render();
         toast?.show({ message: HISTORY_DELETE_SUCCESS, variant: 'info' });
       });
@@ -2770,7 +2769,7 @@ const completeSpotlightJokerBonus = (
   prepareCurtainCall('jokerBonus');
 
   const latest = gameStore.getState();
-  saveLatestGame(latest);
+  saveGame(latest);
 
   const summary = paired
     ? SPOTLIGHT_JOKER_BONUS_RESULT_MESSAGE(playerName, bonusCardLabel ?? '')
@@ -2923,7 +2922,7 @@ const finalizeSpotlightSecretPairSelection = (
 
   if (paired) {
     const latest = gameStore.getState();
-    saveLatestGame(latest);
+    saveGame(latest);
     infoMessage = SPOTLIGHT_SECRET_PAIR_RESULT_MESSAGE(
       playerName,
       openCardLabel ?? '',
@@ -3158,7 +3157,7 @@ const finalizeSpotlightSetOpen = (setCardId: string): void => {
 
   if (!pendingJokerBefore) {
     const latest = gameStore.getState();
-    saveLatestGame(latest);
+    saveGame(latest);
   }
 
   const proceed = () => {
@@ -3343,7 +3342,7 @@ const markCurtainCallSaved = (entryId: string, savedAt: number): void => {
   });
 
   const latest = gameStore.getState();
-  saveLatestGame(latest);
+  saveGame(latest);
 };
 
 const handleCurtainCallSaveRequest = (): void => {
@@ -3494,7 +3493,7 @@ const handleCurtainCallSaveRequest = (): void => {
         return;
       }
 
-      const entry = addResultHistoryEntry(payload.summary, payload.detail, savedAt);
+      const entry = saveResult(payload.summary, payload.detail, savedAt);
       if (!entry) {
         if (toast) {
           toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
@@ -3626,12 +3625,12 @@ const completeSpotlightPhaseTransition = (): void => {
     latestSpotlightPairCheckOutcome = null;
     latestSpotlightPairCards = null;
     const latestState = gameStore.getState();
-    saveLatestGame(latestState);
+    saveGame(latestState);
     navigateToCurtainCallGate();
     return;
   }
 
-  saveLatestGame(state);
+  saveGame(state);
 
   if (typeof window === 'undefined') {
     latestSpotlightPairCheckOutcome = null;
@@ -3839,7 +3838,7 @@ const showWatchResultDialog = (
   const finalize = (): void => {
     isWatchResultDialogOpen = false;
     const latest = gameStore.getState();
-    saveLatestGame(latest);
+    saveGame(latest);
     navigateFromWatchTo(nextRoute);
   };
 
@@ -4112,7 +4111,7 @@ const finalizeSpotlightReveal = (): void => {
   }
 
   const latest = gameStore.getState();
-  saveLatestGame(latest);
+  saveGame(latest);
 
   const canOpenSet = canOpenSpotlightSet(latest);
 
@@ -4379,7 +4378,7 @@ const showActionPlacementResultDialog = (
   const finalize = (): void => {
     isActionResultDialogOpen = false;
     const latestState = gameStore.getState();
-    saveLatestGame(latestState);
+    saveGame(latestState);
     navigateToWatchGate();
   };
 
@@ -4945,7 +4944,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
         path: route.path,
         title: route.title,
         render: () => {
-          const resumeMeta = getLatestSaveMetadata();
+          const resumeMeta = getSavedGameMetadata();
           const resumeDetails = resumeMeta
             ? {
                 summary: createResumeSummary(resumeMeta.activePlayer, resumeMeta.phase),
@@ -5438,7 +5437,7 @@ const initializeApp = (): void => {
   });
 
   gameStore.subscribe((state) => {
-    saveLatestGame(state);
+    saveGame(state);
   });
 
   router.start();

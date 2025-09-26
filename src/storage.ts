@@ -244,7 +244,7 @@ const enforceResumeGate = (options: LoadOptions): void => {
   }
 };
 
-export const saveLatestGame = (state: GameState): void => {
+export const saveGame = (state: GameState): void => {
   const storage = getStorage();
   if (!storage) {
     return;
@@ -278,7 +278,7 @@ export const saveLatestGame = (state: GameState): void => {
   }
 };
 
-export const loadLatestGame = (options: LoadOptions = {}): StoredGamePayload | null => {
+export const loadGame = (options: LoadOptions = {}): StoredGamePayload | null => {
   enforceResumeGate(options);
   const payload = readLatestPayload();
   if (!payload) {
@@ -291,7 +291,7 @@ export const loadLatestGame = (options: LoadOptions = {}): StoredGamePayload | n
   };
 };
 
-export const clearLatestGame = (): void => {
+export const clearGame = (): void => {
   const storage = getStorage();
   if (!storage) {
     return;
@@ -304,7 +304,7 @@ export const clearLatestGame = (): void => {
   }
 };
 
-export const getLatestSaveMetadata = (): SaveMetadata | null => {
+export const getSavedGameMetadata = (): SaveMetadata | null => {
   const payload = readLatestPayload();
   if (!payload) {
     return null;
@@ -312,7 +312,7 @@ export const getLatestSaveMetadata = (): SaveMetadata | null => {
   return { ...payload.meta, turn: { ...payload.meta.turn } };
 };
 
-export const getResultHistory = (): ResultHistoryEntry[] => {
+export const listResultHistory = (): ResultHistoryEntry[] => {
   const storage = getStorage();
   if (!storage) {
     return [];
@@ -324,7 +324,7 @@ export const getResultHistory = (): ResultHistoryEntry[] => {
     .map((entry) => cloneValue(entry));
 };
 
-export const deleteResultHistoryEntry = (id: string): boolean => {
+export const deleteResult = (id: string): boolean => {
   if (!id) {
     return false;
   }
@@ -341,11 +341,11 @@ export const deleteResultHistoryEntry = (id: string): boolean => {
   return true;
 };
 
-export const hasLatestSave = (): boolean => readLatestPayload() !== null;
+export const hasSavedGame = (): boolean => readLatestPayload() !== null;
 
 export const getStorageKeys = () => ({ ...STORAGE_KEYS });
 
-export const addResultHistoryEntry = (
+export const saveResult = (
   summary: string,
   detail?: string,
   savedAt?: number,
@@ -376,3 +376,36 @@ export const addResultHistoryEntry = (
 
   return { ...entry };
 };
+
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では saveGame を利用すること。
+ */
+export const saveLatestGame = saveGame;
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では loadGame を利用すること。
+ */
+export const loadLatestGame = loadGame;
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では clearGame を利用すること。
+ */
+export const clearLatestGame = clearGame;
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では getSavedGameMetadata を利用すること。
+ */
+export const getLatestSaveMetadata = getSavedGameMetadata;
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では listResultHistory を利用すること。
+ */
+export const getResultHistory = listResultHistory;
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では deleteResult を利用すること。
+ */
+export const deleteResultHistoryEntry = deleteResult;
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では hasSavedGame を利用すること。
+ */
+export const hasLatestSave = hasSavedGame;
+/**
+ * 旧タスク互換のためのエイリアス。新規実装では saveResult を利用すること。
+ */
+export const addResultHistoryEntry = saveResult;
