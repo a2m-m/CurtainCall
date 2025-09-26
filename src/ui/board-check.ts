@@ -417,19 +417,22 @@ const renderBackstageTab = (state: GameState): HTMLElement => {
 };
 
 const createStageCardElement = (placement: StageCardPlacement | undefined): HTMLElement | null => {
-  if (!placement || placement.card.face !== 'up') {
+  if (!placement) {
     return null;
   }
 
+  const isFaceDown = placement.card.face !== 'up';
   const card = new CardComponent({
     rank: placement.card.rank,
     suit: placement.card.suit,
-    faceDown: false,
+    faceDown: isFaceDown,
     annotation: placement.card.annotation,
   });
 
-  const cardLabel = formatCardLabel(placement.card);
-  card.el.setAttribute('aria-label', cardLabel);
+  if (!isFaceDown) {
+    const cardLabel = formatCardLabel(placement.card);
+    card.el.setAttribute('aria-label', cardLabel);
+  }
 
   return card.el;
 };
@@ -458,7 +461,7 @@ const renderStageColumn = (
   const list = document.createElement('ul');
   list.className = 'board-check__stage-card-list';
 
-  let hasVisibleCard = false;
+  let hasAnyCard = false;
   pairs.forEach((pair) => {
     const item = document.createElement('li');
     item.className = 'board-check__stage-card-group';
@@ -466,7 +469,7 @@ const renderStageColumn = (
     [pair.actor, pair.kuroko].forEach((placement) => {
       const cardElement = createStageCardElement(placement);
       if (cardElement) {
-        hasVisibleCard = true;
+        hasAnyCard = true;
         item.append(cardElement);
       }
     });
@@ -476,7 +479,7 @@ const renderStageColumn = (
     }
   });
 
-  if (!hasVisibleCard) {
+  if (!hasAnyCard) {
     column.append(createEmptyMessage('公開されているカードはありません。'));
     return column;
   }
