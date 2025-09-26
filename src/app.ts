@@ -61,6 +61,7 @@ import type {
   ScoutRecentTakenCardViewModel,
 } from './views/scout.js';
 import { createStandbyView } from './views/standby.js';
+import * as messages from './messages.js';
 
 interface GateActionDescriptor {
   label: string;
@@ -104,12 +105,162 @@ declare global {
   }
 }
 
-const HANDOFF_GATE_HINTS = Object.freeze([
-  '端末を次のプレイヤーに渡したら「準備完了」を押してください。',
-  'ゲートを通過した後に秘匿情報が画面へ描画されます。',
-]);
-
-const HANDOFF_GATE_MODAL_NOTES = Object.freeze(['ゲート通過前は秘匿情報を DOM に出力しません。']);
+const {
+  DEFAULT_GATE_CONFIRM_LABEL,
+  HANDOFF_GATE_HINTS,
+  HANDOFF_GATE_MODAL_NOTES,
+  INTERMISSION_GATE_TITLE,
+  INTERMISSION_GATE_CONFIRM_LABEL,
+  INTERMISSION_BOARD_CHECK_LABEL,
+  INTERMISSION_SUMMARY_LABEL,
+  INTERMISSION_SUMMARY_TITLE,
+  INTERMISSION_SUMMARY_CAPTION,
+  INTERMISSION_SUMMARY_EMPTY,
+  STANDBY_DEAL_ERROR_MESSAGE,
+  STANDBY_FIRST_PLAYER_ERROR_MESSAGE,
+  SCOUT_PICK_CONFIRM_TITLE,
+  SCOUT_PICK_CONFIRM_MESSAGE,
+  SCOUT_PICK_CONFIRM_OK_LABEL,
+  SCOUT_PICK_CONFIRM_CANCEL_LABEL,
+  SCOUT_BOARD_CHECK_LABEL,
+  MY_HAND_LABEL,
+  MY_HAND_MODAL_TITLE,
+  MY_HAND_SECTION_TITLE,
+  MY_HAND_EMPTY_MESSAGE,
+  MY_HAND_RECENT_EMPTY_MESSAGE,
+  MY_HAND_RECENT_BADGE_LABEL,
+  SCOUT_HELP_BUTTON_LABEL,
+  SCOUT_HELP_ARIA_LABEL,
+  ACTION_CONFIRM_BUTTON_LABEL,
+  ACTION_BOARD_CHECK_LABEL,
+  ACTION_CONFIRM_MODAL_TITLE,
+  ACTION_CONFIRM_MODAL_MESSAGE,
+  ACTION_CONFIRM_MODAL_OK_LABEL,
+  ACTION_CONFIRM_MODAL_CANCEL_LABEL,
+  ACTION_GUARD_SELECTION_MESSAGE,
+  ACTION_GUARD_INSUFFICIENT_HAND_MESSAGE,
+  ACTION_RESULT_TITLE,
+  ACTION_RESULT_OK_LABEL,
+  WATCH_BOARD_CHECK_LABEL,
+  WATCH_MY_HAND_LABEL,
+  WATCH_HELP_BUTTON_LABEL,
+  WATCH_HELP_ARIA_LABEL,
+  WATCH_CLAP_BUTTON_LABEL,
+  WATCH_BOO_BUTTON_LABEL,
+  WATCH_ACTOR_LABEL,
+  WATCH_KUROKO_LABEL,
+  WATCH_REMAINING_PLACEHOLDER,
+  WATCH_WARNING_BADGE_LABEL,
+  WATCH_CLAP_WARNING_MESSAGE,
+  WATCH_STAGE_EMPTY_MESSAGE,
+  WATCH_KUROKO_DEFAULT_DESCRIPTION,
+  WATCH_DECISION_CONFIRM_TITLES,
+  WATCH_DECISION_CONFIRM_MESSAGES,
+  WATCH_DECISION_CONFIRM_OK_LABEL,
+  WATCH_DECISION_CONFIRM_CANCEL_LABEL,
+  WATCH_RESULT_TITLES,
+  WATCH_RESULT_MESSAGES,
+  WATCH_RESULT_OK_LABELS,
+  WATCH_REDIRECTING_SUBTITLE,
+  WATCH_GUARD_REDIRECTING_SUBTITLE,
+  SPOTLIGHT_SECRET_GUARD_REDIRECTING_SUBTITLE,
+  SPOTLIGHT_SET_OPEN_GUARD_REDIRECTING_SUBTITLE,
+  SPOTLIGHT_BOARD_CHECK_LABEL,
+  SPOTLIGHT_HELP_BUTTON_LABEL,
+  SPOTLIGHT_HELP_ARIA_LABEL,
+  SPOTLIGHT_REVEAL_BUTTON_LABEL,
+  SPOTLIGHT_REVEAL_CAPTION,
+  SPOTLIGHT_REVEAL_COMPLETED_CAPTION,
+  SPOTLIGHT_REVEAL_UNAVAILABLE_CAPTION,
+  SPOTLIGHT_REVEAL_CONFIRM_TITLE,
+  SPOTLIGHT_REVEAL_CONFIRM_MESSAGE,
+  SPOTLIGHT_REVEAL_CONFIRM_OK_LABEL,
+  SPOTLIGHT_REVEAL_CONFIRM_CANCEL_LABEL,
+  SPOTLIGHT_RESULT_TITLE,
+  SPOTLIGHT_RESULT_MATCH_PREFIX,
+  SPOTLIGHT_RESULT_MISMATCH_PREFIX,
+  SPOTLIGHT_RESULT_MATCH_MESSAGE,
+  SPOTLIGHT_RESULT_MISMATCH_MESSAGE,
+  SPOTLIGHT_RESULT_SKIP_LABEL,
+  SPOTLIGHT_SET_OPEN_BUTTON_LABEL,
+  SPOTLIGHT_SET_PICKER_TITLE,
+  SPOTLIGHT_SET_PICKER_MESSAGE,
+  SPOTLIGHT_SET_PICKER_EMPTY_MESSAGE,
+  SPOTLIGHT_SET_PICKER_CANCEL_LABEL,
+  SPOTLIGHT_SET_CARD_LABEL_PREFIX,
+  SPOTLIGHT_SET_CONFIRM_TITLE,
+  SPOTLIGHT_SET_CONFIRM_MESSAGE,
+  SPOTLIGHT_SET_CONFIRM_OK_LABEL,
+  SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL,
+  SPOTLIGHT_SET_RESULT_TITLE,
+  SPOTLIGHT_SET_RESULT_MESSAGE,
+  SPOTLIGHT_SET_RESULT_OK_LABEL,
+  SPOTLIGHT_SET_OPEN_GUARD_MESSAGE,
+  SPOTLIGHT_SET_OPEN_GATE_MESSAGE,
+  SPOTLIGHT_PAIR_CHECK_TITLE,
+  SPOTLIGHT_PAIR_CHECK_MESSAGE,
+  SPOTLIGHT_PAIR_CHECK_SKIPPED_MESSAGE,
+  SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE,
+  SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE,
+  SPOTLIGHT_PAIR_CHECK_CAPTION,
+  SPOTLIGHT_PAIR_CHECK_CONFIRM_LABEL,
+  SPOTLIGHT_JOKER_BONUS_TITLE,
+  SPOTLIGHT_JOKER_BONUS_MESSAGE,
+  SPOTLIGHT_JOKER_BONUS_MULTI_PROMPT,
+  SPOTLIGHT_JOKER_BONUS_EMPTY_MESSAGE,
+  SPOTLIGHT_JOKER_BONUS_EMPTY_ACTION_LABEL,
+  SPOTLIGHT_JOKER_BONUS_RESULT_MESSAGE,
+  SPOTLIGHT_JOKER_BONUS_EMPTY_RESULT_MESSAGE,
+  SPOTLIGHT_SECRET_PAIR_TITLE,
+  SPOTLIGHT_SECRET_PAIR_MESSAGE,
+  SPOTLIGHT_SECRET_PAIR_EMPTY_MESSAGE,
+  SPOTLIGHT_SECRET_PAIR_SKIP_LABEL,
+  SPOTLIGHT_SECRET_PAIR_GATE_MESSAGE,
+  SPOTLIGHT_SECRET_PAIR_RESULT_MESSAGE,
+  SPOTLIGHT_SECRET_PAIR_SKIP_RESULT_MESSAGE,
+  CURTAINCALL_GATE_MODAL_TITLE,
+  CURTAINCALL_GATE_MESSAGE,
+  CURTAINCALL_GATE_CONFIRM_LABEL,
+  CURTAINCALL_BOARD_CHECK_LABEL,
+  CURTAINCALL_HOME_BUTTON_LABEL,
+  CURTAINCALL_NEW_GAME_BUTTON_LABEL,
+  CURTAINCALL_SAVE_BUTTON_LABEL,
+  CURTAINCALL_SAVE_DIALOG_TITLE,
+  CURTAINCALL_SAVE_TITLE_LABEL,
+  CURTAINCALL_SAVE_TITLE_PLACEHOLDER,
+  CURTAINCALL_SAVE_MEMO_LABEL,
+  CURTAINCALL_SAVE_MEMO_PLACEHOLDER,
+  CURTAINCALL_SAVE_SUBMIT_LABEL,
+  CURTAINCALL_SAVE_CANCEL_LABEL,
+  CURTAINCALL_SAVE_SUCCESS_MESSAGE,
+  CURTAINCALL_SAVE_FAILURE_MESSAGE,
+  CURTAINCALL_SAVE_REQUIRED_MESSAGE,
+  CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE,
+  CURTAINCALL_SAVE_ALREADY_SAVED_MESSAGE,
+  CURTAINCALL_SAVE_DIALOG_OPEN_MESSAGE,
+  CURTAINCALL_SAVE_IN_PROGRESS_MESSAGE,
+  CURTAINCALL_BREAKDOWN_KAMI_LABEL,
+  CURTAINCALL_BREAKDOWN_HAND_LABEL,
+  CURTAINCALL_BREAKDOWN_PENALTY_LABEL,
+  CURTAINCALL_BREAKDOWN_FINAL_LABEL,
+  CURTAINCALL_BOO_PROGRESS_LABEL,
+  CURTAINCALL_KAMI_SECTION_LABEL,
+  CURTAINCALL_HAND_SECTION_LABEL,
+  CURTAINCALL_KAMI_EMPTY_MESSAGE,
+  CURTAINCALL_HAND_EMPTY_MESSAGE,
+  CURTAINCALL_SUMMARY_PREPARING_SUBTITLE,
+  SCOUT_PICK_RESULT_TITLE,
+  SCOUT_PICK_RESULT_OK_LABEL,
+  HOME_SETTINGS_TITLE,
+  HOME_SETTINGS_MESSAGE,
+  HISTORY_DIALOG_TITLE,
+  HISTORY_DIALOG_DESCRIPTION,
+  HISTORY_EMPTY_MESSAGE,
+  HISTORY_COPY_SUCCESS,
+  HISTORY_COPY_FAILURE,
+  HISTORY_DELETE_SUCCESS,
+  HISTORY_DELETE_FAILURE,
+} = messages;
 
 const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateDescriptor => ({
   hints: [...HANDOFF_GATE_HINTS],
@@ -117,16 +268,6 @@ const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateD
   ...overrides,
 });
 
-const INTERMISSION_GATE_TITLE = '手番交代';
-const INTERMISSION_GATE_CONFIRM_LABEL = 'OK（スカウトへ）';
-const INTERMISSION_BOARD_CHECK_LABEL = 'ボードチェック';
-const INTERMISSION_SUMMARY_LABEL = '前ラウンド要約';
-const INTERMISSION_SUMMARY_TITLE = '前ラウンド要約';
-const INTERMISSION_SUMMARY_CAPTION = '前ラウンドで公開された情報のみが表示されます。';
-const INTERMISSION_SUMMARY_EMPTY = '公開情報はまだありません。';
-
-const STANDBY_DEAL_ERROR_MESSAGE = 'スタンバイの初期化に失敗しました。もう一度お試しください。';
-const STANDBY_FIRST_PLAYER_ERROR_MESSAGE = '先手が未決定です。スタンバイに戻ります。';
 const STANDBY_SEED_LOCK_VALUE = 'dev-fixed-0001';
 
 const CARD_SUIT_LABEL: Record<CardSnapshot['suit'], string> = {
@@ -137,197 +278,28 @@ const CARD_SUIT_LABEL: Record<CardSnapshot['suit'], string> = {
   joker: 'ジョーカー',
 };
 
-const SCOUT_PICK_CONFIRM_TITLE = 'カードを引く';
-const SCOUT_PICK_CONFIRM_MESSAGE = 'このカードを引いて手札に加えます。元に戻せません。';
-const SCOUT_PICK_CONFIRM_OK_LABEL = 'OK';
-const SCOUT_PICK_CONFIRM_CANCEL_LABEL = 'キャンセル';
-
 const SCOUT_TO_ACTION_PATH = '#/phase/action';
 const INTERMISSION_TO_SCOUT_PATH = '#/phase/scout';
-const SCOUT_BOARD_CHECK_LABEL = 'ボードチェック';
-const MY_HAND_LABEL = '自分の手札';
-const MY_HAND_MODAL_TITLE = '自分の手札';
-const MY_HAND_SECTION_TITLE = '現在の手札';
-const MY_HAND_EMPTY_MESSAGE = '手札はありません。';
-const MY_HAND_RECENT_EMPTY_MESSAGE = 'なし';
-const MY_HAND_RECENT_BADGE_LABEL = '直前に引いたカード';
 
 const SCOUT_MY_HAND_LABEL = MY_HAND_LABEL;
 const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
-const SCOUT_HELP_BUTTON_LABEL = '？';
-const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
 
-const ACTION_CONFIRM_BUTTON_LABEL = '配置を確定';
-const ACTION_BOARD_CHECK_LABEL = 'ボードチェック';
-const ACTION_CONFIRM_MODAL_TITLE = '配置を確定';
-const ACTION_CONFIRM_MODAL_MESSAGE =
-  '以下のカードをステージに配置します。確定すると元に戻せません。';
-const ACTION_CONFIRM_MODAL_OK_LABEL = 'OK';
-const ACTION_CONFIRM_MODAL_CANCEL_LABEL = 'キャンセル';
-const ACTION_GUARD_SELECTION_MESSAGE = '役者と黒子をそれぞれ選択してください。';
-const ACTION_GUARD_INSUFFICIENT_HAND_MESSAGE =
-  '手札が2枚未満のため、ステージに配置を確定できません。';
-const ACTION_RESULT_TITLE = 'アクション完了';
-const ACTION_RESULT_OK_LABEL = 'ウォッチへ';
 const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
 
-const WATCH_BOARD_CHECK_LABEL = 'ボードチェック';
-const WATCH_MY_HAND_LABEL = MY_HAND_LABEL;
-const WATCH_HELP_BUTTON_LABEL = '？';
-const WATCH_HELP_ARIA_LABEL = 'ヘルプ';
-const WATCH_CLAP_BUTTON_LABEL = 'クラップ（同数）';
-const WATCH_BOO_BUTTON_LABEL = 'ブーイング（異なる）';
-const WATCH_ACTOR_LABEL = '役者（表）';
-const WATCH_KUROKO_LABEL = '黒子（裏）';
-const WATCH_REMAINING_PLACEHOLDER = '—';
-const WATCH_WARNING_BADGE_LABEL = 'ブーイング不足注意';
-const WATCH_CLAP_WARNING_MESSAGE = '残り機会的にブーイングが必要です';
-const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されていません。';
-const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
 const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
 const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight';
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
 const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
-const CURTAINCALL_GATE_MODAL_TITLE = 'カーテンコール（結果発表）が始まります';
-const CURTAINCALL_GATE_MESSAGE = 'この結果は両者で確認できます。';
-const CURTAINCALL_GATE_CONFIRM_LABEL = 'OK（結果を見る）';
+
 const CURTAINCALL_BOO_PENALTY = 15;
-const CURTAINCALL_BOARD_CHECK_LABEL = 'ボードチェック';
-const CURTAINCALL_HOME_BUTTON_LABEL = 'HOME';
-const CURTAINCALL_NEW_GAME_BUTTON_LABEL = '新しいゲーム';
-const CURTAINCALL_SAVE_BUTTON_LABEL = '結果の保存';
-const CURTAINCALL_SAVE_DIALOG_TITLE = '結果の保存';
-const CURTAINCALL_SAVE_TITLE_LABEL = 'タイトル';
-const CURTAINCALL_SAVE_TITLE_PLACEHOLDER = '例：2025/09/24_第12局';
-const CURTAINCALL_SAVE_MEMO_LABEL = 'メモ（任意）';
-const CURTAINCALL_SAVE_MEMO_PLACEHOLDER = '振り返りや共有メモを入力できます。';
-const CURTAINCALL_SAVE_SUBMIT_LABEL = '保存';
-const CURTAINCALL_SAVE_CANCEL_LABEL = 'キャンセル';
-const CURTAINCALL_SAVE_SUCCESS_MESSAGE = '結果を保存しました。';
-const CURTAINCALL_SAVE_FAILURE_MESSAGE = '結果の保存に失敗しました。';
-const CURTAINCALL_SAVE_REQUIRED_MESSAGE = 'タイトルを入力してください。';
-const CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE = '結果データの準備が完了していません。';
-const CURTAINCALL_SAVE_ALREADY_SAVED_MESSAGE = '結果はすでに保存済みです。';
-const CURTAINCALL_SAVE_DIALOG_OPEN_MESSAGE = '結果の保存ダイアログを表示中です。';
-const CURTAINCALL_SAVE_IN_PROGRESS_MESSAGE = '結果の保存処理が進行中です。';
-const CURTAINCALL_BREAKDOWN_KAMI_LABEL = 'カミ合計';
-const CURTAINCALL_BREAKDOWN_HAND_LABEL = '手札合計';
-const CURTAINCALL_BREAKDOWN_PENALTY_LABEL = 'ブーイングペナルティ';
-const CURTAINCALL_BREAKDOWN_FINAL_LABEL = '最終ポイント';
-const CURTAINCALL_BOO_PROGRESS_LABEL = 'ブーイング達成';
-const CURTAINCALL_KAMI_SECTION_LABEL = 'カミ';
-const CURTAINCALL_HAND_SECTION_LABEL = '手札';
-const CURTAINCALL_KAMI_EMPTY_MESSAGE = 'カミ札はありません。';
-const CURTAINCALL_HAND_EMPTY_MESSAGE = '手札はありません。';
+
 const CURTAINCALL_REASON_DESCRIPTIONS: Record<CurtainCallReason, string> = {
   jokerBonus: '終了条件：JOKERボーナス',
   setRemaining1: '終了条件：山札残り1枚',
 };
-const CURTAINCALL_SUMMARY_PREPARING_SUBTITLE = '結果データを準備しています…';
-const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
-  clap: 'クラップの宣言',
-  boo: 'ブーイングの宣言',
-} as const);
-const WATCH_DECISION_CONFIRM_MESSAGES = Object.freeze({
-  clap: 'クラップを宣言します。確定すると元に戻せません。',
-  boo: 'ブーイングを宣言します。確定すると元に戻せません。',
-} as const);
-const WATCH_DECISION_CONFIRM_OK_LABEL = 'OK';
-const WATCH_DECISION_CONFIRM_CANCEL_LABEL = 'キャンセル';
-const WATCH_RESULT_TITLES = Object.freeze({
-  clap: 'クラップ！',
-  boo: 'ブーイング！',
-} as const);
-const WATCH_RESULT_MESSAGES = Object.freeze({
-  clap: 'クラップを宣言しました。インターミッションへ進みます。',
-  boo: 'ブーイングを宣言しました。スポットライトへ進みます。',
-} as const);
-const WATCH_RESULT_OK_LABELS = Object.freeze({
-  clap: 'インターミッションへ',
-  boo: 'スポットライトへ',
-} as const);
-const WATCH_REDIRECTING_SUBTITLE = '宣言結果に応じた画面へ移動しています…';
-const WATCH_GUARD_REDIRECTING_SUBTITLE =
-  '秘匿情報を再表示するにはウォッチゲートを通過してください。';
-const SPOTLIGHT_SECRET_GUARD_REDIRECTING_SUBTITLE =
-  'シークレットペア処理のためゲートへ移動します…';
-const SPOTLIGHT_SET_OPEN_GUARD_REDIRECTING_SUBTITLE =
-  'セット公開の準備のためゲートへ移動します…';
-
-const SPOTLIGHT_BOARD_CHECK_LABEL = 'ボードチェック';
-const SPOTLIGHT_HELP_BUTTON_LABEL = '？';
-const SPOTLIGHT_HELP_ARIA_LABEL = 'ヘルプ';
 const SPOTLIGHT_STAGE_EMPTY_MESSAGE = WATCH_STAGE_EMPTY_MESSAGE;
 const SPOTLIGHT_KUROKO_HIDDEN_DESCRIPTION = WATCH_KUROKO_DEFAULT_DESCRIPTION;
-const SPOTLIGHT_REVEAL_BUTTON_LABEL = '黒子を公開する';
-const SPOTLIGHT_REVEAL_CAPTION = '黒子を公開すると判定が確定します。元に戻せません。';
-const SPOTLIGHT_REVEAL_COMPLETED_CAPTION = '黒子は既に公開済みです。';
-const SPOTLIGHT_REVEAL_UNAVAILABLE_CAPTION = '公開できる黒子がありません。';
-const SPOTLIGHT_REVEAL_CONFIRM_TITLE = '黒子を公開';
-const SPOTLIGHT_REVEAL_CONFIRM_MESSAGE = '黒子のカードを公開します。公開後は取り消せません。';
-const SPOTLIGHT_REVEAL_CONFIRM_OK_LABEL = 'OK';
-const SPOTLIGHT_REVEAL_CONFIRM_CANCEL_LABEL = 'キャンセル';
-const SPOTLIGHT_RESULT_TITLE = '判定結果';
-const SPOTLIGHT_RESULT_MATCH_PREFIX = '一致！';
-const SPOTLIGHT_RESULT_MISMATCH_PREFIX = '不一致！';
-const SPOTLIGHT_RESULT_MATCH_MESSAGE = (playerName: string): string =>
-  `${playerName}がセットをオープンできます。`;
-const SPOTLIGHT_RESULT_MISMATCH_MESSAGE = (playerName: string): string =>
-  `${playerName}がセットをオープンできます。`;
-const SPOTLIGHT_RESULT_SKIP_LABEL = '今回はスキップ';
-const SPOTLIGHT_SET_OPEN_BUTTON_LABEL = 'セットをオープンする';
-const SPOTLIGHT_SET_PICKER_TITLE = 'セットをオープン';
-const SPOTLIGHT_SET_PICKER_MESSAGE = 'セットから公開するカードを選択してください。';
-const SPOTLIGHT_SET_PICKER_EMPTY_MESSAGE = '公開できるセットのカードは残っていません。';
-const SPOTLIGHT_SET_PICKER_CANCEL_LABEL = 'キャンセル';
-const SPOTLIGHT_SET_CARD_LABEL_PREFIX = 'カード';
-const SPOTLIGHT_SET_CONFIRM_TITLE = 'セットをオープン';
-const SPOTLIGHT_SET_CONFIRM_MESSAGE = '公開後は取り消せません。';
-const SPOTLIGHT_SET_CONFIRM_OK_LABEL = '公開する';
-const SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL = '戻る';
-const SPOTLIGHT_SET_RESULT_TITLE = 'セット公開結果';
-const SPOTLIGHT_SET_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
-  `${playerName}が${cardLabel}をオープンしました。`;
-const SPOTLIGHT_SET_RESULT_OK_LABEL = 'OK';
-const SPOTLIGHT_SET_OPEN_GUARD_MESSAGE = 'セットを公開できる状態ではありません。';
-const SPOTLIGHT_SET_OPEN_GATE_MESSAGE = (playerName: string): string =>
-  `${playerName}がセットをオープンします。準備ができたら「${DEFAULT_GATE_CONFIRM_LABEL}」を押してください。`;
-const SPOTLIGHT_PAIR_CHECK_TITLE = 'ペアの判定';
-const SPOTLIGHT_PAIR_CHECK_MESSAGE =
-  '公開された役者札と同じ数字の手札があるか確認してください。同じ数字を持っていたら場に出してペア成立、持っていなければペア不成立です。';
-const SPOTLIGHT_PAIR_CHECK_SKIPPED_MESSAGE = '今回はセットを公開せずに進みます。';
-const SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE = 'ペアができました！';
-const SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE = 'ペアはできませんでした！';
-const SPOTLIGHT_PAIR_CHECK_CAPTION =
-  '判定が終わったら「OK」を押してインターミッションへ進みましょう。';
-const SPOTLIGHT_PAIR_CHECK_CONFIRM_LABEL = 'OK';
-const SPOTLIGHT_JOKER_BONUS_TITLE = 'JOKERボーナス';
-const SPOTLIGHT_JOKER_BONUS_MESSAGE = (playerName: string): string =>
-  `${playerName}のターンです。JOKER！追加でもう1枚オープンして、自動でペアを作ります。`;
-const SPOTLIGHT_JOKER_BONUS_MULTI_PROMPT = '追加で公開するカードを選択してください。';
-const SPOTLIGHT_JOKER_BONUS_EMPTY_MESSAGE =
-  '追加で公開できるカードがありません。カーテンコールへ進みます。';
-const SPOTLIGHT_JOKER_BONUS_EMPTY_ACTION_LABEL = 'カーテンコールへ';
-const SPOTLIGHT_JOKER_BONUS_RESULT_MESSAGE = (playerName: string, cardLabel: string): string =>
-  `JOKERボーナス：${playerName}が${cardLabel}とジョーカーでペアを作りました。`;
-const SPOTLIGHT_JOKER_BONUS_EMPTY_RESULT_MESSAGE = (playerName: string): string =>
-  `JOKERボーナス：${playerName}は追加で公開できるカードがなく、自動ペアは成立しません。`;
-const SPOTLIGHT_SECRET_PAIR_TITLE = 'シークレットペア';
-const SPOTLIGHT_SECRET_PAIR_MESSAGE = (playerName: string, cardLabel: string): string =>
-  `${playerName}のターンです。${cardLabel}と同じランクの手札を選んでペアを作れます。`;
-const SPOTLIGHT_SECRET_PAIR_EMPTY_MESSAGE =
-  '同じランクの手札はありません。今回はスキップできます。';
-const SPOTLIGHT_SECRET_PAIR_SKIP_LABEL = 'ペアを作らない';
-const SPOTLIGHT_SECRET_PAIR_GATE_MESSAGE = (playerName: string): string =>
-  `${playerName}の手札を表示します。相手に画面が見えないことを確認してから進んでください。`;
-const SPOTLIGHT_SECRET_PAIR_RESULT_MESSAGE = (
-  playerName: string,
-  openCardLabel: string,
-  handCardLabel: string,
-): string => `${playerName}が${openCardLabel}と${handCardLabel}でシークレットペアを作りました。`;
-const SPOTLIGHT_SECRET_PAIR_SKIP_RESULT_MESSAGE = (playerName: string): string =>
-  `${playerName}はシークレットペアを作成しませんでした。`;
 
 const createWatchDecisionConfirmMessage = (decision: WatchDecision, playerName: string): string => {
   const base = WATCH_DECISION_CONFIRM_MESSAGES[decision];
@@ -986,9 +958,6 @@ const HOME_START_PATH = '#/standby';
 const HOME_RESUME_GATE_PATH = '#/resume/gate';
 const RULEBOOK_PATH = './rulebook.md';
 
-const HOME_SETTINGS_TITLE = '設定';
-const HOME_SETTINGS_MESSAGE = '設定メニューは現在準備中です。';
-
 const PLAYER_LABELS: Record<PlayerId, string> = {
   lumina: 'ルミナ',
   nox: 'ノクス',
@@ -1007,8 +976,6 @@ const getPlayerDisplayName = (state: GameState, playerId: PlayerId): string => {
   }
   return PLAYER_LABELS[playerId] ?? playerId;
 };
-
-const DEFAULT_GATE_CONFIRM_LABEL = '準備完了';
 
 const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
 
@@ -1043,15 +1010,6 @@ const PHASE_LABELS: Record<PhaseKey, string> = {
   intermission: 'インターミッション',
   curtaincall: 'カーテンコール',
 };
-
-const HISTORY_DIALOG_TITLE = 'リザルト履歴';
-const HISTORY_DIALOG_DESCRIPTION =
-  '保存済みのリザルトを確認できます。コピーや削除が可能です（最大50件まで保持されます）。';
-const HISTORY_EMPTY_MESSAGE = '保存されたリザルト履歴はまだありません。';
-const HISTORY_COPY_SUCCESS = '履歴をコピーしました。';
-const HISTORY_COPY_FAILURE = '履歴をコピーできませんでした。';
-const HISTORY_DELETE_SUCCESS = '履歴を削除しました。';
-const HISTORY_DELETE_FAILURE = '履歴の削除に失敗しました。';
 
 const formatTimestamp = (timestamp: number): string | null => {
   if (!Number.isFinite(timestamp)) {
@@ -1442,9 +1400,6 @@ const calculateRemainingWatchCounts = (
     {} as Record<PlayerId, number>,
   );
 };
-
-const SCOUT_PICK_RESULT_TITLE = 'カードを取得しました';
-const SCOUT_PICK_RESULT_OK_LABEL = 'OK';
 
 const createScoutPickConfirmBody = (playerName: string): HTMLElement => {
   const container = document.createElement('div');
