@@ -30,6 +30,8 @@ export const INTERMISSION_BACKSTAGE_REVEAL_MESSAGE = '公開するカードを�
 export const INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE = '公開できるカードは残っていません。';
 export const INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE =
   'バックステージアクションを実行できる状態ではありません。';
+export const INTERMISSION_BACKSTAGE_PENDING_MESSAGE =
+  'バックステージアクションを実行するか、スキップしてください。';
 export const INTERMISSION_BACKSTAGE_RESULT_MATCH = '一致！セットのカードとペアが成立しました。';
 export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH =
   '一致しませんでした。さらに1枚を手札に加えてください。';

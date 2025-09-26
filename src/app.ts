@@ -129,6 +129,7 @@ const {
   INTERMISSION_BACKSTAGE_REVEAL_MESSAGE,
   INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE,
   INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE,
+  INTERMISSION_BACKSTAGE_PENDING_MESSAGE,
   INTERMISSION_BACKSTAGE_RESULT_MATCH,
   INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
   INTERMISSION_BACKSTAGE_DRAW_TITLE,
@@ -4240,6 +4241,12 @@ const navigateToIntermissionGate = (): void => {
 };
 
 const handleIntermissionGatePass = (router: Router): void => {
+  const state = gameStore.getState();
+  if (canPerformBackstageAction(state)) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_PENDING_MESSAGE);
+    return;
+  }
+
   gameStore.setState((current) => {
     const timestamp = Date.now();
     const currentTurn = current.turn ?? { count: 0, startedAt: timestamp };
