@@ -1,5 +1,7 @@
 import {
   CARD_COMPOSITION,
+  BackstageItemState,
+  BackstageItemStatus,
   CardSnapshot,
   GameState,
   PlayerId,
@@ -17,6 +19,7 @@ import type { ModalController } from './modal.js';
 export type BoardCheckTabKey =
   | 'overview'
   | 'set'
+  | 'backstage'
   | 'stage'
   | 'score'
   | 'luminaStage'
@@ -46,6 +49,12 @@ const SET_BONUS_LABEL: Record<SetRevealBonus, string> = {
   secretPair: 'シークレットペア',
 };
 
+const BACKSTAGE_STATUS_LABEL: Record<BackstageItemStatus, string> = {
+  backstage: 'バックステージ',
+  stage: 'ステージ',
+  hand: '手札',
+};
+
 const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: 'overview',
@@ -56,6 +65,11 @@ const TAB_DEFINITIONS: TabDefinition[] = [
     key: 'set',
     label: 'セット',
     render: (state) => renderSetTab(state),
+  },
+  {
+    key: 'backstage',
+    label: 'バックステージ',
+    render: (state) => renderBackstageTab(state),
   },
   {
     key: 'stage',
@@ -281,6 +295,143 @@ const renderSetTab = (state: GameState): HTMLElement => {
       item.append(card.el);
       list.append(item);
     }
+    hiddenSection.append(list);
+  }
+  container.append(hiddenSection);
+
+  return container;
+};
+
+const getPlayerName = (state: GameState, playerId: PlayerId | null | undefined): string | null => {
+  if (!playerId) {
+    return null;
+  }
+  const player = state.players[playerId];
+  if (!player) {
+    return playerId;
+  }
+  const trimmed = player.name?.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  return player.name || playerId;
+};
+
+const formatBackstageLocation = (state: GameState, item: BackstageItemState): string => {
+  const baseLabel = BACKSTAGE_STATUS_LABEL[item.status] ?? '不明';
+  if (item.status === 'backstage') {
+    return baseLabel;
+  }
+  const holderName = getPlayerName(state, item.holder);
+  if (!holderName) {
+    return baseLabel;
+  }
+  if (item.status === 'stage') {
+    return `${holderName}のステージ`;
+  }
+  if (item.status === 'hand') {
+    return `${holderName}の手札`;
+  }
+  return baseLabel;
+};
+
+const renderBackstageTab = (state: GameState): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'board-check__content';
+
+  const items = state.backstage?.items ?? [];
+  const publicItems = items.filter((item) => item.isPublic);
+  const hiddenItems = items.filter((item) => !item.isPublic);
+
+  const summarySection = createSection('アイテム数');
+  summarySection.append(
+    createDefinitionList(
+      [
+        { term: '全アイテム', description: `${items.length}枚` },
+        { term: '公開済み', description: `${publicItems.length}枚` },
+        { term: '秘匿', description: `${hiddenItems.length}枚` },
+      ],
+      'board-check__stats',
+    ),
+  );
+  container.append(summarySection);
+
+  const publicSection = createSection('公開済みアイテム');
+  if (publicItems.length === 0) {
+    publicSection.append(createEmptyMessage('公開されたアイテムはありません。'));
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'board-check__card-list';
+    publicItems
+      .slice()
+      .sort((a, b) => {
+        const timeDiff = (a.revealedAt ?? Number.MAX_SAFE_INTEGER) - (b.revealedAt ?? Number.MAX_SAFE_INTEGER);
+        if (timeDiff !== 0) {
+          return timeDiff;
+        }
+        return a.position - b.position;
+      })
+      .forEach((item) => {
+        const listItem = document.createElement('li');
+        listItem.className = 'board-check__card-item';
+
+        const cardComponent = new CardComponent({
+          rank: item.card.rank,
+          suit: item.card.suit,
+          faceDown: !item.isPublic || item.card.face !== 'up',
+          annotation: item.card.annotation,
+        });
+        const cardLabel = formatCardLabel(item.card);
+        cardComponent.el.setAttribute('aria-label', cardLabel);
+
+        const details: { term: string; description: string }[] = [
+          { term: 'カード', description: cardLabel },
+          { term: '現在の状態', description: formatBackstageLocation(state, item) },
+        ];
+
+        const revealedByName = getPlayerName(state, item.revealedBy);
+        if (revealedByName) {
+          details.push({ term: '公開者', description: revealedByName });
+        }
+
+        listItem.append(cardComponent.el, createDefinitionList(details, 'board-check__card-details'));
+        list.append(listItem);
+      });
+    publicSection.append(list);
+  }
+  container.append(publicSection);
+
+  const hiddenSection = createSection('秘匿アイテム');
+  if (hiddenItems.length === 0) {
+    hiddenSection.append(createEmptyMessage('秘匿されているアイテムはありません。'));
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'board-check__card-list board-check__card-list--grid';
+
+    hiddenItems
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .forEach((item) => {
+        const listItem = document.createElement('li');
+        listItem.className = 'board-check__card-grid-item';
+
+        const card = new CardComponent({
+          rank: '?',
+          suit: 'spades',
+          faceDown: true,
+        });
+
+        const location = formatBackstageLocation(state, item);
+        card.el.setAttribute('aria-label', `伏せ札（${location}）`);
+
+        const label = document.createElement('span');
+        label.className = 'board-check__card-label';
+        label.textContent = location;
+
+        listItem.append(card.el, label);
+        list.append(listItem);
+      });
+
     hiddenSection.append(list);
   }
   container.append(hiddenSection);

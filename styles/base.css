@@ -1908,7 +1908,16 @@ p {
 
 .board-check__card-grid-item {
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.board-check__card-label {
+  font-size: 0.85rem;
+  color: var(--color-muted);
 }
 
 .board-check__card-details {
