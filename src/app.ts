@@ -111,6 +111,7 @@ declare global {
 
 const {
   DEFAULT_GATE_CONFIRM_LABEL,
+  DEFAULT_CLOSE_LABEL,
   HANDOFF_GATE_HINTS,
   HANDOFF_GATE_MODAL_NOTES,
   INTERMISSION_GATE_TITLE,
@@ -269,11 +270,19 @@ const {
   CURTAINCALL_SUMMARY_PREPARING_SUBTITLE,
   SCOUT_PICK_RESULT_TITLE,
   SCOUT_PICK_RESULT_OK_LABEL,
+  SCOUT_PICK_RESULT_DRAWN_MESSAGE,
+  SCOUT_PICK_RESULT_PREVIEW_CAPTION,
+  SCOUT_PICK_RESULT_ACTION_NOTICE,
   HOME_SETTINGS_TITLE,
   HOME_SETTINGS_MESSAGE,
+  HELP_POPUP_BLOCKED_TOAST_MESSAGE,
+  HELP_POPUP_BLOCKED_CONSOLE_MESSAGE,
   HISTORY_DIALOG_TITLE,
   HISTORY_DIALOG_DESCRIPTION,
   HISTORY_EMPTY_MESSAGE,
+  HISTORY_UNKNOWN_TIMESTAMP,
+  HISTORY_COPY_BUTTON_LABEL,
+  HISTORY_DELETE_BUTTON_LABEL,
   HISTORY_COPY_SUCCESS,
   HISTORY_COPY_FAILURE,
   HISTORY_DELETE_SUCCESS,
@@ -1089,7 +1098,7 @@ const openSettingsDialog = (): void => {
     body: HOME_SETTINGS_MESSAGE,
     actions: [
       {
-        label: '閉じる',
+        label: DEFAULT_CLOSE_LABEL,
         variant: 'primary',
         preventRapid: true,
       },
@@ -1109,11 +1118,11 @@ const openRulebookHelp = (): void => {
     const toast = window.curtainCall?.toast;
     if (toast) {
       toast.show({
-        message: 'ヘルプを開けませんでした。ブラウザのポップアップ設定をご確認ください。',
+        message: HELP_POPUP_BLOCKED_TOAST_MESSAGE,
         variant: 'warning',
       });
     } else {
-      console.warn('ヘルプ画面を開けませんでした。ポップアップブロックを解除してください。');
+      console.warn(HELP_POPUP_BLOCKED_CONSOLE_MESSAGE);
     }
   }
 };
@@ -1247,7 +1256,7 @@ const openMyHandDialog = (): void => {
     body: container,
     actions: [
       {
-        label: '閉じる',
+        label: DEFAULT_CLOSE_LABEL,
         variant: 'ghost',
         preventRapid: false,
       },
@@ -1349,7 +1358,7 @@ const openHistoryDialog = (): void => {
         }
         timestamp.textContent = formatted;
       } else {
-        timestamp.textContent = '日時不明';
+        timestamp.textContent = HISTORY_UNKNOWN_TIMESTAMP;
       }
       header.append(timestamp);
 
@@ -1368,7 +1377,7 @@ const openHistoryDialog = (): void => {
       const copyButton = document.createElement('button');
       copyButton.type = 'button';
       copyButton.className = 'home-history__action';
-      copyButton.textContent = 'コピー';
+      copyButton.textContent = HISTORY_COPY_BUTTON_LABEL;
       copyButton.addEventListener('click', async () => {
         const text = [entry.summary, entry.detail].filter(Boolean).join('\n\n');
         const success = await copyToClipboard(text);
@@ -1382,7 +1391,7 @@ const openHistoryDialog = (): void => {
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.className = 'home-history__action home-history__action--danger';
-      deleteButton.textContent = '削除';
+      deleteButton.textContent = HISTORY_DELETE_BUTTON_LABEL;
       deleteButton.addEventListener('click', () => {
         const removed = deleteResult(entry.id);
         if (!removed) {
@@ -1414,7 +1423,7 @@ const openHistoryDialog = (): void => {
     body: container,
     actions: [
       {
-        label: '閉じる',
+        label: DEFAULT_CLOSE_LABEL,
         variant: 'primary',
         preventRapid: true,
       },
@@ -1464,7 +1473,8 @@ const createScoutPickResultContent = (
 
   const message = document.createElement('p');
   message.className = 'scout-complete__message';
-  message.textContent = `${formatCardLabel(card)}を引きました！`;
+  const cardLabel = formatCardLabel(card);
+  message.textContent = SCOUT_PICK_RESULT_DRAWN_MESSAGE(cardLabel);
   container.append(message);
 
   const preview = document.createElement('div');
@@ -1481,14 +1491,14 @@ const createScoutPickResultContent = (
 
   const previewCaption = document.createElement('p');
   previewCaption.className = 'scout-complete__caption';
-  previewCaption.textContent = '引いたカードは以下の通りです。';
+  previewCaption.textContent = SCOUT_PICK_RESULT_PREVIEW_CAPTION;
   preview.append(previewCaption);
 
   container.append(preview);
 
   const actionNotice = document.createElement('p');
   actionNotice.className = 'scout-complete__caption';
-  actionNotice.textContent = `${playerName}は${opponentName}に画面が見えないことを確認し、「${SCOUT_PICK_RESULT_OK_LABEL}」を押してアクションフェーズへ進みましょう。`;
+  actionNotice.textContent = SCOUT_PICK_RESULT_ACTION_NOTICE(playerName, opponentName);
   container.append(actionNotice);
 
   return container;
@@ -2148,7 +2158,7 @@ const openIntermissionSummaryDialog = (): void => {
     body,
     actions: [
       {
-        label: '閉じる',
+        label: DEFAULT_CLOSE_LABEL,
         variant: 'ghost',
       },
     ],
