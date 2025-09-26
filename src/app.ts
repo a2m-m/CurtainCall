@@ -2003,7 +2003,7 @@ const canPerformBackstageAction = (state: GameState): boolean => {
   }
 
   const reveal = getLatestSpotlightSetReveal(state);
-  if (!reveal || reveal.assignedTo) {
+  if (!reveal) {
     return false;
   }
 
