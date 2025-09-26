@@ -15,6 +15,57 @@ export interface AnimationState {
 export type AnimationChangeListener = (state: AnimationState) => void;
 
 const DATA_ATTRIBUTE = 'data-cc-animations';
+const PREFERENCE_ATTRIBUTE = 'data-cc-animations-preference';
+const STORAGE_KEY = 'cc:settings:animations';
+
+const isAnimationPreference = (value: unknown): value is AnimationPreference =>
+  value === 'auto' || value === 'on' || value === 'off';
+
+const readStoredPreference = (): AnimationPreference | null => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (isAnimationPreference(stored)) {
+      return stored;
+    }
+  } catch (error) {
+    console.warn('アニメーション設定の読み込みに失敗しました。', error);
+  }
+  return null;
+};
+
+const persistPreference = (preference: AnimationPreference): void => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+  try {
+    if (preference === 'auto') {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(STORAGE_KEY, preference);
+    }
+  } catch (error) {
+    console.warn('アニメーション設定の保存に失敗しました。', error);
+  }
+};
+
+const createMediaQuery = (): MediaQueryList => {
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    return window.matchMedia('(prefers-reduced-motion: reduce)');
+  }
+  return {
+    matches: false,
+    media: '(prefers-reduced-motion: reduce)',
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    dispatchEvent: () => false,
+  } as MediaQueryList;
+};
 
 class AnimationManager {
   private preference: AnimationPreference = 'auto';
@@ -23,7 +74,11 @@ class AnimationManager {
   private enabled: boolean;
 
   constructor() {
-    this.mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const storedPreference = readStoredPreference();
+    if (storedPreference) {
+      this.preference = storedPreference;
+    }
+    this.mediaQuery = createMediaQuery();
     this.enabled = this.computeEnabled();
     this.applyPreference();
     if (typeof this.mediaQuery.addEventListener === 'function') {
@@ -44,10 +99,12 @@ class AnimationManager {
 
   setPreference(preference: AnimationPreference): void {
     if (this.preference === preference) {
+      persistPreference(this.preference);
       return;
     }
 
     this.preference = preference;
+    persistPreference(this.preference);
     const nextEnabled = this.computeEnabled();
     if (nextEnabled === this.enabled) {
       this.applyPreference();
@@ -94,6 +151,7 @@ class AnimationManager {
     const root = document.documentElement;
     const flag = this.enabled ? 'on' : 'off';
     root.setAttribute(DATA_ATTRIBUTE, flag);
+    root.setAttribute(PREFERENCE_ATTRIBUTE, this.preference);
   }
 
   private emit(): void {
