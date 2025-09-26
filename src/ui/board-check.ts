@@ -4,6 +4,7 @@ import {
   GameState,
   PlayerId,
   PLAYER_IDS,
+  REQUIRED_BOO_COUNT,
   SetRevealBonus,
   StageCardPlacement,
   StagePair,
@@ -96,9 +97,11 @@ const renderOverviewTab = (state: GameState): HTMLElement => {
   const booSection = createSection('規定ブーイング残数');
   const booItems = PLAYER_IDS.map((id) => {
     const player = state.players[id];
+    const usedBooCount = Math.max(0, player.booCount);
+    const remainingBooCount = Math.max(REQUIRED_BOO_COUNT - usedBooCount, 0);
     return {
       term: player.name,
-      description: `${player.booCount}回`,
+      description: `残り${remainingBooCount}回`,
     };
   });
   booSection.append(createDefinitionList(booItems, 'board-check__stats'));

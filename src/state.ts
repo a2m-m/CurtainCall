@@ -284,6 +284,8 @@ export const CARD_COMPOSITION = Object.freeze({
   perHand: 20,
 });
 
+export const REQUIRED_BOO_COUNT = 3;
+
 const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
   lumina: 'プレイヤーA',
   nox: 'プレイヤーB',
