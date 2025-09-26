@@ -152,6 +152,8 @@ export interface CurtainCallSummary {
   winner: PlayerId | 'draw';
   margin: number;
   players: Record<PlayerId, CurtainCallPlayerSummary>;
+  savedHistoryEntryId?: string | null;
+  savedAt?: number | null;
 }
 
 export type HistoryEntryType =

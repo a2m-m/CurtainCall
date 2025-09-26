@@ -203,6 +203,9 @@ const CURTAINCALL_SAVE_SUCCESS_MESSAGE = '結果を保存しました。';
 const CURTAINCALL_SAVE_FAILURE_MESSAGE = '結果の保存に失敗しました。';
 const CURTAINCALL_SAVE_REQUIRED_MESSAGE = 'タイトルを入力してください。';
 const CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE = '結果データの準備が完了していません。';
+const CURTAINCALL_SAVE_ALREADY_SAVED_MESSAGE = '結果はすでに保存済みです。';
+const CURTAINCALL_SAVE_DIALOG_OPEN_MESSAGE = '結果の保存ダイアログを表示中です。';
+const CURTAINCALL_SAVE_IN_PROGRESS_MESSAGE = '結果の保存処理が進行中です。';
 const CURTAINCALL_BREAKDOWN_KAMI_LABEL = 'カミ合計';
 const CURTAINCALL_BREAKDOWN_HAND_LABEL = '手札合計';
 const CURTAINCALL_BREAKDOWN_PENALTY_LABEL = 'ブーイングペナルティ';
@@ -599,6 +602,8 @@ const prepareCurtainCall = (reason: CurtainCallReason): void => {
       winner,
       margin,
       players: playerSummaries,
+      savedHistoryEntryId: null,
+      savedAt: null,
     };
 
     return {
@@ -3237,15 +3242,68 @@ const handleCurtainCallStartNewGame = (router: Router): void => {
   router.go(HOME_START_PATH);
 };
 
+const showCurtainCallGuardMessage = (message: string, variant: 'info' | 'warning' = 'info'): void => {
+  if (typeof window === 'undefined') {
+    if (variant === 'warning') {
+      console.warn(message);
+    } else {
+      console.info(message);
+    }
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant });
+    return;
+  }
+
+  if (variant === 'warning') {
+    console.warn(message);
+  } else {
+    console.info(message);
+  }
+};
+
+const markCurtainCallSaved = (entryId: string, savedAt: number): void => {
+  gameStore.setState((current) => {
+    const summary = current.curtainCall;
+    if (!summary) {
+      return current;
+    }
+
+    if (summary.savedHistoryEntryId === entryId && summary.savedAt === savedAt) {
+      return current;
+    }
+
+    const timestamp = Number.isFinite(savedAt) ? savedAt : Date.now();
+
+    return {
+      ...current,
+      curtainCall: {
+        ...summary,
+        savedHistoryEntryId: entryId,
+        savedAt: timestamp,
+      },
+      revision: current.revision + 1,
+      updatedAt: timestamp,
+    };
+  });
+
+  const latest = gameStore.getState();
+  saveLatestGame(latest);
+};
+
 const handleCurtainCallSaveRequest = (): void => {
   if (typeof window === 'undefined') {
     return;
   }
 
   const state = gameStore.getState();
+  const toast = window.curtainCall?.toast;
+
   if (!state.curtainCall) {
     const message = CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE;
-    const toast = window.curtainCall?.toast;
     if (toast) {
       toast.show({ message, variant: 'warning' });
     } else {
@@ -3254,8 +3312,12 @@ const handleCurtainCallSaveRequest = (): void => {
     return;
   }
 
+  if (state.curtainCall.savedHistoryEntryId) {
+    showCurtainCallGuardMessage(CURTAINCALL_SAVE_ALREADY_SAVED_MESSAGE, 'info');
+    return;
+  }
+
   const modal = window.curtainCall?.modal;
-  const toast = window.curtainCall?.toast;
 
   if (!modal) {
     if (toast) {
@@ -3263,6 +3325,11 @@ const handleCurtainCallSaveRequest = (): void => {
     } else {
       console.warn('結果の保存ダイアログを表示できませんでした。');
     }
+    return;
+  }
+
+  if (isCurtainCallSaveDialogOpen) {
+    showCurtainCallGuardMessage(CURTAINCALL_SAVE_DIALOG_OPEN_MESSAGE, 'info');
     return;
   }
 
@@ -3320,14 +3387,29 @@ const handleCurtainCallSaveRequest = (): void => {
   form.append(titleField, memoField);
 
   const submit = () => {
+    if (isCurtainCallSaveInProgress) {
+      showCurtainCallGuardMessage(CURTAINCALL_SAVE_IN_PROGRESS_MESSAGE, 'warning');
+      return;
+    }
+
     const latestState = gameStore.getState();
-    if (!latestState.curtainCall) {
+    const latestSummary = latestState.curtainCall;
+    if (!latestSummary) {
       const message = CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE;
       if (toast) {
         toast.show({ message, variant: 'warning' });
       } else {
         console.warn(message);
       }
+      isCurtainCallSaveDialogOpen = false;
+      modal.close();
+      return;
+    }
+
+    if (latestSummary.savedHistoryEntryId) {
+      showCurtainCallGuardMessage(CURTAINCALL_SAVE_ALREADY_SAVED_MESSAGE, 'info');
+      isCurtainCallSaveDialogOpen = false;
+      modal.close();
       return;
     }
 
@@ -3341,36 +3423,45 @@ const handleCurtainCallSaveRequest = (): void => {
 
     const memo = memoInput.value.trim();
     const savedAt = Date.now();
-    const payload = createCurtainCallHistoryPayload(
-      latestState,
-      title,
-      memo.length > 0 ? memo : null,
-      savedAt,
-    );
-    if (!payload) {
-      if (toast) {
-        toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
-      } else {
-        console.warn(CURTAINCALL_SAVE_FAILURE_MESSAGE);
-      }
-      return;
-    }
 
-    const entry = addResultHistoryEntry(payload.summary, payload.detail, savedAt);
-    if (!entry) {
-      if (toast) {
-        toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
-      } else {
-        console.warn(CURTAINCALL_SAVE_FAILURE_MESSAGE);
-      }
-      return;
-    }
+    isCurtainCallSaveInProgress = true;
 
-    modal.close();
-    if (toast) {
-      toast.show({ message: CURTAINCALL_SAVE_SUCCESS_MESSAGE, variant: 'success' });
-    } else {
-      console.info(CURTAINCALL_SAVE_SUCCESS_MESSAGE);
+    try {
+      const payload = createCurtainCallHistoryPayload(
+        latestState,
+        title,
+        memo.length > 0 ? memo : null,
+        savedAt,
+      );
+      if (!payload) {
+        if (toast) {
+          toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
+        } else {
+          console.warn(CURTAINCALL_SAVE_FAILURE_MESSAGE);
+        }
+        return;
+      }
+
+      const entry = addResultHistoryEntry(payload.summary, payload.detail, savedAt);
+      if (!entry) {
+        if (toast) {
+          toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
+        } else {
+          console.warn(CURTAINCALL_SAVE_FAILURE_MESSAGE);
+        }
+        return;
+      }
+
+      markCurtainCallSaved(entry.id, savedAt);
+      isCurtainCallSaveDialogOpen = false;
+      modal.close();
+      if (toast) {
+        toast.show({ message: CURTAINCALL_SAVE_SUCCESS_MESSAGE, variant: 'success' });
+      } else {
+        console.info(CURTAINCALL_SAVE_SUCCESS_MESSAGE);
+      }
+    } finally {
+      isCurtainCallSaveInProgress = false;
     }
   };
 
@@ -3385,12 +3476,22 @@ const handleCurtainCallSaveRequest = (): void => {
     }
   });
 
+  isCurtainCallSaveDialogOpen = true;
+  isCurtainCallSaveInProgress = false;
+
   modal.open({
     title: CURTAINCALL_SAVE_DIALOG_TITLE,
     body: form,
     dismissible: false,
     actions: [
-      { label: CURTAINCALL_SAVE_CANCEL_LABEL, variant: 'ghost' },
+      {
+        label: CURTAINCALL_SAVE_CANCEL_LABEL,
+        variant: 'ghost',
+        onSelect: () => {
+          isCurtainCallSaveDialogOpen = false;
+          isCurtainCallSaveInProgress = false;
+        },
+      },
       {
         label: CURTAINCALL_SAVE_SUBMIT_LABEL,
         variant: 'primary',
@@ -3638,6 +3739,8 @@ let isSpotlightRevealInProgress = false;
 let isSpotlightSetOpenInProgress = false;
 let isSpotlightJokerBonusInProgress = false;
 let isSpotlightExitInProgress = false;
+let isCurtainCallSaveDialogOpen = false;
+let isCurtainCallSaveInProgress = false;
 
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
@@ -4505,6 +4608,8 @@ const cleanupActiveCurtainCallView = (): void => {
     activeCurtainCallCleanup = null;
     cleanup();
   }
+  isCurtainCallSaveDialogOpen = false;
+  isCurtainCallSaveInProgress = false;
 };
 
 const withRouteCleanup = (
@@ -5149,6 +5254,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             homeLabel: CURTAINCALL_HOME_BUTTON_LABEL,
             newGameLabel: CURTAINCALL_NEW_GAME_BUTTON_LABEL,
             saveLabel: CURTAINCALL_SAVE_BUTTON_LABEL,
+            saveDisabled: Boolean(state.curtainCall?.savedHistoryEntryId),
             onOpenBoardCheck: () => showBoardCheck(),
             onGoHome: () => handleCurtainCallGoHome(contextRouter),
             onStartNewGame: () => handleCurtainCallStartNewGame(contextRouter),
@@ -5161,6 +5267,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             }
             view.updateResult(mapCurtainCallResult(nextState));
             view.updatePlayers(mapCurtainCallPlayers(nextState));
+            view.setSaveDisabled(Boolean(nextState.curtainCall?.savedHistoryEntryId));
           });
 
           activeCurtainCallCleanup = () => {
