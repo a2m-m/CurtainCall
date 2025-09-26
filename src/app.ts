@@ -10,7 +10,13 @@ import {
   ResultHistoryEntry,
   saveLatestGame,
 } from './storage.js';
-import { createInitialState, createInitialWatchState, gameStore, PLAYER_IDS } from './state.js';
+import {
+  createInitialState,
+  createInitialWatchState,
+  gameStore,
+  PLAYER_IDS,
+  REQUIRED_BOO_COUNT,
+} from './state.js';
 import type {
   CurtainCallReason,
   CardSnapshot,
@@ -173,7 +179,6 @@ const WATCH_CLAP_BUTTON_LABEL = 'クラップ（同数）';
 const WATCH_BOO_BUTTON_LABEL = 'ブーイング（異なる）';
 const WATCH_ACTOR_LABEL = '役者（表）';
 const WATCH_KUROKO_LABEL = '黒子（裏）';
-const WATCH_REQUIRED_BOO_COUNT = 3;
 const WATCH_REMAINING_PLACEHOLDER = '—';
 const WATCH_WARNING_BADGE_LABEL = 'ブーイング不足注意';
 const WATCH_CLAP_WARNING_MESSAGE = '残り機会的にブーイングが必要です';
@@ -441,7 +446,7 @@ const createCurtainCallPlayerSummary = (
   const handCards = collectCurtainCallHandCards(player);
   const sumKami = sumCardValues(kamiCards);
   const sumHand = sumCardValues(handCards);
-  const missingBooCount = Math.max(0, WATCH_REQUIRED_BOO_COUNT - (player.booCount ?? 0));
+  const missingBooCount = Math.max(0, REQUIRED_BOO_COUNT - (player.booCount ?? 0));
   const penalty = reason === 'setRemaining1' ? missingBooCount * CURTAINCALL_BOO_PENALTY : 0;
   const final = sumKami - sumHand - penalty;
 
@@ -520,7 +525,7 @@ const mapCurtainCallPlayerSummary = (
     },
     booProgress: {
       label: CURTAINCALL_BOO_PROGRESS_LABEL,
-      value: `${Math.min(booCount, WATCH_REQUIRED_BOO_COUNT)}/${WATCH_REQUIRED_BOO_COUNT}`,
+      value: `${Math.min(booCount, REQUIRED_BOO_COUNT)}/${REQUIRED_BOO_COUNT}`,
     },
     kami: {
       label: CURTAINCALL_KAMI_SECTION_LABEL,
@@ -639,7 +644,7 @@ const formatCurtainCallPenaltyDetail = (
   if (penalty <= 0) {
     return `${formatInteger(0)}（条件達成）`;
   }
-  const missing = Math.max(0, WATCH_REQUIRED_BOO_COUNT - Math.max(booCount, 0));
+  const missing = Math.max(0, REQUIRED_BOO_COUNT - Math.max(booCount, 0));
   if (missing <= 0) {
     return formatInteger(penalty);
   }
@@ -777,7 +782,7 @@ const createCurtainCallHistoryPayload = (
   const booSummary = PLAYER_IDS.map((playerId) => {
     const name = getPlayerDisplayName(state, playerId);
     const booCount = Math.max(0, curtainCall.booCount[playerId] ?? 0);
-    return `${name} ${Math.min(booCount, WATCH_REQUIRED_BOO_COUNT)}/${WATCH_REQUIRED_BOO_COUNT}`;
+    return `${name} ${Math.min(booCount, REQUIRED_BOO_COUNT)}/${REQUIRED_BOO_COUNT}`;
   }).join(' ／ ');
   lines.push(`ブーイング達成: ${booSummary}`);
   lines.push('');
@@ -798,7 +803,7 @@ const createCurtainCallHistoryPayload = (
       `ペナルティ: ${formatCurtainCallPenaltyDetail(playerSummary.penalty, curtainCall.reason, booCount)}`,
     );
     lines.push(`最終ポイント: ${formatSignedInteger(playerSummary.final)}`);
-    lines.push(`ブーイング達成: ${Math.min(booCount, WATCH_REQUIRED_BOO_COUNT)}/${WATCH_REQUIRED_BOO_COUNT}`);
+    lines.push(`ブーイング達成: ${Math.min(booCount, REQUIRED_BOO_COUNT)}/${REQUIRED_BOO_COUNT}`);
 
     if (index < PLAYER_IDS.length - 1) {
       lines.push('');
@@ -3165,11 +3170,11 @@ const mapWatchStatus = (state: GameState): WatchStatusViewModel => {
   const player = state.players[state.activePlayer];
   const booCount = player?.booCount ?? 0;
   const remaining = getRemainingWatchCount(state);
-  const needed = Math.max(0, WATCH_REQUIRED_BOO_COUNT - booCount);
+  const needed = Math.max(0, REQUIRED_BOO_COUNT - booCount);
   const warning = remaining !== null && needed >= remaining;
 
   const turnLabel = `ターン：#${state.turn.count}`;
-  const booLabel = `あなたのブーイング：${booCount} / ${WATCH_REQUIRED_BOO_COUNT}`;
+  const booLabel = `あなたのブーイング：${booCount} / ${REQUIRED_BOO_COUNT}`;
   const remainingLabelValue = remaining !== null ? String(remaining) : WATCH_REMAINING_PLACEHOLDER;
   const remainingLabel = `残りウォッチ機会：${remainingLabelValue}`;
 
