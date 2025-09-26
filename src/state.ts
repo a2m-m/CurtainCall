@@ -50,7 +50,7 @@ export interface CardSnapshot extends CardDefinition {
   annotation?: string;
 }
 
-export type StageCardOrigin = 'hand' | 'set' | 'jokerBonus';
+export type StageCardOrigin = 'hand' | 'set' | 'jokerBonus' | 'backstage';
 
 export interface StageCardPlacement {
   card: CardSnapshot;
