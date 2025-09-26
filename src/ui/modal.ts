@@ -1,5 +1,6 @@
 import { UIButton, ButtonVariant } from './button.js';
 import { UIComponent } from './component.js';
+import { animationManager } from './animation.js';
 
 export interface ModalAction {
   label: string;
@@ -120,18 +121,29 @@ export class ModalController {
   private dismissible = true;
   private overlayHandler?: (event: MouseEvent) => void;
   private keydownHandler?: (event: KeyboardEvent) => void;
+  private closeAnimationCleanup?: () => void;
 
   constructor(host: HTMLElement) {
     this.host = host;
   }
 
   open(options: ModalOptions): void {
+    // 閉じアニメーションの途中で再び開いた場合に備え、進行中の処理を打ち切る。
+    if (this.closeAnimationCleanup) {
+      this.closeAnimationCleanup();
+      this.closeAnimationCleanup = undefined;
+    }
+    if (this.isActive) {
+      this.completeClose();
+    }
+
     this.dismissible = options.dismissible ?? true;
     this.modalView.setClassName(options.className);
     this.modalView.setTitle(options.title);
     this.modalView.setBody(options.body);
     this.modalView.setActions(options.actions, () => this.close());
 
+    this.host.classList.remove('is-closing');
     this.host.classList.add('is-active');
     this.host.replaceChildren(this.modalView.el);
     this.isActive = true;
@@ -145,6 +157,50 @@ export class ModalController {
     if (!this.isActive) {
       return;
     }
+    if (this.host.classList.contains('is-closing')) {
+      return;
+    }
+
+    // 閉じアニメーション開始前にハンドラを解除し、二重登録を防ぐ。
+    this.closeAnimationCleanup?.();
+    this.closeAnimationCleanup = undefined;
+    this.detachDismissEvents();
+
+    if (animationManager.isEnabled()) {
+      this.host.classList.add('is-closing');
+      const finalize = () => {
+        this.host.removeEventListener('animationend', finalize);
+        this.host.removeEventListener('animationcancel', finalize);
+        this.closeAnimationCleanup = undefined;
+        this.completeClose();
+      };
+      this.host.addEventListener('animationend', finalize);
+      this.host.addEventListener('animationcancel', finalize);
+      this.closeAnimationCleanup = () => {
+        this.host.removeEventListener('animationend', finalize);
+        this.host.removeEventListener('animationcancel', finalize);
+        this.host.classList.remove('is-closing');
+        this.closeAnimationCleanup = undefined;
+      };
+      return;
+    }
+
+    this.completeClose();
+  }
+
+  get opened(): boolean {
+    return this.isActive;
+  }
+
+  private completeClose(): void {
+    // アニメーションの有無に関わらず最終的な片付けを行う共通処理。
+    this.detachDismissEvents();
+    this.host.classList.remove('is-active', 'is-closing');
+    this.host.replaceChildren();
+    this.isActive = false;
+  }
+
+  private detachDismissEvents(): void {
     if (this.overlayHandler) {
       this.host.removeEventListener('click', this.overlayHandler);
       this.overlayHandler = undefined;
@@ -153,13 +209,6 @@ export class ModalController {
       window.removeEventListener('keydown', this.keydownHandler);
       this.keydownHandler = undefined;
     }
-    this.host.classList.remove('is-active');
-    this.host.replaceChildren();
-    this.isActive = false;
-  }
-
-  get opened(): boolean {
-    return this.isActive;
   }
 
   private attachDismissEvents(): void {

@@ -16,6 +16,94 @@
   --panel-padding: clamp(2rem, 7vh, 3rem);
   --button-padding-y: 0.75rem;
   --button-padding-x: 1.25rem;
+
+  --motion-duration-short: 180ms;
+  --motion-duration-medium: 260ms;
+  --motion-duration-long: 380ms;
+  --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --motion-ease-in-out: cubic-bezier(0.83, 0, 0.17, 1);
+  --motion-translate-distance: 1.5rem;
+}
+
+@keyframes view-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-translate-distance));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-overlay-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-content-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
 }
 
 @supports (height: 100dvh) {
@@ -106,6 +194,7 @@ p {
 .view {
   min-height: var(--viewport-height);
   padding: var(--view-padding-block) var(--view-padding-inline);
+  animation: view-fade-in var(--motion-duration-medium) var(--motion-ease-out) both;
 }
 
 .home-view {
@@ -1364,17 +1453,31 @@ p {
 .modal-root {
   position: fixed;
   inset: 0;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(6px);
   z-index: 40;
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
 }
 
 .modal-root.is-active {
-  display: flex;
+  visibility: visible;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.modal-root.is-active:not(.is-closing) {
+  animation: modal-overlay-in var(--motion-duration-short) var(--motion-ease-out) both;
+}
+
+.modal-root.is-active.is-closing {
+  pointer-events: none;
+  animation: modal-overlay-out var(--motion-duration-short) var(--motion-ease-in) both;
 }
 
 .modal {
@@ -1383,6 +1486,12 @@ p {
   border-radius: 20px;
   padding: 1.75rem;
   box-shadow: var(--shadow-lg);
+  animation: modal-content-in var(--motion-duration-medium) var(--motion-ease-out) both;
+  transform-origin: center top;
+}
+
+.modal-root.is-active.is-closing .modal {
+  animation: modal-content-out var(--motion-duration-short) var(--motion-ease-in) both;
 }
 
 .modal--board-check {
@@ -1480,6 +1589,11 @@ p {
   box-shadow: var(--shadow-lg);
   color: var(--color-text);
   pointer-events: auto;
+  animation: toast-enter var(--motion-duration-medium) var(--motion-ease-out) both;
+}
+
+.toast.is-leaving {
+  animation: toast-exit var(--motion-duration-short) var(--motion-ease-in) both;
 }
 
 .toast--info {
@@ -1587,6 +1701,32 @@ p {
   margin-top: 25vh;
   text-align: center;
   color: var(--color-muted);
+}
+
+:root[data-cc-animations='off'] .view,
+:root[data-cc-animations='off'] .modal-root,
+:root[data-cc-animations='off'] .modal,
+:root[data-cc-animations='off'] .modal-root.is-active.is-closing .modal,
+:root[data-cc-animations='off'] .toast,
+:root[data-cc-animations='off'] .toast.is-leaving {
+  animation: none !important;
+}
+
+:root[data-cc-animations='off'] .button.is-busy::after {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view,
+  .modal-root,
+  .modal,
+  .toast {
+    animation: none !important;
+  }
+
+  .button.is-busy::after {
+    animation: none !important;
+  }
 }
 
 .intermission-summary {
