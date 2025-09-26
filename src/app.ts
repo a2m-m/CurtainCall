@@ -3,6 +3,7 @@ import type { RouteContext } from './router.js';
 import { createSeededRandom, dealInitialSetup, sortCardsByDescendingValue } from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
+  addResultHistoryEntry,
   deleteResultHistoryEntry,
   getLatestSaveMetadata,
   getResultHistory,
@@ -191,6 +192,17 @@ const CURTAINCALL_BOARD_CHECK_LABEL = 'ボードチェック';
 const CURTAINCALL_HOME_BUTTON_LABEL = 'HOME';
 const CURTAINCALL_NEW_GAME_BUTTON_LABEL = '新しいゲーム';
 const CURTAINCALL_SAVE_BUTTON_LABEL = '結果の保存';
+const CURTAINCALL_SAVE_DIALOG_TITLE = '結果の保存';
+const CURTAINCALL_SAVE_TITLE_LABEL = 'タイトル';
+const CURTAINCALL_SAVE_TITLE_PLACEHOLDER = '例：2025/09/24_第12局';
+const CURTAINCALL_SAVE_MEMO_LABEL = 'メモ（任意）';
+const CURTAINCALL_SAVE_MEMO_PLACEHOLDER = '振り返りや共有メモを入力できます。';
+const CURTAINCALL_SAVE_SUBMIT_LABEL = '保存';
+const CURTAINCALL_SAVE_CANCEL_LABEL = 'キャンセル';
+const CURTAINCALL_SAVE_SUCCESS_MESSAGE = '結果を保存しました。';
+const CURTAINCALL_SAVE_FAILURE_MESSAGE = '結果の保存に失敗しました。';
+const CURTAINCALL_SAVE_REQUIRED_MESSAGE = 'タイトルを入力してください。';
+const CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE = '結果データの準備が完了していません。';
 const CURTAINCALL_BREAKDOWN_KAMI_LABEL = 'カミ合計';
 const CURTAINCALL_BREAKDOWN_HAND_LABEL = '手札合計';
 const CURTAINCALL_BREAKDOWN_PENALTY_LABEL = 'ブーイングペナルティ';
@@ -204,7 +216,6 @@ const CURTAINCALL_REASON_DESCRIPTIONS: Record<CurtainCallReason, string> = {
   jokerBonus: '終了条件：JOKERボーナス',
   setRemaining1: '終了条件：山札残り1枚',
 };
-const CURTAINCALL_SAVE_PLACEHOLDER_MESSAGE = '結果の保存機能は現在準備中です。';
 const CURTAINCALL_SUMMARY_PREPARING_SUBTITLE = '結果データを準備しています…';
 const WATCH_DECISION_CONFIRM_TITLES = Object.freeze({
   clap: 'クラップの宣言',
@@ -598,6 +609,244 @@ const prepareCurtainCall = (reason: CurtainCallReason): void => {
       updatedAt: timestamp,
     };
   });
+};
+
+interface CurtainCallHistoryPayload {
+  summary: string;
+  detail: string;
+}
+
+const formatCurtainCallCardList = (cards: readonly CardSnapshot[] | undefined): string => {
+  if (!cards || cards.length === 0) {
+    return 'なし';
+  }
+  return cards.map((card) => formatCardLabel(card)).join('、');
+};
+
+const formatCurtainCallPenaltyDetail = (
+  penalty: number,
+  reason: CurtainCallReason,
+  booCount: number,
+): string => {
+  if (reason !== 'setRemaining1') {
+    return formatInteger(penalty);
+  }
+  if (penalty <= 0) {
+    return `${formatInteger(0)}（条件達成）`;
+  }
+  const missing = Math.max(0, WATCH_REQUIRED_BOO_COUNT - Math.max(booCount, 0));
+  if (missing <= 0) {
+    return formatInteger(penalty);
+  }
+  return `${formatInteger(penalty)}（ブーイング不足 ${missing} 回 × ${CURTAINCALL_BOO_PENALTY}）`;
+};
+
+const createCurtainCallStageSnapshotLines = (state: GameState): string[] => {
+  const lines: string[] = [];
+  const entries = PLAYER_IDS.map((playerId) => {
+    const player = state.players[playerId];
+    const playerName = getPlayerDisplayName(state, playerId);
+    const stagePairs = player?.stage?.pairs ?? [];
+    const visible: string[] = [];
+
+    stagePairs.forEach((pair, index) => {
+      const actorCard = pair.actor?.card;
+      const actorLabel =
+        actorCard && actorCard.face !== 'down' ? formatCardLabel(actorCard) : null;
+      const kurokoCard = pair.kuroko?.card;
+      const kurokoLabel =
+        kurokoCard && kurokoCard.face === 'up' ? formatCardLabel(kurokoCard) : null;
+      const details: string[] = [];
+      if (actorLabel) {
+        details.push(`役者：${actorLabel}`);
+      }
+      if (kurokoLabel) {
+        details.push(`黒子：${kurokoLabel}`);
+      }
+      if (pair.judge) {
+        details.push(`判定：${pair.judge === 'match' ? '一致' : '不一致'}`);
+      }
+      if (details.length > 0) {
+        const prefix = `#${String(index + 1).padStart(2, '0')}`;
+        visible.push(`${prefix} ${details.join(' ｜ ')}`);
+      }
+    });
+
+    if (visible.length === 0) {
+      return { hasVisible: false, line: `  ${playerName}：公開情報なし` };
+    }
+
+    return { hasVisible: true, line: `  ${playerName}：${visible.join(' ／ ')}` };
+  });
+
+  const hasVisible = entries.some((entry) => entry.hasVisible);
+  if (!hasVisible) {
+    return ['ステージ：公開情報なし'];
+  }
+
+  lines.push('ステージ：');
+  entries.forEach((entry) => {
+    lines.push(entry.line);
+  });
+
+  return lines;
+};
+
+const createCurtainCallSetSnapshotLines = (state: GameState): string[] => {
+  const opened = state.set?.opened ?? [];
+  const visible = opened
+    .filter((reveal) => reveal?.card?.face === 'up')
+    .slice()
+    .sort((a, b) => a.position - b.position);
+
+  if (visible.length === 0) {
+    return ['公開済みセット：なし'];
+  }
+
+  const lines: string[] = ['公開済みセット：'];
+
+  visible.forEach((reveal) => {
+    const card = reveal.card;
+    const label = formatCardLabel(card);
+    const indexLabel = `#${String(reveal.position + 1).padStart(2, '0')}`;
+    const meta: string[] = [];
+    const openedBy = getPlayerDisplayName(state, reveal.openedBy);
+    meta.push(`公開：${openedBy}`);
+    if (reveal.assignedTo) {
+      meta.push(`帰属：${getPlayerDisplayName(state, reveal.assignedTo)}`);
+    }
+    if (reveal.bonus) {
+      const bonusLabel =
+        reveal.bonus === 'joker'
+          ? 'ボーナス：JOKER'
+          : reveal.bonus === 'pair'
+            ? 'ボーナス：ペア'
+            : 'ボーナス：シークレットペア';
+      meta.push(bonusLabel);
+    }
+    const metaLabel = meta.length > 0 ? `（${meta.join('／')}）` : '';
+    lines.push(`  ${indexLabel}：${label}${metaLabel}`);
+  });
+
+  return lines;
+};
+
+const createCurtainCallHistoryPayload = (
+  state: GameState,
+  title: string,
+  memo: string | null,
+  savedAt: number,
+): CurtainCallHistoryPayload | null => {
+  const curtainCall = state.curtainCall;
+  if (!curtainCall) {
+    return null;
+  }
+
+  const resultView = mapCurtainCallResult(state);
+  const summaryText = [title, resultView.label].filter(Boolean).join(' ｜ ') || title;
+
+  const lines: string[] = [];
+  lines.push(`対局ID: ${state.matchId}`);
+  const createdAt = state.meta?.createdAt;
+  if (Number.isFinite(createdAt)) {
+    const formatted = formatTimestamp(createdAt as number);
+    if (formatted) {
+      lines.push(`対局開始: ${formatted}`);
+    }
+  }
+  const preparedAt = formatTimestamp(curtainCall.preparedAt);
+  if (preparedAt) {
+    lines.push(`結果確定: ${preparedAt}`);
+  }
+  const savedTimestamp = formatTimestamp(savedAt);
+  if (savedTimestamp) {
+    lines.push(`保存日時: ${savedTimestamp}`);
+  }
+  const reasonLabel = CURTAINCALL_REASON_DESCRIPTIONS[curtainCall.reason];
+  if (reasonLabel) {
+    lines.push(`終了理由: ${reasonLabel}`);
+  }
+  lines.push(`勝敗: ${resultView.label}`);
+  lines.push(`最終ポイント差: ${formatSignedInteger(curtainCall.margin)}`);
+
+  const booSummary = PLAYER_IDS.map((playerId) => {
+    const name = getPlayerDisplayName(state, playerId);
+    const booCount = Math.max(0, curtainCall.booCount[playerId] ?? 0);
+    return `${name} ${Math.min(booCount, WATCH_REQUIRED_BOO_COUNT)}/${WATCH_REQUIRED_BOO_COUNT}`;
+  }).join(' ／ ');
+  lines.push(`ブーイング達成: ${booSummary}`);
+  lines.push('');
+
+  PLAYER_IDS.forEach((playerId, index) => {
+    const name = getPlayerDisplayName(state, playerId);
+    const playerSummary = curtainCall.players[playerId] ?? createEmptyCurtainCallPlayerSummary();
+    const booCount = Math.max(0, curtainCall.booCount[playerId] ?? 0);
+
+    lines.push(`[${name}]`);
+    lines.push(
+      `カミ合計: ${formatInteger(playerSummary.sumKami)}（${formatCurtainCallCardList(playerSummary.kamiCards)}）`,
+    );
+    lines.push(
+      `手札合計: ${formatInteger(playerSummary.sumHand)}（${formatCurtainCallCardList(playerSummary.handCards)}）`,
+    );
+    lines.push(
+      `ペナルティ: ${formatCurtainCallPenaltyDetail(playerSummary.penalty, curtainCall.reason, booCount)}`,
+    );
+    lines.push(`最終ポイント: ${formatSignedInteger(playerSummary.final)}`);
+    lines.push(`ブーイング達成: ${Math.min(booCount, WATCH_REQUIRED_BOO_COUNT)}/${WATCH_REQUIRED_BOO_COUNT}`);
+
+    if (index < PLAYER_IDS.length - 1) {
+      lines.push('');
+    }
+  });
+
+  if (memo) {
+    lines.push('');
+    lines.push('[メモ]');
+    lines.push(memo);
+  }
+
+  const stageLines = createCurtainCallStageSnapshotLines(state);
+  const setLines = createCurtainCallSetSnapshotLines(state);
+  if (stageLines.length > 0 || setLines.length > 0) {
+    lines.push('');
+    lines.push('[最終盤面]');
+    stageLines.forEach((line) => lines.push(line));
+    setLines.forEach((line) => lines.push(line));
+  }
+
+  const detail = lines.join('\n').trimEnd();
+
+  return {
+    summary: summaryText,
+    detail,
+  };
+};
+
+const formatTimestampForDefaultTitle = (timestamp: number): string | null => {
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const pad = (value: number): string => value.toString().padStart(2, '0');
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}`;
+};
+
+const createCurtainCallDefaultTitle = (state: GameState): string => {
+  const curtainCall = state.curtainCall;
+  const timestamp =
+    formatTimestampForDefaultTitle(curtainCall?.preparedAt ?? state.updatedAt) ?? 'curtaincall';
+  if (!curtainCall) {
+    return `${timestamp}_結果`;
+  }
+  const outcome =
+    curtainCall.winner === 'draw'
+      ? '引き分け'
+      : `${getPlayerDisplayName(state, curtainCall.winner)}勝利`;
+  return `${timestamp}_${outcome}`;
 };
 
 const createPlayersForInitialDeal = (
@@ -2993,12 +3242,166 @@ const handleCurtainCallSaveRequest = (): void => {
     return;
   }
 
-  const toast = window.curtainCall?.toast;
-  if (toast) {
-    toast.show({ message: CURTAINCALL_SAVE_PLACEHOLDER_MESSAGE, variant: 'info' });
-  } else {
-    console.warn('結果の保存機能はまだ利用できません。');
+  const state = gameStore.getState();
+  if (!state.curtainCall) {
+    const message = CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE;
+    const toast = window.curtainCall?.toast;
+    if (toast) {
+      toast.show({ message, variant: 'warning' });
+    } else {
+      console.warn(message);
+    }
+    return;
   }
+
+  const modal = window.curtainCall?.modal;
+  const toast = window.curtainCall?.toast;
+
+  if (!modal) {
+    if (toast) {
+      toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
+    } else {
+      console.warn('結果の保存ダイアログを表示できませんでした。');
+    }
+    return;
+  }
+
+  const form = document.createElement('form');
+  form.className = 'curtaincall-save';
+  form.noValidate = true;
+
+  const titleField = document.createElement('div');
+  titleField.className = 'curtaincall-save__field';
+
+  const titleLabel = document.createElement('label');
+  titleLabel.className = 'curtaincall-save__label';
+  titleLabel.textContent = CURTAINCALL_SAVE_TITLE_LABEL;
+  const titleId = 'curtaincall-save-title';
+  titleLabel.htmlFor = titleId;
+  titleField.append(titleLabel);
+
+  const titleInput = document.createElement('input');
+  titleInput.className = 'curtaincall-save__input';
+  titleInput.type = 'text';
+  titleInput.id = titleId;
+  titleInput.name = 'title';
+  titleInput.required = true;
+  titleInput.placeholder = CURTAINCALL_SAVE_TITLE_PLACEHOLDER;
+  titleInput.value = createCurtainCallDefaultTitle(state);
+  titleInput.autocomplete = 'off';
+  titleInput.maxLength = 100;
+  titleField.append(titleInput);
+
+  const titleError = document.createElement('p');
+  titleError.className = 'curtaincall-save__error';
+  titleError.textContent = CURTAINCALL_SAVE_REQUIRED_MESSAGE;
+  titleError.hidden = true;
+  titleField.append(titleError);
+
+  const memoField = document.createElement('div');
+  memoField.className = 'curtaincall-save__field';
+
+  const memoLabel = document.createElement('label');
+  memoLabel.className = 'curtaincall-save__label';
+  memoLabel.textContent = CURTAINCALL_SAVE_MEMO_LABEL;
+  const memoId = 'curtaincall-save-memo';
+  memoLabel.htmlFor = memoId;
+  memoField.append(memoLabel);
+
+  const memoInput = document.createElement('textarea');
+  memoInput.className = 'curtaincall-save__textarea';
+  memoInput.id = memoId;
+  memoInput.name = 'memo';
+  memoInput.placeholder = CURTAINCALL_SAVE_MEMO_PLACEHOLDER;
+  memoInput.rows = 4;
+  memoInput.maxLength = 800;
+  memoField.append(memoInput);
+
+  form.append(titleField, memoField);
+
+  const submit = () => {
+    const latestState = gameStore.getState();
+    if (!latestState.curtainCall) {
+      const message = CURTAINCALL_SAVE_UNAVAILABLE_MESSAGE;
+      if (toast) {
+        toast.show({ message, variant: 'warning' });
+      } else {
+        console.warn(message);
+      }
+      return;
+    }
+
+    const title = titleInput.value.trim();
+    if (!title) {
+      titleError.hidden = false;
+      titleInput.focus();
+      return;
+    }
+    titleError.hidden = true;
+
+    const memo = memoInput.value.trim();
+    const savedAt = Date.now();
+    const payload = createCurtainCallHistoryPayload(
+      latestState,
+      title,
+      memo.length > 0 ? memo : null,
+      savedAt,
+    );
+    if (!payload) {
+      if (toast) {
+        toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
+      } else {
+        console.warn(CURTAINCALL_SAVE_FAILURE_MESSAGE);
+      }
+      return;
+    }
+
+    const entry = addResultHistoryEntry(payload.summary, payload.detail, savedAt);
+    if (!entry) {
+      if (toast) {
+        toast.show({ message: CURTAINCALL_SAVE_FAILURE_MESSAGE, variant: 'warning' });
+      } else {
+        console.warn(CURTAINCALL_SAVE_FAILURE_MESSAGE);
+      }
+      return;
+    }
+
+    modal.close();
+    if (toast) {
+      toast.show({ message: CURTAINCALL_SAVE_SUCCESS_MESSAGE, variant: 'success' });
+    } else {
+      console.info(CURTAINCALL_SAVE_SUCCESS_MESSAGE);
+    }
+  };
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submit();
+  });
+
+  titleInput.addEventListener('input', () => {
+    if (titleInput.value.trim()) {
+      titleError.hidden = true;
+    }
+  });
+
+  modal.open({
+    title: CURTAINCALL_SAVE_DIALOG_TITLE,
+    body: form,
+    dismissible: false,
+    actions: [
+      { label: CURTAINCALL_SAVE_CANCEL_LABEL, variant: 'ghost' },
+      {
+        label: CURTAINCALL_SAVE_SUBMIT_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        onSelect: () => submit(),
+      },
+    ],
+  });
+
+  window.setTimeout(() => titleInput.focus(), 0);
 };
 
 const navigateToIntermissionGate = (): void => {

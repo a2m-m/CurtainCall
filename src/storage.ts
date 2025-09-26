@@ -15,6 +15,14 @@ const STORAGE_TEST_KEY = '__cc:storage:test__';
 const HISTORY_STORAGE_VERSION = 1;
 const HISTORY_MAX_ENTRIES = 50;
 
+const createResultHistoryEntryId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  const random = Math.random().toString(16).slice(2, 10);
+  return `result-${Date.now()}-${random}`;
+};
+
 export interface ResultHistoryEntry {
   id: string;
   summary: string;
@@ -336,3 +344,35 @@ export const deleteResultHistoryEntry = (id: string): boolean => {
 export const hasLatestSave = (): boolean => readLatestPayload() !== null;
 
 export const getStorageKeys = () => ({ ...STORAGE_KEYS });
+
+export const addResultHistoryEntry = (
+  summary: string,
+  detail?: string,
+  savedAt?: number,
+): ResultHistoryEntry | null => {
+  const normalizedSummary = summary?.trim();
+  if (!normalizedSummary) {
+    return null;
+  }
+
+  const storage = getStorage();
+  if (!storage) {
+    return null;
+  }
+
+  const timestamp = Number.isFinite(savedAt) ? (savedAt as number) : Date.now();
+  const normalizedDetail = detail?.trim();
+
+  const entry: ResultHistoryEntry = {
+    id: createResultHistoryEntryId(),
+    summary: normalizedSummary,
+    detail: normalizedDetail && normalizedDetail.length > 0 ? normalizedDetail : undefined,
+    savedAt: timestamp,
+  };
+
+  const entries = readResultHistoryEntries(storage);
+  entries.push(entry);
+  writeResultHistoryEntries(storage, entries);
+
+  return { ...entry };
+};
