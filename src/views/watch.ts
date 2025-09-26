@@ -151,8 +151,10 @@ export const createWatchView = (options: WatchViewOptions): WatchViewElement => 
 
   const heading = document.createElement('h1');
   heading.className = 'watch__title';
+  heading.id = 'watch-view-title';
   heading.textContent = options.title;
   header.append(heading);
+  main.setAttribute('aria-labelledby', heading.id);
 
   const headerActions = document.createElement('div');
   headerActions.className = 'watch__header-actions';

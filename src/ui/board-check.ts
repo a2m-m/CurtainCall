@@ -593,10 +593,16 @@ const renderScoreTab = (state: GameState): HTMLElement => {
 class BoardCheckView extends UIComponent<HTMLDivElement> {
   private readonly tabButtons = new Map<BoardCheckTabKey, HTMLButtonElement>();
 
-  private readonly panels = new Map<BoardCheckTabKey, HTMLElement>();
+  private readonly panels = new Map<BoardCheckTabKey, HTMLDivElement>();
+
+  private readonly tabOrder: BoardCheckTabKey[];
+
+  private readonly tabIdPrefix: string;
 
   constructor(state: GameState, initialTab: BoardCheckTabKey) {
     super(document.createElement('div'));
+    this.tabOrder = TAB_DEFINITIONS.map((definition) => definition.key);
+    this.tabIdPrefix = `board-check-${Math.random().toString(36).slice(2, 10)}`;
     this.element.className = 'board-check';
     this.render(state, initialTab);
   }
@@ -605,6 +611,7 @@ class BoardCheckView extends UIComponent<HTMLDivElement> {
     const tabs = document.createElement('div');
     tabs.className = 'board-check__tabs';
     tabs.setAttribute('role', 'tablist');
+    tabs.addEventListener('keydown', this.handleTabKeyDown);
 
     const panelWrapper = document.createElement('div');
     panelWrapper.className = 'board-check__panels';
@@ -616,6 +623,12 @@ class BoardCheckView extends UIComponent<HTMLDivElement> {
       button.textContent = definition.label;
       button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', 'false');
+      button.dataset.tabKey = definition.key;
+      button.tabIndex = -1;
+      const buttonId = `${this.tabIdPrefix}-tab-${definition.key}`;
+      const panelId = `${this.tabIdPrefix}-panel-${definition.key}`;
+      button.id = buttonId;
+      button.setAttribute('aria-controls', panelId);
       button.addEventListener('click', () => this.setActiveTab(definition.key));
 
       this.tabButtons.set(definition.key, button);
@@ -625,6 +638,9 @@ class BoardCheckView extends UIComponent<HTMLDivElement> {
       panel.className = 'board-check__panel';
       panel.setAttribute('role', 'tabpanel');
       panel.hidden = true;
+      panel.id = panelId;
+      panel.setAttribute('aria-labelledby', buttonId);
+      panel.tabIndex = 0;
       panel.append(definition.render(state));
 
       this.panels.set(definition.key, panel);
@@ -635,7 +651,7 @@ class BoardCheckView extends UIComponent<HTMLDivElement> {
     this.setActiveTab(initialTab);
   }
 
-  private setActiveTab(key: BoardCheckTabKey): void {
+  private setActiveTab(key: BoardCheckTabKey, options: { focus?: boolean } = {}): void {
     const fallback = TAB_DEFINITIONS[0]?.key ?? 'set';
     const target = this.tabButtons.has(key) ? key : fallback;
 
@@ -643,12 +659,68 @@ class BoardCheckView extends UIComponent<HTMLDivElement> {
       const isActive = tabKey === target;
       button.classList.toggle('is-active', isActive);
       button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      button.tabIndex = isActive ? 0 : -1;
     });
 
     this.panels.forEach((panel, tabKey) => {
-      panel.hidden = tabKey !== target;
+      const shouldHide = tabKey !== target;
+      panel.hidden = shouldHide;
+      panel.setAttribute('aria-hidden', shouldHide ? 'true' : 'false');
     });
+
+    if (options.focus) {
+      const activeButton = this.tabButtons.get(target);
+      activeButton?.focus({ preventScroll: true });
+    }
   }
+
+  private handleTabKeyDown = (event: KeyboardEvent): void => {
+    if (!(event.target instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const currentKey = event.target.dataset.tabKey as BoardCheckTabKey | undefined;
+    if (!currentKey) {
+      return;
+    }
+
+    const currentIndex = this.tabOrder.indexOf(currentKey);
+    if (currentIndex === -1 || this.tabOrder.length === 0) {
+      return;
+    }
+
+    let nextKey: BoardCheckTabKey | null = null;
+
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown': {
+        nextKey = this.tabOrder[(currentIndex + 1) % this.tabOrder.length];
+        break;
+      }
+      case 'ArrowLeft':
+      case 'ArrowUp': {
+        nextKey = this.tabOrder[(currentIndex - 1 + this.tabOrder.length) % this.tabOrder.length];
+        break;
+      }
+      case 'Home': {
+        nextKey = this.tabOrder[0];
+        break;
+      }
+      case 'End': {
+        nextKey = this.tabOrder[this.tabOrder.length - 1];
+        break;
+      }
+      default:
+        return;
+    }
+
+    if (!nextKey || nextKey === currentKey) {
+      return;
+    }
+
+    event.preventDefault();
+    this.setActiveTab(nextKey, { focus: true });
+  };
 }
 
 const ensureModalController = (): ModalController => {

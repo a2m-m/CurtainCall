@@ -94,6 +94,7 @@ export class Router {
     const view = definition.render({ path: definition.path, router: this });
     this.root.replaceChildren(view);
     this.updateTitle(definition.title);
+    this.focusRenderedView(view);
     this.listeners.forEach((listener) => listener(definition.path));
   }
 
@@ -118,5 +119,28 @@ export class Router {
 
   private updateTitle(title?: string): void {
     document.title = title ? `${title}｜${this.baseTitle}` : this.baseTitle;
+  }
+
+  private focusRenderedView(view: HTMLElement): void {
+    window.requestAnimationFrame(() => {
+      const focusTarget =
+        view.querySelector<HTMLElement>('[data-focus-target]') ??
+        view.querySelector<HTMLElement>('main') ??
+        view;
+
+      if (!focusTarget) {
+        return;
+      }
+
+      if (!focusTarget.hasAttribute('tabindex')) {
+        focusTarget.setAttribute('tabindex', '-1');
+      }
+
+      if (focusTarget.id !== 'app-main') {
+        focusTarget.id = 'app-main';
+      }
+
+      focusTarget.focus({ preventScroll: true });
+    });
   }
 }

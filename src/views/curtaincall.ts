@@ -209,8 +209,10 @@ export const createCurtainCallView = (options: CurtainCallViewOptions): CurtainC
 
   const heading = document.createElement('h1');
   heading.className = 'curtaincall__title';
+  heading.id = 'curtaincall-view-title';
   heading.textContent = options.title;
   header.append(heading);
+  main.setAttribute('aria-labelledby', heading.id);
 
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({

@@ -170,6 +170,29 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.skip-link {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translate(-50%, -150%);
+  padding: 0.65rem 1.25rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0;
+  z-index: 1000;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
 h1,
 h2,
 h3,
