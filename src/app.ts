@@ -17,6 +17,7 @@ import {
   PLAYER_IDS,
   REQUIRED_BOO_COUNT,
   type CurtainCallReason,
+  type BackstageItemState,
   type CardSnapshot,
   type GameState,
   type PhaseKey,
@@ -864,6 +865,18 @@ const createPlayersForInitialDeal = (
     {} as Record<PlayerId, PlayerState>,
   );
 
+const createBackstageItemsForInitialDeal = (
+  cards: readonly CardSnapshot[],
+): BackstageItemState[] =>
+  cards.map((card, index) => ({
+    id: `backstage-${String(index + 1).padStart(2, '0')}`,
+    position: index,
+    card: cloneCardSnapshot(card),
+    status: 'backstage',
+    holder: null,
+    isPublic: false,
+  }));
+
 const createInitialDealState = (
   current: GameState,
   deal: InitialDealResult,
@@ -889,6 +902,13 @@ const createInitialDealState = (
         card: cloneCardSnapshot(entry.card),
       })),
       opened: [],
+    },
+    backstage: {
+      items: createBackstageItemsForInitialDeal(deal.backstage),
+      pile: deal.backstage.length,
+      lastSpotlightPairFormed: false,
+      canActPlayer: null,
+      actedThisIntermission: false,
     },
     history: [],
     updatedAt: timestamp,

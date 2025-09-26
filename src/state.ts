@@ -210,6 +210,7 @@ export interface GameMeta {
     joker: number;
     set: number;
     perHand: number;
+    backstage: number;
   };
   seed?: string;
 }
@@ -304,7 +305,8 @@ export const CARD_COMPOSITION = Object.freeze({
   total: 53,
   joker: 1,
   set: 13,
-  perHand: 20,
+  perHand: 15,
+  backstage: 10,
 });
 
 export const REQUIRED_BOO_COUNT = 3;
