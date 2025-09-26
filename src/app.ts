@@ -3073,7 +3073,26 @@ const maybeTriggerSpotlightSecretPair = (reveal: SetReveal): void => {
   }
 
   const request: SpotlightSecretPairRequest = { revealId: reveal.id, playerId };
-  finalizeSpotlightSecretPairSelection(request, candidates[0]?.id ?? null);
+
+  if (typeof window === 'undefined') {
+    finalizeSpotlightSecretPairSelection(request, candidates[0]?.id ?? null);
+    return;
+  }
+
+  pendingSpotlightSecretPair = request;
+  revokeSpotlightSecretAccess();
+
+  const router = window.curtainCall?.router;
+
+  if (state.route === SPOTLIGHT_GATE_PATH) {
+    return;
+  }
+
+  if (router) {
+    router.go(SPOTLIGHT_GATE_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_GATE_PATH;
+  }
 };
 
 const finalizeSpotlightSetOpen = (setCardId: string): void => {
@@ -5321,6 +5340,15 @@ const initializeApp = (): void => {
 
   router.subscribe((path) => {
     const current = gameStore.getState();
+
+    if (path !== WATCH_TO_SPOTLIGHT_PATH && path !== SPOTLIGHT_GATE_PATH) {
+      if (pendingSpotlightSecretPair || pendingSpotlightSetOpen) {
+        pendingSpotlightSecretPair = null;
+        pendingSpotlightSetOpen = null;
+        revokeSpotlightSecretAccess();
+      }
+    }
+
     if (current.route === path) {
       return;
     }
