@@ -244,7 +244,7 @@ const SPOTLIGHT_PAIR_CHECK_TITLE = 'ペアの判定';
 const SPOTLIGHT_PAIR_CHECK_MESSAGE =
   '公開された役者札と同じ数字の手札があるか確認してください。同じ数字を持っていたら場に出してペア成立、持っていなければペア不成立です。';
 const SPOTLIGHT_PAIR_CHECK_SKIPPED_MESSAGE = '今回はセットを公開せずに進みます。';
-const SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE = 'ペアをステージに出します。';
+const SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE = 'ペアができました！';
 const SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE = 'ペアはできませんでした！';
 const SPOTLIGHT_PAIR_CHECK_CAPTION =
   '判定が終わったら「OK」を押してインターミッションへ進みましょう。';
@@ -2549,10 +2549,6 @@ const maybeTriggerSpotlightSecretPair = (reveal: SetReveal): void => {
     return;
   }
 
-  if (pendingSpotlightSecretPair?.revealId === reveal.id) {
-    return;
-  }
-
   const candidates = findSpotlightSecretPairCandidates(player, reveal.card.rank);
   if (candidates.length === 0) {
     latestSpotlightPairCheckOutcome = 'unpaired';
@@ -2560,23 +2556,8 @@ const maybeTriggerSpotlightSecretPair = (reveal: SetReveal): void => {
     return;
   }
 
-  pendingSpotlightSecretPair = { revealId: reveal.id, playerId };
-  revokeSpotlightSecretAccess();
-
-  if (state.route === SPOTLIGHT_GATE_PATH) {
-    return;
-  }
-
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const router = window.curtainCall?.router;
-  if (router) {
-    router.go(SPOTLIGHT_GATE_PATH);
-  } else {
-    window.location.hash = SPOTLIGHT_GATE_PATH;
-  }
+  const request: SpotlightSecretPairRequest = { revealId: reveal.id, playerId };
+  finalizeSpotlightSecretPairSelection(request, candidates[0]?.id ?? null);
 };
 
 const finalizeSpotlightSetOpen = (setCardId: string): void => {
