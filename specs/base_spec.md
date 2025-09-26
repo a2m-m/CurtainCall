@@ -13,14 +13,15 @@
 ## 2. 参照資料（インプット）
 
 - `/rulebook.md`
-- `/0.HOME仕様書.md`
-- `/1.スタンバイフェーズ仕様書.md`
-- `/2.スカウトフェーズ仕様書.md`
-- `/3.アクションフェーズ仕様書.md`
-- `/4.ウォッチフェーズ仕様書.md`
-- `/5.スポットライトフェーズ仕様書.md`
-- `/6.インターミッション仕様書.md`
-- `/7.カーテンコール仕様書.md`
+- `/specs/0.HOME_spec.md`
+- `/specs/1.standby_spec.md`
+- `/specs/2.scout_spec.md`
+- `/specs/3.action_spec.md`
+- `/specs/4.watch_spec.md`
+- `/specs/5.spotlight_spec.md`
+- `/specs/6.intermission_spec.md`
+- `/specs/7.curtaincall_spec.md`
+- `/specs/8.boardcheck_spec.md`
 
 ---
 
