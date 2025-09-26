@@ -73,6 +73,22 @@ export interface LoadOptions {
 let cachedStorage: Storage | null | undefined;
 let lastSavedSignature: string | null = null;
 
+/**
+ * ゲームデータの保存・読込・履歴管理を行うための抽象インターフェースです。
+ * 既定では localStorage を利用した実装を利用しますが、テストや将来的な移行を
+ * 考慮し、任意のアダプタへ差し替えられるようにしています。
+ */
+export interface StorageAdapter {
+  saveGame(state: GameState): void;
+  loadGame(options?: LoadOptions): StoredGamePayload | null;
+  clearGame(): void;
+  getSavedGameMetadata(): SaveMetadata | null;
+  hasSavedGame(): boolean;
+  listResultHistory(): ResultHistoryEntry[];
+  deleteResult(id: string): boolean;
+  saveResult(summary: string, detail?: string, savedAt?: number): ResultHistoryEntry | null;
+}
+
 const getStorage = (): Storage | null => {
   if (cachedStorage !== undefined) {
     return cachedStorage;
@@ -367,7 +383,7 @@ const enforceResumeGate = (options: LoadOptions): void => {
   }
 };
 
-export const saveGame = (state: GameState): void => {
+const localSaveGame = (state: GameState): void => {
   const storage = getStorage();
   if (!storage) {
     return;
@@ -402,7 +418,7 @@ export const saveGame = (state: GameState): void => {
   }
 };
 
-export const loadGame = (options: LoadOptions = {}): StoredGamePayload | null => {
+const localLoadGame = (options: LoadOptions = {}): StoredGamePayload | null => {
   enforceResumeGate(options);
   const payload = readLatestPayload();
   if (!payload) {
@@ -417,7 +433,7 @@ export const loadGame = (options: LoadOptions = {}): StoredGamePayload | null =>
   };
 };
 
-export const clearGame = (): void => {
+const localClearGame = (): void => {
   const storage = getStorage();
   if (!storage) {
     return;
@@ -430,7 +446,7 @@ export const clearGame = (): void => {
   }
 };
 
-export const getSavedGameMetadata = (): SaveMetadata | null => {
+const localGetSavedGameMetadata = (): SaveMetadata | null => {
   const payload = readLatestPayload();
   if (!payload) {
     return null;
@@ -438,7 +454,7 @@ export const getSavedGameMetadata = (): SaveMetadata | null => {
   return { ...payload.meta, turn: { ...payload.meta.turn } };
 };
 
-export const listResultHistory = (): ResultHistoryEntry[] => {
+const localListResultHistory = (): ResultHistoryEntry[] => {
   const storage = getStorage();
   if (!storage) {
     return [];
@@ -450,7 +466,7 @@ export const listResultHistory = (): ResultHistoryEntry[] => {
     .map((entry) => cloneValue(entry));
 };
 
-export const deleteResult = (id: string): boolean => {
+const localDeleteResult = (id: string): boolean => {
   if (!id) {
     return false;
   }
@@ -467,11 +483,11 @@ export const deleteResult = (id: string): boolean => {
   return true;
 };
 
-export const hasSavedGame = (): boolean => readLatestPayload() !== null;
+const localHasSavedGame = (): boolean => readLatestPayload() !== null;
 
 export const getStorageKeys = () => ({ ...STORAGE_KEYS });
 
-export const saveResult = (
+const localSaveResult = (
   summary: string,
   detail?: string,
   savedAt?: number,
@@ -502,6 +518,69 @@ export const saveResult = (
 
   return { ...entry };
 };
+
+const localStorageAdapter: StorageAdapter = {
+  saveGame: (state) => {
+    localSaveGame(state);
+  },
+  loadGame: (options) => localLoadGame(options ?? {}),
+  clearGame: () => {
+    localClearGame();
+  },
+  getSavedGameMetadata: () => localGetSavedGameMetadata(),
+  hasSavedGame: () => localHasSavedGame(),
+  listResultHistory: () => localListResultHistory(),
+  deleteResult: (id) => localDeleteResult(id),
+  saveResult: (summary, detail, savedAt) => localSaveResult(summary, detail, savedAt),
+};
+
+let activeStorageAdapter: StorageAdapter = localStorageAdapter;
+
+/**
+ * ストレージアダプタを差し替えるためのヘルパーです。null や undefined を渡すと
+ * 既定（localStorage ベース）のアダプタに戻ります。
+ */
+export const setStorageAdapter = (adapter: StorageAdapter | null | undefined): void => {
+  if (!adapter) {
+    lastSavedSignature = null;
+    activeStorageAdapter = localStorageAdapter;
+    return;
+  }
+  activeStorageAdapter = adapter;
+};
+
+/**
+ * 現在利用しているストレージアダプタを取得します。テストコードなどで確認用途に
+ * 使用する想定のため、公開メソッドとして提供しています。
+ */
+export const getStorageAdapter = (): StorageAdapter => activeStorageAdapter;
+
+export const saveGame = (state: GameState): void => {
+  activeStorageAdapter.saveGame(state);
+};
+
+export const loadGame = (options: LoadOptions = {}): StoredGamePayload | null =>
+  activeStorageAdapter.loadGame(options ?? {}) ?? null;
+
+export const clearGame = (): void => {
+  activeStorageAdapter.clearGame();
+};
+
+export const getSavedGameMetadata = (): SaveMetadata | null =>
+  activeStorageAdapter.getSavedGameMetadata();
+
+export const hasSavedGame = (): boolean => activeStorageAdapter.hasSavedGame();
+
+export const listResultHistory = (): ResultHistoryEntry[] =>
+  activeStorageAdapter.listResultHistory();
+
+export const deleteResult = (id: string): boolean => activeStorageAdapter.deleteResult(id);
+
+export const saveResult = (
+  summary: string,
+  detail?: string,
+  savedAt?: number,
+): ResultHistoryEntry | null => activeStorageAdapter.saveResult(summary, detail, savedAt);
 
 /**
  * 旧タスク互換のためのエイリアス。新規実装では saveGame を利用すること。
