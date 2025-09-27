@@ -41,6 +41,7 @@ import { ToastManager } from './ui/toast.js';
 import { animationManager } from './ui/animation.js';
 import { CardComponent } from './ui/card.js';
 import { showBoardCheck } from './ui/board-check.js';
+import { setGateModalController } from './ui/gate.js';
 import { createGateView } from './views/gate.js';
 import type { ButtonVariant } from './ui/button.js';
 import { createHomeView } from './views/home.js';
@@ -6234,6 +6235,7 @@ const initializeApp = (): void => {
 
   const router = new Router(root, { fallback: '#/' });
   const modal = new ModalController(modalRoot);
+  setGateModalController(modal);
   const toast = new ToastManager(toastRoot);
 
   let navigationBlockToastId: number | null = null;

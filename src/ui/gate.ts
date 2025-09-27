@@ -40,15 +40,29 @@ interface ActiveGate {
 const DEFAULT_LOCK_DURATION = 320;
 
 let activeGate: ActiveGate | null = null;
+let modalController: ModalController | null = null;
+
+export const setGateModalController = (modal: ModalController | null): void => {
+  modalController = modal;
+};
 
 const ensureModalController = (): ModalController => {
+  if (modalController) {
+    return modalController;
+  }
+
   if (typeof window === 'undefined') {
     throw new Error('ゲートモーダルはブラウザ環境でのみ利用できます。');
   }
-  const modal = window.curtainCall?.modal;
+
+  const modal = window.curtainCall?.modal ?? null;
+
   if (!modal) {
     throw new Error('ゲートモーダルを表示するためのコントローラーが初期化されていません。');
   }
+
+  modalController = modal;
+
   return modal;
 };
 
