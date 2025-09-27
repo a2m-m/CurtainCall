@@ -11,6 +11,7 @@ import {
   deleteResult,
   getSavedGameMetadata,
   listResultHistory,
+  loadGame,
   ResultHistoryEntry,
   saveGame,
   saveResult,
@@ -6411,7 +6412,22 @@ const initializeApp = (): void => {
 
   buildRouteDefinitions(router).forEach((definition) => router.register(definition));
 
-  gameStore.setState(createInitialState());
+  const initialState: GameState = (() => {
+    try {
+      const payload = loadGame({
+        allowUnsafe: true,
+        currentPath: typeof window !== 'undefined' ? window.location.hash ?? null : null,
+      });
+      if (payload?.state) {
+        return payload.state;
+      }
+    } catch (error) {
+      console.warn('セーブデータの復元に失敗したため、新しいゲームを開始します。', error);
+    }
+    return createInitialState();
+  })();
+
+  gameStore.setState(initialState);
 
   router.subscribe((path) => {
     const current = gameStore.getState();
