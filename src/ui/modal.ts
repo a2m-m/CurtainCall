@@ -3,6 +3,7 @@ import { UIComponent } from './component.js';
 import { animationManager } from './animation.js';
 
 export interface ModalAction {
+  id?: string;
   label: string;
   variant?: ButtonVariant;
   dismiss?: boolean;
@@ -25,6 +26,7 @@ const MODAL_LABEL_FALLBACK = 'ダイアログ';
 class ModalView extends UIComponent<HTMLDivElement> {
   private readonly headingId: string;
   private readonly bodyId: string;
+  private readonly actionButtons = new Map<string, UIButton>();
 
   constructor() {
     super(document.createElement('div'));
@@ -80,6 +82,7 @@ class ModalView extends UIComponent<HTMLDivElement> {
   setActions(actions: ModalAction[] | undefined, close: () => void): void {
     const footer = this.ensureFooter();
     footer.replaceChildren();
+    this.actionButtons.clear();
     if (!actions || actions.length === 0) {
       footer.hidden = true;
       return;
@@ -94,6 +97,10 @@ class ModalView extends UIComponent<HTMLDivElement> {
         preventRapid: action.preventRapid,
         lockDuration: action.lockDuration,
       });
+      if (action.id) {
+        button.el.dataset.actionId = action.id;
+        this.actionButtons.set(action.id, button);
+      }
       button.onClick(() => {
         action.onSelect?.();
         if (action.dismiss !== false) {
@@ -102,6 +109,10 @@ class ModalView extends UIComponent<HTMLDivElement> {
       });
       footer.append(button.el);
     });
+  }
+
+  getActionButton(id: string): UIButton | undefined {
+    return this.actionButtons.get(id);
   }
 
   private ensureHeading(): HTMLHeadingElement {
@@ -221,6 +232,10 @@ export class ModalController {
 
   get opened(): boolean {
     return this.isActive;
+  }
+
+  getActionButton(id: string): UIButton | null {
+    return this.modalView.getActionButton(id) ?? null;
   }
 
   private completeClose(): void {
