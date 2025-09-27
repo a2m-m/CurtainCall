@@ -111,7 +111,7 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
   handList.setAttribute('aria-label', handTitle.textContent);
   hand.append(handList);
 
-  section.append(hand);
+  main.append(hand);
 
   let currentCards = options.handCards.slice();
   let currentSelection = createInitialSelection(options);
