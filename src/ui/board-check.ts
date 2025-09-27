@@ -6,6 +6,7 @@ import {
   GameState,
   PlayerId,
   PLAYER_IDS,
+  DEFAULT_PLAYER_NAMES,
   REQUIRED_BOO_COUNT,
   StageCardPlacement,
   StagePair,
@@ -192,15 +193,16 @@ const getPlayerName = (state: GameState, playerId: PlayerId | null | undefined):
   if (!playerId) {
     return null;
   }
+  const fallback = DEFAULT_PLAYER_NAMES[playerId] ?? playerId;
   const player = state.players[playerId];
   if (!player) {
-    return playerId;
+    return fallback;
   }
   const trimmed = player.name?.trim();
   if (trimmed) {
     return trimmed;
   }
-  return player.name || playerId;
+  return fallback;
 };
 
 const formatBackstageLocation = (state: GameState, item: BackstageItemState): string => {
@@ -421,9 +423,14 @@ const renderStagesTab = (state: GameState): HTMLElement => {
   const layout = document.createElement('div');
   layout.className = 'board-check__stage-layout';
 
+  const luminaStageName = getPlayerName(state, 'lumina') ?? DEFAULT_PLAYER_NAMES.lumina;
+  const noxStageName = getPlayerName(state, 'nox') ?? DEFAULT_PLAYER_NAMES.nox;
+  const luminaStageLabel = `${luminaStageName}のステージ`;
+  const noxStageLabel = `${noxStageName}のステージ`;
+
   layout.append(
-    renderStageColumn(state, 'lumina', 'ルミナステージ'),
-    renderStageColumn(state, 'nox', 'ノクスステージ'),
+    renderStageColumn(state, 'lumina', luminaStageLabel),
+    renderStageColumn(state, 'nox', noxStageLabel),
   );
 
   container.append(layout);

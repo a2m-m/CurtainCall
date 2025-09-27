@@ -19,7 +19,7 @@ const createCardList = (overrides?: PartialPlayerCardList): PlayerCardList => ({
 
 const createPlayer = (overrides?: PartialPlayer): CurtainCallPlayerSummaryViewModel => ({
   id: 'lumina',
-  name: 'ルミナ',
+  name: 'プレイヤーA',
   breakdown: [
     { label: 'カミ合計', value: '10' },
     { label: '手札合計', value: '4' },
@@ -41,7 +41,7 @@ describe('createCurtainCallView', () => {
     const view = createCurtainCallView({
       title: 'カーテンコール',
       result: { label: '引き分け' },
-      players: [createPlayer(), createPlayer({ id: 'nox', name: 'ノクス' })],
+      players: [createPlayer(), createPlayer({ id: 'nox', name: 'プレイヤーB' })],
     });
 
     document.body.append(view);
@@ -52,13 +52,13 @@ describe('createCurtainCallView', () => {
     expect(description?.hidden).toBe(true);
     expect(description?.textContent).toBe('');
 
-    view.updateResult({ label: 'ルミナの勝ち', description: 'ジョーカーにより決着しました' });
-    expect(label?.textContent).toBe('ルミナの勝ち');
+    view.updateResult({ label: 'プレイヤーAの勝ち', description: 'ジョーカーにより決着しました' });
+    expect(label?.textContent).toBe('プレイヤーAの勝ち');
     expect(description?.hidden).toBe(false);
     expect(description?.textContent).toBe('ジョーカーにより決着しました');
 
-    view.updateResult({ label: 'ノクスの勝ち' });
-    expect(label?.textContent).toBe('ノクスの勝ち');
+    view.updateResult({ label: 'プレイヤーBの勝ち' });
+    expect(label?.textContent).toBe('プレイヤーBの勝ち');
     expect(description?.hidden).toBe(true);
     expect(description?.textContent).toBe('');
   });
@@ -66,8 +66,8 @@ describe('createCurtainCallView', () => {
   it('updatePlayersでプレイヤーカード一覧を差し替えられる', () => {
     const view = createCurtainCallView({
       title: 'カーテンコール',
-      result: { label: 'ルミナの勝ち' },
-      players: [createPlayer(), createPlayer({ id: 'nox', name: 'ノクス' })],
+      result: { label: 'プレイヤーAの勝ち' },
+      players: [createPlayer(), createPlayer({ id: 'nox', name: 'プレイヤーB' })],
     });
 
     document.body.append(view);
@@ -78,14 +78,14 @@ describe('createCurtainCallView', () => {
     expect(initialCards.item(1).dataset.playerId).toBe('nox');
 
     view.updatePlayers([
-      createPlayer({ id: 'lumina', name: '先攻ルミナ' }),
-      createPlayer({ id: 'nox', name: '後攻ノクス' }),
+      createPlayer({ id: 'lumina', name: '先攻プレイヤーA' }),
+      createPlayer({ id: 'nox', name: '後攻プレイヤーB' }),
     ]);
 
     const updatedCards = view.querySelectorAll<HTMLDivElement>('.curtaincall-player');
     expect(updatedCards).toHaveLength(2);
-    expect(updatedCards.item(0).querySelector('h2')?.textContent).toBe('先攻ルミナ');
-    expect(updatedCards.item(1).querySelector('h2')?.textContent).toBe('後攻ノクス');
+    expect(updatedCards.item(0).querySelector('h2')?.textContent).toBe('先攻プレイヤーA');
+    expect(updatedCards.item(1).querySelector('h2')?.textContent).toBe('後攻プレイヤーB');
   });
 
   it('各種ボタンの表示と活性状態を制御できる', () => {
@@ -96,8 +96,8 @@ describe('createCurtainCallView', () => {
 
     const view = createCurtainCallView({
       title: 'カーテンコール',
-      result: { label: 'ノクスの勝ち' },
-      players: [createPlayer(), createPlayer({ id: 'nox', name: 'ノクス' })],
+      result: { label: 'プレイヤーBの勝ち' },
+      players: [createPlayer(), createPlayer({ id: 'nox', name: 'プレイヤーB' })],
       boardCheckLabel: '盤面を見る',
       onOpenBoardCheck: onBoardCheck,
       onGoHome,
@@ -140,7 +140,7 @@ describe('createCurtainCallView', () => {
     const view = createCurtainCallView({
       title: 'カーテンコール',
       result: { label: '引き分け' },
-      players: [createPlayer(), createPlayer({ id: 'nox', name: 'ノクス' })],
+      players: [createPlayer(), createPlayer({ id: 'nox', name: 'プレイヤーB' })],
     });
 
     document.body.append(view);
