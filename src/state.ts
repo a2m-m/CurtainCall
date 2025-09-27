@@ -228,7 +228,7 @@ export interface ResumeSnapshot {
 }
 
 export interface ScoutState {
-  selectedOpponentCardIndex: number | null;
+  selectedOpponentCardId: string | null;
 }
 
 export interface ActionState {
@@ -411,7 +411,7 @@ export const createInitialState = (): GameState => {
     resume: undefined,
     recentScoutedCard: null,
     scout: {
-      selectedOpponentCardIndex: null,
+      selectedOpponentCardId: null,
     },
     action: createInitialActionState(),
     watch: createInitialWatchState(),
