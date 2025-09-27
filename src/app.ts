@@ -2731,7 +2731,7 @@ const createBackstageComparisonList = (
   const list = document.createElement('ul');
   list.className = 'intermission-backstage__list';
 
-  const createItem = (label: string, card: CardSnapshot, faceDown: boolean): HTMLLIElement => {
+  const createItem = (card: CardSnapshot, faceDown: boolean): HTMLLIElement => {
     const element = document.createElement('li');
     element.className = 'intermission-backstage__item';
 
@@ -2744,19 +2744,12 @@ const createBackstageComparisonList = (
     cardComponent.el.classList.add('intermission-backstage__card');
     element.append(cardComponent.el);
 
-    const description = document.createElement('p');
-    description.className = 'intermission-backstage__card-description';
-    description.textContent = faceDown
-      ? `${label}：裏面で表示しています。`
-      : `${label}：${formatCardLabel(card)}`;
-    element.append(description);
-
     return element;
   };
 
   list.append(
-    createItem('直前に公開されたカード', revealCard, false),
-    createItem('選択したカード', backstageCard, options.backstageFaceDown ?? false),
+    createItem(revealCard, false),
+    createItem(backstageCard, options.backstageFaceDown ?? false),
   );
 
   return list;
