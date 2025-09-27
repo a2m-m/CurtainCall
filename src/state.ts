@@ -108,6 +108,7 @@ export type WatchDecision = 'clap' | 'boo';
 export interface WatchState extends Record<string, unknown> {
   decision: WatchDecision | null;
   nextRoute: string | null;
+  pairId: string | null;
 }
 
 export interface SetCardState {
@@ -354,6 +355,7 @@ const createPlayerState = (id: PlayerId): PlayerState => ({
 export const createInitialWatchState = (): WatchState => ({
   decision: null,
   nextRoute: null,
+  pairId: null,
 });
 
 const createMatchId = (): string => {

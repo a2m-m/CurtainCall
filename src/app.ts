@@ -2020,6 +2020,27 @@ const findLatestCompleteStagePair = (stage: StageArea | undefined): StagePair | 
   return null;
 };
 
+const findStagePairById = (state: GameState, pairId: string): StagePair | null => {
+  if (!pairId) {
+    return null;
+  }
+
+  const players = state.players ?? {};
+
+  for (const player of Object.values(players)) {
+    const stage = player?.stage;
+    if (!stage?.pairs?.length) {
+      continue;
+    }
+    const target = stage.pairs.find((pair) => pair?.id === pairId);
+    if (target) {
+      return target;
+    }
+  }
+
+  return null;
+};
+
 const findLatestHiddenStagePair = (stage: StageArea | undefined): StagePair | null => {
   if (!stage) {
     return null;
@@ -2048,8 +2069,20 @@ const findLatestWatchStagePair = (state: GameState): StagePair | null => {
   return findLatestCompleteStagePair(activePlayer?.stage);
 };
 
+const findActiveWatchStagePair = (state: GameState): StagePair | null => {
+  const watchPairId = state.watch?.pairId ?? null;
+  if (watchPairId) {
+    const selectedPair = findStagePairById(state, watchPairId);
+    if (selectedPair) {
+      return selectedPair;
+    }
+  }
+
+  return findLatestWatchStagePair(state);
+};
+
 const mapWatchStage = (state: GameState): WatchStageViewModel => {
-  const latestPair = findLatestWatchStagePair(state);
+  const latestPair = findActiveWatchStagePair(state);
   const actorPlacement = latestPair?.actor ?? null;
   const kurokoPlacement = latestPair?.kuroko ?? null;
 
@@ -2310,7 +2343,7 @@ const findLatestStagePairForIntermission = (state: GameState): StagePair | null 
     return findLatestWatchStagePair(state);
   }
 
-  const watchPair = findLatestWatchStagePair(state);
+  const watchPair = findActiveWatchStagePair(state);
   if (!watchPair) {
     return spotlightPair;
   }
@@ -5110,6 +5143,7 @@ const handleIntermissionGatePass = (router: Router): void => {
         ...previousWatchState,
         decision: null,
         nextRoute: null,
+        pairId: null,
       },
       revision: current.revision + 1,
       updatedAt: timestamp,
@@ -5845,6 +5879,7 @@ const completeActionPlacement = (): CompleteActionPlacementResult => {
         ...(current.watch ?? createInitialWatchState()),
         decision: null,
         nextRoute: null,
+        pairId,
       },
       revision: current.revision + 1,
       updatedAt: timestamp,
