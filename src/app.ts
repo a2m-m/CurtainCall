@@ -385,14 +385,14 @@ const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
 
 const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
 
-const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
+const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission';
 const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
 const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight';
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
 const BACKSTAGE_PHASE_PATH = '#/phase/backstage';
 const BACKSTAGE_GATE_PATH = '#/phase/backstage/gate';
 const SPOTLIGHT_TO_BACKSTAGE_PATH = BACKSTAGE_GATE_PATH;
-const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
+const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission';
 
 const CURTAINCALL_BOO_PENALTY = 15;
 
