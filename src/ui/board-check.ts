@@ -256,6 +256,7 @@ const renderSetSection = (state: GameState): HTMLDivElement => {
 
   const cardElements: HTMLElement[] = [];
   state.set.opened
+    .filter((reveal) => !reveal.assignedTo)
     .slice()
     .sort((a, b) => a.openedAt - b.openedAt)
     .forEach((reveal) => {
@@ -292,7 +293,9 @@ const renderBackstageSection = (state: GameState): HTMLDivElement => {
     return section;
   }
 
-  const publicItems = items
+  const remainingItems = items.filter((item) => item.stagePairId == null);
+
+  const publicItems = remainingItems
     .filter((item) => item.isPublic)
     .sort((a, b) => {
       const timeDiff = (a.revealedAt ?? Number.MAX_SAFE_INTEGER) - (b.revealedAt ?? Number.MAX_SAFE_INTEGER);
@@ -302,14 +305,14 @@ const renderBackstageSection = (state: GameState): HTMLDivElement => {
       return a.position - b.position;
     });
 
-  const hiddenCount = items.length - publicItems.length;
+  const hiddenCount = remainingItems.length - publicItems.length;
 
   const cardElements: HTMLElement[] = [];
   publicItems.forEach((item) => {
     const cardComponent = new CardComponent({
       rank: item.card.rank,
       suit: item.card.suit,
-      faceDown: item.card.face !== 'up',
+      faceDown: !item.isPublic,
       annotation: item.card.annotation,
     });
     const cardLabel = formatCardLabel(item.card);

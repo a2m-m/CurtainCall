@@ -65,6 +65,10 @@ import {
   type BackstageRevealItemViewModel,
 } from './views/backstage.js';
 import {
+  createIntermissionView,
+  type IntermissionResumeInfo,
+} from './views/intermission.js';
+import {
   createCurtainCallView,
   CurtainCallPlayerSummaryViewModel,
   CurtainCallResultViewModel,
@@ -183,6 +187,19 @@ const {
   INTERMISSION_BACKSTAGE_DRAW_DECIDE_LABEL,
   INTERMISSION_BACKSTAGE_DRAW_CONFIRM_TITLE,
   INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE,
+  INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE,
+  INTERMISSION_VIEW_GATE_LABEL,
+  INTERMISSION_VIEW_RESUME_LABEL,
+  INTERMISSION_VIEW_RESUME_TITLE,
+  INTERMISSION_VIEW_RESUME_CAPTION,
+  INTERMISSION_VIEW_RESUME_EMPTY,
+  INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX,
+  INTERMISSION_VIEW_SUMMARY_TITLE,
+  INTERMISSION_VIEW_NOTES_TITLE,
+  INTERMISSION_TASK_NEXT_PLAYER,
+  INTERMISSION_TASK_REVIEW,
+  INTERMISSION_TASK_RESUME,
+  INTERMISSION_TASK_GATE,
   BACKSTAGE_GATE_TITLE,
   BACKSTAGE_GATE_CONFIRM_LABEL,
   BACKSTAGE_GATE_MESSAGE,
@@ -361,6 +378,7 @@ const SCOUT_TO_ACTION_PATH = '#/phase/action';
 const INTERMISSION_TO_SCOUT_PATH = '#/phase/scout';
 
 const SCOUT_MY_HAND_LABEL = MY_HAND_LABEL;
+const INTERMISSION_MY_HAND_LABEL = MY_HAND_LABEL;
 const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
 
 const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
@@ -2114,7 +2132,7 @@ const getLatestSpotlightSetReveal = (state: GameState): SetReveal | null => {
 
 const getBackstageRevealableItems = (state: GameState): BackstageItemState[] => {
   const backstage = getBackstageState(state);
-  return backstage.items.filter((item) => item.status === 'backstage' && !item.isPublic);
+  return backstage.items.filter((item) => item.status === 'backstage');
 };
 
 const shouldEnterBackstagePhase = (state: GameState): boolean => {
@@ -2226,6 +2244,39 @@ const createIntermissionBackstageNotes = (state: GameState): string[] => {
   }
 
   return notes;
+};
+
+const createIntermissionTasks = (state: GameState): string[] => {
+  const nextPlayerName = getPlayerDisplayName(state, state.activePlayer);
+  return [
+    INTERMISSION_TASK_NEXT_PLAYER(nextPlayerName),
+    INTERMISSION_TASK_REVIEW,
+    INTERMISSION_TASK_RESUME,
+    INTERMISSION_TASK_GATE,
+  ];
+};
+
+const mapIntermissionResumeInfo = (): IntermissionResumeInfo => {
+  const metadata = getSavedGameMetadata();
+
+  if (!metadata) {
+    return {
+      available: false,
+      summary: INTERMISSION_VIEW_RESUME_EMPTY,
+      savedAtLabel: null,
+    };
+  }
+
+  const savedAt = formatResumeTimestamp(metadata.savedAt);
+  const savedAtLabel = savedAt
+    ? `${INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX}${savedAt}`
+    : null;
+
+  return {
+    available: true,
+    summary: createResumeSummary(metadata.activePlayer, metadata.phase),
+    savedAtLabel,
+  };
 };
 
 const findLatestStagePairForIntermission = (state: GameState): StagePair | null => {
@@ -2474,7 +2525,7 @@ const finalizeBackstageDraw = (itemId: string): BackstageDrawResult | null => {
     }
 
     const item = latestBackstage.items[itemIndex];
-    if (item.status !== 'backstage' || item.isPublic) {
+    if (item.status !== 'backstage') {
       return current;
     }
 
@@ -2482,6 +2533,7 @@ const finalizeBackstageDraw = (itemId: string): BackstageDrawResult | null => {
     const nextItems = latestBackstage.items.slice();
     const cardForHand = cloneCardSnapshot(item.card);
     cardForHand.face = 'down';
+    const cardLabel = formatCardLabel(cardForHand);
 
     nextItems[itemIndex] = {
       ...item,
@@ -2496,6 +2548,8 @@ const finalizeBackstageDraw = (itemId: string): BackstageDrawResult | null => {
       actedThisIntermission: true,
       canActPlayer: latestBackstage.canActPlayer,
       pile: Math.max(0, latestBackstage.pile - 1),
+      lastResult: 'mismatch',
+      lastResultMessage: INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE(cardLabel),
       lastCompletionMessage: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
     };
 
@@ -2533,19 +2587,37 @@ const finalizeBackstageDraw = (itemId: string): BackstageDrawResult | null => {
   return result;
 };
 
+interface BackstageRevealedCardResult {
+  itemId: string;
+  card: CardSnapshot;
+  matched: boolean;
+  order: number;
+}
+
 interface BackstageRevealResult {
   matched: boolean;
-  revealedItem: BackstageItemState;
   reveal: SetReveal;
+  revealedCards: BackstageRevealedCardResult[];
+}
+
+interface BackstageRevealContextItem {
+  item: BackstageItemState;
+  order: number;
 }
 
 interface BackstageRevealContext {
-  item: BackstageItemState;
+  items: BackstageRevealContextItem[];
   reveal: SetReveal;
 }
 
-const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null => {
+const finalizeBackstageReveal = (itemIds: string[]): BackstageRevealResult | null => {
   if (isIntermissionBackstageActionInProgress) {
+    return null;
+  }
+
+  const uniqueItemIds = Array.from(new Set(itemIds));
+  if (uniqueItemIds.length === 0 || uniqueItemIds.length > 3) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
     return null;
   }
 
@@ -2559,7 +2631,7 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
   }
 
   const revealableItems = getBackstageRevealableItems(state);
-  if (!revealableItems.some((item) => item.id === itemId)) {
+  if (!uniqueItemIds.every((itemId) => revealableItems.some((item) => item.id === itemId))) {
     showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
     return null;
   }
@@ -2576,49 +2648,60 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
 
   gameStore.setState((current) => {
     const latestBackstage = getBackstageState(current);
-    const itemIndex = latestBackstage.items.findIndex((entry) => entry.id === itemId);
     const player = current.players[actingPlayerId];
     const revealIndex = current.set.opened.findIndex((entry) => entry.id === setReveal.id);
 
-    if (itemIndex === -1 || !player || revealIndex === -1) {
-      return current;
-    }
-
-    const item = latestBackstage.items[itemIndex];
-    if (item.status !== 'backstage' || item.isPublic) {
+    if (!player || revealIndex === -1) {
       return current;
     }
 
     const timestamp = Date.now();
     const nextItems = latestBackstage.items.slice();
-    const revealedCard = cloneCardSnapshot(item.card);
-    revealedCard.face = 'up';
+    const revealedCards: BackstageRevealedCardResult[] = [];
+    const revealedItemIndices: number[] = [];
+    let matchedItemIndex: number | null = null;
 
-    const updatedItem: BackstageItemState = {
-      ...item,
-      card: revealedCard,
-      isPublic: true,
-      revealedAt: timestamp,
-      revealedBy: actingPlayerId,
-    };
+    for (let order = 0; order < uniqueItemIds.length; order += 1) {
+      const itemId = uniqueItemIds[order]!;
+      const itemIndex = nextItems.findIndex((entry) => entry.id === itemId);
 
-    nextItems[itemIndex] = updatedItem;
+      if (itemIndex === -1) {
+        return current;
+      }
 
-    const matches = revealedCard.rank === setReveal.card.rank;
-    const nextBackstageBase: BackstageState = {
-      ...latestBackstage,
-      items: nextItems,
-      pile: Math.max(0, latestBackstage.pile - 1),
-      lastResult: matches ? 'match' : 'mismatch',
-      lastResultMessage: matches
-        ? INTERMISSION_BACKSTAGE_RESULT_MATCH
-        : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
-      lastCompletionMessage: matches
-        ? INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE
-        : null,
-    };
+      const item = nextItems[itemIndex];
+      if (item.status !== 'backstage') {
+        return current;
+      }
 
-    if (matches) {
+      const revealedCard = cloneCardSnapshot(item.card);
+      revealedCard.face = 'up';
+      const isMatch = matchedItemIndex == null && revealedCard.rank === setReveal.card.rank;
+
+      revealedCards.push({
+        itemId,
+        card: revealedCard,
+        matched: isMatch,
+        order: order + 1,
+      });
+
+      revealedItemIndices.push(itemIndex);
+
+      nextItems[itemIndex] = {
+        ...item,
+        card: revealedCard,
+        isPublic: true,
+        revealedAt: timestamp,
+        revealedBy: actingPlayerId,
+      };
+
+      if (isMatch) {
+        matchedItemIndex = itemIndex;
+      }
+    }
+
+    if (matchedItemIndex != null) {
+      const pairId = createStagePairId(timestamp);
       const actorCard = cloneCardSnapshot(setReveal.card);
       actorCard.face = 'up';
       const actorPlacement: StageCardPlacement = {
@@ -2627,32 +2710,15 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
         placedAt: timestamp,
         revealedAt: setReveal.openedAt,
       };
+
+      const matchedItem = nextItems[matchedItemIndex];
+      const matchedCard = cloneCardSnapshot(matchedItem.card);
+      matchedCard.face = 'up';
       const kurokoPlacement: StageCardPlacement = {
-        card: revealedCard,
+        card: matchedCard,
         from: 'backstage',
         placedAt: timestamp,
         revealedAt: timestamp,
-      };
-      const pairId = createStagePairId(timestamp);
-
-      const nextBackstage: BackstageState = {
-        ...nextBackstageBase,
-        items: nextItems.map((entry, index) =>
-          index === itemIndex
-            ? {
-                ...updatedItem,
-                status: 'stage',
-                holder: actingPlayerId,
-                stagePairId: pairId,
-              }
-            : entry,
-        ),
-        lastSpotlightPairFormed: true,
-        canActPlayer: latestBackstage.canActPlayer,
-        actedThisIntermission: true,
-        lastResult: 'match',
-        lastResultMessage: INTERMISSION_BACKSTAGE_RESULT_MATCH,
-        lastCompletionMessage: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
       };
 
       const updatedReveal: SetReveal = {
@@ -2661,10 +2727,31 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
         bonus: 'pair',
       };
 
-      result = { matched: true, revealedItem: updatedItem, reveal: updatedReveal };
+      const nextBackstage: BackstageState = {
+        ...latestBackstage,
+        items: nextItems.map((entry, index) =>
+          index === matchedItemIndex
+            ? {
+                ...entry,
+                status: 'stage',
+                holder: actingPlayerId,
+                stagePairId: pairId,
+              }
+            : entry,
+        ),
+        pile: Math.max(0, latestBackstage.pile - 1),
+        lastSpotlightPairFormed: true,
+        canActPlayer: latestBackstage.canActPlayer,
+        actedThisIntermission: true,
+        lastResult: 'match',
+        lastResultMessage: INTERMISSION_BACKSTAGE_RESULT_MATCH,
+        lastCompletionMessage: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
+      };
 
       const nextOpened = current.set.opened.slice();
       nextOpened[revealIndex] = updatedReveal;
+
+      result = { matched: true, reveal: updatedReveal, revealedCards };
 
       return {
         ...current,
@@ -2698,7 +2785,29 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
       };
     }
 
-    result = { matched: false, revealedItem: updatedItem, reveal: setReveal };
+    revealedItemIndices.forEach((index) => {
+      const currentItem = nextItems[index];
+      if (currentItem.status !== 'backstage') {
+        return;
+      }
+      nextItems[index] = {
+        ...currentItem,
+        card: {
+          ...currentItem.card,
+          face: 'down',
+        },
+      };
+    });
+
+    const nextBackstageBase: BackstageState = {
+      ...latestBackstage,
+      items: nextItems,
+      lastResult: 'mismatch',
+      lastResultMessage: INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
+      lastCompletionMessage: null,
+    };
+
+    result = { matched: false, reveal: setReveal, revealedCards };
 
     return {
       ...current,
@@ -2758,50 +2867,159 @@ const createBackstageCardButton = (
   return listItem;
 };
 
-const createBackstageComparisonList = (
-  revealCard: CardSnapshot,
-  backstageCard: CardSnapshot,
-  options: { backstageFaceDown?: boolean } = {},
-): HTMLUListElement => {
+const createBackstageSelectionList = (items: BackstageRevealContextItem[]): HTMLUListElement => {
   const list = document.createElement('ul');
   list.className = 'intermission-backstage__list';
 
-  const createItem = (card: CardSnapshot, faceDown: boolean): HTMLLIElement => {
-    const element = document.createElement('li');
-    element.className = 'intermission-backstage__item';
+  items
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .forEach(({ item, order }) => {
+      const element = document.createElement('li');
+      element.className = 'intermission-backstage__item';
 
-    const cardComponent = new CardComponent({
-      rank: card.rank,
-      suit: card.suit,
-      faceDown,
-      annotation: card.annotation,
+      const cardComponent = new CardComponent({
+        rank: item.card.rank,
+        suit: item.card.suit,
+        faceDown: true,
+        annotation: item.card.annotation,
+      });
+      cardComponent.el.classList.add('intermission-backstage__card');
+      element.append(cardComponent.el);
+
+      const label = document.createElement('span');
+      label.className = 'intermission-backstage__label';
+      label.textContent = `カード ${String(order).padStart(2, '0')}`;
+      element.append(label);
+
+      list.append(element);
     });
-    cardComponent.el.classList.add('intermission-backstage__card');
-    element.append(cardComponent.el);
-
-    return element;
-  };
-
-  list.append(
-    createItem(revealCard, false),
-    createItem(backstageCard, options.backstageFaceDown ?? false),
-  );
 
   return list;
 };
 
-const resolveBackstageRevealContext = (itemId: string): BackstageRevealContext | null => {
+const createBackstageRevealResultDisplay = (
+  revealCard: CardSnapshot,
+  revealedCards: BackstageRevealedCardResult[],
+): HTMLDivElement => {
+  const container = document.createElement('div');
+  container.className = 'intermission-backstage__reveal';
+
+  const createSection = (labelText: string): HTMLDivElement => {
+    const section = document.createElement('div');
+    section.className = 'intermission-backstage__reveal-section';
+
+    const label = document.createElement('p');
+    label.className = 'intermission-backstage__reveal-label';
+    label.textContent = labelText;
+    section.append(label);
+
+    const cards = document.createElement('div');
+    cards.className = 'intermission-backstage__reveal-cards';
+    section.append(cards);
+
+    return section;
+  };
+
+  const setSection = createSection('セット');
+  const setCards = setSection.querySelector<HTMLDivElement>(
+    '.intermission-backstage__reveal-cards',
+  );
+  if (setCards) {
+    const setCardComponent = new CardComponent({
+      rank: revealCard.rank,
+      suit: revealCard.suit,
+      faceDown: revealCard.face !== 'up',
+      annotation: revealCard.annotation,
+    });
+    setCardComponent.el.classList.add('intermission-backstage__card');
+    setCardComponent.el.setAttribute('aria-label', `セット：${formatCardLabel(revealCard)}`);
+    setCards.append(setCardComponent.el);
+  }
+  container.append(setSection);
+
+  const selectionSection = createSection('選択カード');
+  const selectionCards = selectionSection.querySelector<HTMLDivElement>(
+    '.intermission-backstage__reveal-cards',
+  );
+  if (selectionCards) {
+    revealedCards
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .forEach((entry) => {
+        const cardComponent = new CardComponent({
+          rank: entry.card.rank,
+          suit: entry.card.suit,
+          faceDown: false,
+          annotation: entry.card.annotation,
+        });
+        cardComponent.el.classList.add('intermission-backstage__card');
+        if (entry.matched) {
+          cardComponent.el.classList.add('intermission-backstage__reveal-card--matched');
+        }
+        cardComponent.el.setAttribute(
+          'aria-label',
+          `選択カード（カード ${String(entry.order).padStart(2, '0')}）：${formatCardLabel(entry.card)}`,
+        );
+        selectionCards.append(cardComponent.el);
+      });
+  }
+  container.append(selectionSection);
+
+  return container;
+};
+
+const createBackstageMatchPairView = (
+  revealCard: CardSnapshot,
+  matchedCard: CardSnapshot,
+): HTMLDivElement => {
+  const pairContainer = document.createElement('div');
+  pairContainer.className = 'intermission-backstage__pair';
+
+  const createPairCard = (label: string, card: CardSnapshot): HTMLDivElement => {
+    const item = document.createElement('div');
+    item.className = 'intermission-backstage__pair-card';
+
+    const component = new CardComponent({
+      rank: card.rank,
+      suit: card.suit,
+      faceDown: card.face === 'down',
+      annotation: card.annotation,
+    });
+    component.el.classList.add('intermission-backstage__card');
+    item.append(component.el);
+
+    const caption = document.createElement('p');
+    caption.className = 'intermission-backstage__pair-label';
+    caption.textContent = `${label}：${formatCardLabel(card)}`;
+    item.append(caption);
+
+    return item;
+  };
+
+  const actorCard = cloneCardSnapshot(revealCard);
+  actorCard.face = 'up';
+  const backstageCard = cloneCardSnapshot(matchedCard);
+  backstageCard.face = 'up';
+
+  pairContainer.append(createPairCard('セットカード', actorCard));
+
+  const separator = document.createElement('span');
+  separator.className = 'intermission-backstage__pair-separator';
+  separator.textContent = '×';
+  pairContainer.append(separator);
+
+  pairContainer.append(createPairCard('バックステージカード', backstageCard));
+
+  return pairContainer;
+};
+
+const resolveBackstageRevealContext = (itemIds: string[]): BackstageRevealContext | null => {
   const state = gameStore.getState();
   const backstage = getBackstageState(state);
   const actingPlayerId = backstage.canActPlayer;
 
   if (!actingPlayerId) {
-    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
-    return null;
-  }
-
-  const targetItem = backstage.items.find((entry) => entry.id === itemId);
-  if (!targetItem || targetItem.status !== 'backstage' || targetItem.isPublic) {
     showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
     return null;
   }
@@ -2812,7 +3030,32 @@ const resolveBackstageRevealContext = (itemId: string): BackstageRevealContext |
     return null;
   }
 
-  return { item: targetItem, reveal };
+  const uniqueIds = Array.from(new Set(itemIds));
+  if (uniqueIds.length === 0 || uniqueIds.length > 3) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+    return null;
+  }
+
+  const orderMap = new Map<string, number>();
+  mapBackstageRevealItems(state).forEach((entry) => {
+    orderMap.set(entry.id, entry.order);
+  });
+
+  const contextItems: BackstageRevealContextItem[] = [];
+
+  for (const itemId of uniqueIds) {
+    const targetItem = backstage.items.find((entry) => entry.id === itemId);
+    if (!targetItem || targetItem.status !== 'backstage') {
+      showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+      return null;
+    }
+    const order = orderMap.get(itemId) ?? contextItems.length + 1;
+    contextItems.push({ item: targetItem, order });
+  }
+
+  contextItems.sort((a, b) => a.order - b.order);
+
+  return { items: contextItems, reveal };
 };
 
 const openBackstageRevealConfirmDialog = (
@@ -2824,8 +3067,10 @@ const openBackstageRevealConfirmDialog = (
 
   const message = document.createElement('p');
   message.className = 'intermission-backstage__message';
-  message.textContent = INTERMISSION_BACKSTAGE_CONFIRM_MESSAGE;
+  message.textContent = `${INTERMISSION_BACKSTAGE_CONFIRM_MESSAGE}（${context.items.length}枚）`;
   container.append(message);
+
+  container.append(createBackstageSelectionList(context.items));
 
   modal.open({
     title: INTERMISSION_BACKSTAGE_REVEAL_TITLE,
@@ -2859,9 +3104,12 @@ const openBackstageRevealPreviewDialog = (
   message.textContent = INTERMISSION_BACKSTAGE_PREVIEW_MESSAGE;
   container.append(message);
 
-  container.append(
-    createBackstageComparisonList(context.reveal.card, context.item.card, { backstageFaceDown: true }),
-  );
+  const setCardNote = document.createElement('p');
+  setCardNote.className = 'intermission-backstage__note';
+  setCardNote.textContent = `セットカード：${formatCardLabel(context.reveal.card)}`;
+  container.append(setCardNote);
+
+  container.append(createBackstageSelectionList(context.items));
 
   modal.open({
     title: INTERMISSION_BACKSTAGE_PREVIEW_TITLE,
@@ -2877,13 +3125,16 @@ const openBackstageRevealPreviewDialog = (
         variant: 'primary',
         preventRapid: true,
         dismiss: false,
-        onSelect: () => openBackstageRevealExecuteDialog(modal, context.item.id),
+        onSelect: () => openBackstageRevealExecuteDialog(modal, context),
       },
     ],
   });
 };
 
-const openBackstageRevealExecuteDialog = (modal: ModalController, itemId: string): void => {
+const openBackstageRevealExecuteDialog = (
+  modal: ModalController,
+  context: BackstageRevealContext,
+): void => {
   const container = document.createElement('div');
   container.className = 'intermission-backstage';
 
@@ -2903,7 +3154,7 @@ const openBackstageRevealExecuteDialog = (modal: ModalController, itemId: string
         preventRapid: true,
         dismiss: false,
         onSelect: () => {
-          const outcome = finalizeBackstageReveal(itemId);
+          const outcome = finalizeBackstageReveal(context.items.map((entry) => entry.item.id));
           if (!outcome) {
             modal.close();
             return;
@@ -2929,19 +3180,17 @@ const openBackstageRevealResultDialog = (
     : INTERMISSION_BACKSTAGE_RESULT_MISMATCH;
   container.append(message);
 
-  container.append(
-    createBackstageComparisonList(outcome.reveal.card, outcome.revealedItem.card, {
-      backstageFaceDown: false,
-    }),
-  );
+  const matchedEntry = outcome.revealedCards.find((entry) => entry.matched);
+  if (outcome.matched && matchedEntry) {
+    container.append(createBackstageMatchPairView(outcome.reveal.card, matchedEntry.card));
+  }
+
+  container.append(createBackstageRevealResultDisplay(outcome.reveal.card, outcome.revealedCards));
 
   if (outcome.matched) {
     const state = gameStore.getState();
     const assignedPlayerId =
-      outcome.reveal.assignedTo ??
-      outcome.revealedItem.holder ??
-      getBackstageState(state).canActPlayer ??
-      state.activePlayer;
+      outcome.reveal.assignedTo ?? getBackstageState(state).canActPlayer ?? state.activePlayer;
     const note = document.createElement('p');
     note.className = 'intermission-backstage__note';
     note.textContent = INTERMISSION_BACKSTAGE_STAGE_MOVE_MESSAGE(
@@ -3046,9 +3295,43 @@ const openBackstageDrawResultDialog = (
   });
 };
 
-const startBackstageRevealFlow = (itemId: string): void => {
+const announceBackstageDrawResult = (result: BackstageDrawResult): void => {
+  const message = INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE(formatCardLabel(result.card));
+
   if (typeof window === 'undefined') {
-    const outcome = finalizeBackstageReveal(itemId);
+    console.info(message);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'info' });
+    return;
+  }
+
+  console.info(message);
+};
+
+const handleBackstageDrawResult = (result: BackstageDrawResult): void => {
+  if (typeof window === 'undefined') {
+    announceBackstageDrawResult(result);
+    autoAdvanceFromBackstage();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (modal) {
+    openBackstageDrawResultDialog(modal, result);
+    return;
+  }
+
+  announceBackstageDrawResult(result);
+  autoAdvanceFromBackstage();
+};
+
+const startBackstageRevealFlow = (itemIds: string[]): void => {
+  if (typeof window === 'undefined') {
+    const outcome = finalizeBackstageReveal(itemIds);
     if (outcome) {
       handleBackstageRevealOutcome(outcome);
     }
@@ -3057,14 +3340,14 @@ const startBackstageRevealFlow = (itemId: string): void => {
 
   const modal = window.curtainCall?.modal;
   if (!modal) {
-    const outcome = finalizeBackstageReveal(itemId);
+    const outcome = finalizeBackstageReveal(itemIds);
     if (outcome) {
       handleBackstageRevealOutcome(outcome);
     }
     return;
   }
 
-  const context = resolveBackstageRevealContext(itemId);
+  const context = resolveBackstageRevealContext(itemIds);
   if (!context) {
     return;
   }
@@ -3115,7 +3398,7 @@ const openIntermissionBackstageDrawDialog = (): void => {
   if (typeof window === 'undefined') {
     const result = finalizeBackstageDraw(hiddenItems[0].id);
     if (result) {
-      autoAdvanceFromBackstage();
+      handleBackstageDrawResult(result);
     }
     return;
   }
@@ -3124,7 +3407,7 @@ const openIntermissionBackstageDrawDialog = (): void => {
   if (!modal) {
     const result = finalizeBackstageDraw(hiddenItems[0].id);
     if (result) {
-      autoAdvanceFromBackstage();
+      handleBackstageDrawResult(result);
     }
     return;
   }
@@ -3183,7 +3466,7 @@ const openIntermissionBackstageDrawDialog = (): void => {
       updateSelection(null);
       return;
     }
-    openBackstageDrawResultDialog(modal, result);
+    handleBackstageDrawResult(result);
   });
 
   actions.append(decideButton.el);
@@ -5898,6 +6181,7 @@ let activeTurnIndicatorCleanup: (() => void) | null = null;
 let activeScoutCleanup: (() => void) | null = null;
 let activeActionCleanup: (() => void) | null = null;
 let activeWatchCleanup: (() => void) | null = null;
+let activeIntermissionCleanup: (() => void) | null = null;
 let activeBackstageCleanup: (() => void) | null = null;
 let activeSpotlightCleanup: (() => void) | null = null;
 let activeCurtainCallCleanup: (() => void) | null = null;
@@ -5941,6 +6225,14 @@ const cleanupActiveWatchView = (): void => {
   }
 };
 
+const cleanupActiveIntermissionView = (): void => {
+  if (activeIntermissionCleanup) {
+    const cleanup = activeIntermissionCleanup;
+    activeIntermissionCleanup = null;
+    cleanup();
+  }
+};
+
 const cleanupActiveBackstageView = (): void => {
   if (activeBackstageCleanup) {
     const cleanup = activeBackstageCleanup;
@@ -5980,6 +6272,7 @@ const withRouteCleanup = (
     cleanupActiveScoutView();
     cleanupActiveActionView();
     cleanupActiveWatchView();
+    cleanupActiveIntermissionView();
     cleanupActiveBackstageView();
     cleanupActiveSpotlightView();
     cleanupActiveCurtainCallView();
@@ -6654,6 +6947,74 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           return view;
         },
       };
+    } else if (route.path === '#/phase/intermission') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: ({ router: contextRouter }) => {
+          const state = gameStore.getState();
+
+          if (shouldEnterBackstagePhase(state)) {
+            if (contextRouter) {
+              contextRouter.go(BACKSTAGE_GATE_PATH);
+            } else {
+              navigateToBackstageGate();
+            }
+
+            return createPlaceholderView({
+              title: route.heading,
+              subtitle: INTERMISSION_BACKSTAGE_PENDING_MESSAGE,
+            });
+          }
+
+          const view = createIntermissionView({
+            title: route.heading,
+            subtitle: createIntermissionGateSubtitle(state),
+            message: createTurnGateMessage(state, INTERMISSION_GATE_CONFIRM_LABEL),
+            tasks: createIntermissionTasks(state),
+            summaryTitle: INTERMISSION_VIEW_SUMMARY_TITLE,
+            summaryContent: createIntermissionSummaryView(state),
+            notesTitle: INTERMISSION_VIEW_NOTES_TITLE,
+            notes: createIntermissionBackstageNotes(state),
+            boardCheckLabel: INTERMISSION_BOARD_CHECK_LABEL,
+            summaryLabel: INTERMISSION_SUMMARY_LABEL,
+            resumeLabel: INTERMISSION_VIEW_RESUME_LABEL,
+            resumeTitle: INTERMISSION_VIEW_RESUME_TITLE,
+            resumeCaption: INTERMISSION_VIEW_RESUME_CAPTION,
+            resumeInfo: mapIntermissionResumeInfo(),
+            gateLabel: INTERMISSION_VIEW_GATE_LABEL,
+            onOpenBoardCheck: () => showBoardCheck(),
+            onOpenSummary: () => openIntermissionSummaryDialog(),
+            onOpenResume: () => contextRouter.go('#/resume/gate'),
+            onOpenGate: () => contextRouter.go('#/phase/intermission/gate'),
+          });
+
+          view.setGateDisabled(shouldEnterBackstagePhase(state));
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            if (shouldEnterBackstagePhase(nextState)) {
+              view.setGateDisabled(true);
+              navigateToBackstageGate();
+              return;
+            }
+
+            view.updateSubtitle(createIntermissionGateSubtitle(nextState));
+            view.updateMessage(
+              createTurnGateMessage(nextState, INTERMISSION_GATE_CONFIRM_LABEL),
+            );
+            view.updateTasks(createIntermissionTasks(nextState));
+            view.updateSummary(createIntermissionSummaryView(nextState));
+            view.updateNotes(createIntermissionBackstageNotes(nextState));
+            view.setResumeInfo(mapIntermissionResumeInfo());
+          });
+
+          activeIntermissionCleanup = () => {
+            unsubscribe();
+          };
+
+          return view;
+        },
+      };
     } else if (route.path === BACKSTAGE_PHASE_PATH) {
       definition = {
         path: route.path,
@@ -6679,10 +7040,12 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             revealLabel: INTERMISSION_BACKSTAGE_REVEAL_LABEL,
             boardCheckLabel: INTERMISSION_BOARD_CHECK_LABEL,
             summaryLabel: INTERMISSION_SUMMARY_LABEL,
-            onConfirmSelection: (itemId) => startBackstageRevealFlow(itemId),
+            myHandLabel: INTERMISSION_MY_HAND_LABEL,
+            onConfirmSelection: (itemIds) => startBackstageRevealFlow(itemIds),
             onSkip: () => completeBackstageSkip(),
             onOpenBoardCheck: () => showBoardCheck(),
             onOpenSummary: () => openIntermissionSummaryDialog(),
+            onOpenMyHand: () => openMyHandDialog(),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {

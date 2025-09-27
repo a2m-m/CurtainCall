@@ -26,10 +26,12 @@ export interface BackstageViewOptions {
   revealLabel: string;
   boardCheckLabel?: string;
   summaryLabel?: string;
-  onConfirmSelection?: (itemId: string) => void;
+  myHandLabel?: string;
+  onConfirmSelection?: (itemIds: string[]) => void;
   onSkip?: () => void;
   onOpenBoardCheck?: () => void;
   onOpenSummary?: () => void;
+  onOpenMyHand?: () => void;
 }
 
 export interface BackstageViewElement extends HTMLElement {
@@ -112,6 +114,17 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
     headerActions.append(boardCheckButton.el);
   }
 
+  if (options.onOpenMyHand) {
+    const myHandButton = new UIButton({
+      label: options.myHandLabel ?? '自分の手札',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    myHandButton.el.classList.add('backstage__header-button');
+    myHandButton.onClick(() => options.onOpenMyHand?.());
+    headerActions.append(myHandButton.el);
+  }
+
   if (options.onOpenSummary) {
     const summaryButton = new UIButton({
       label: options.summaryLabel ?? '前ラウンド要約',
@@ -175,16 +188,32 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
   notesContainer.className = 'backstage__notes';
   body.append(notesContainer);
 
-  let selectedItemId: string | null = null;
+  let selectedItemIds = new Set<string>();
   let hasAction = options.content.hasAction;
   const buttonMap = new Map<string, HTMLButtonElement>();
 
-  const updateSelection = (itemId: string | null) => {
-    selectedItemId = itemId;
+  const applySelection = (nextSelection: Set<string>) => {
+    selectedItemIds = nextSelection;
     buttonMap.forEach((button, id) => {
-      button.classList.toggle('intermission-backstage__button--selected', id === itemId);
+      button.classList.toggle('intermission-backstage__button--selected', selectedItemIds.has(id));
     });
-    confirmButton.setDisabled(!itemId || !hasAction);
+    confirmButton.setDisabled(selectedItemIds.size === 0 || !hasAction);
+  };
+
+  const toggleSelection = (itemId: string) => {
+    const next = new Set(selectedItemIds);
+    if (next.has(itemId)) {
+      next.delete(itemId);
+      applySelection(next);
+      return;
+    }
+
+    if (next.size >= 3) {
+      return;
+    }
+
+    next.add(itemId);
+    applySelection(next);
   };
 
   const rebuildList = (items: BackstageRevealItemViewModel[]): void => {
@@ -192,10 +221,7 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
     list.replaceChildren();
 
     items.forEach((item) => {
-      const listItem = createBackstageRevealListItem(item, options.revealLabel, (itemId) => {
-        const nextId = selectedItemId === itemId ? null : itemId;
-        updateSelection(nextId);
-      });
+      const listItem = createBackstageRevealListItem(item, options.revealLabel, toggleSelection);
       list.append(listItem);
       const button = listItem.querySelector<HTMLButtonElement>('button');
       if (button) {
@@ -203,18 +229,28 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
       }
     });
 
-    if (!items.some((item) => item.id === selectedItemId)) {
-      updateSelection(null);
-    }
+    const nextSelection = new Set<string>();
+    selectedItemIds.forEach((itemId) => {
+      if (items.some((item) => item.id === itemId)) {
+        nextSelection.add(itemId);
+      }
+    });
+    applySelection(nextSelection);
   };
 
-  confirmButton.onClick(() => {
-    if (!selectedItemId) {
+  const clearSelection = () => {
+    applySelection(new Set());
+  };
+
+  const handleConfirm = () => {
+    if (selectedItemIds.size === 0) {
       return;
     }
-    options.onConfirmSelection?.(selectedItemId);
-    updateSelection(null);
-  });
+    options.onConfirmSelection?.(Array.from(selectedItemIds));
+    clearSelection();
+  };
+
+  confirmButton.onClick(handleConfirm);
 
   const applyContent = (content: BackstageViewContent): void => {
     hasAction = content.hasAction;
@@ -234,12 +270,12 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
       list.hidden = false;
       confirmButton.el.hidden = false;
       confirmButton.el.removeAttribute('aria-hidden');
-      confirmButton.setDisabled(!selectedItemId);
+      confirmButton.setDisabled(selectedItemIds.size === 0 || !hasAction);
     } else {
       list.hidden = true;
       confirmButton.el.hidden = true;
       confirmButton.el.setAttribute('aria-hidden', 'true');
-      updateSelection(null);
+      clearSelection();
     }
   };
 

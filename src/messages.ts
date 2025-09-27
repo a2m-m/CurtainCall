@@ -27,11 +27,11 @@ export const INTERMISSION_SUMMARY_CAPTION = '前ラウンドで公開された�
 export const INTERMISSION_SUMMARY_EMPTY = '公開情報はまだありません。';
 export const INTERMISSION_BACKSTAGE_ACTION_LABEL = 'バックステージ';
 export const INTERMISSION_BACKSTAGE_DESCRIPTION =
-  '直前のスポットライトでペア不成立でした。あなたはバックステージから1枚公開できます（1回）。処理が終わると自動的にインターミッションへ進みます。';
+  '直前のスポットライトでペア不成立でした。あなたはバックステージから最大3枚まで公開できます（1回）。処理が終わると自動的にインターミッションへ進みます。';
 export const INTERMISSION_BACKSTAGE_REVEAL_LABEL = 'バックステージを公開';
 export const INTERMISSION_BACKSTAGE_SKIP_LABEL = 'スキップ';
 export const INTERMISSION_BACKSTAGE_REVEAL_TITLE = 'バックステージを公開';
-export const INTERMISSION_BACKSTAGE_REVEAL_MESSAGE = '公開するカードを選んでください。';
+export const INTERMISSION_BACKSTAGE_REVEAL_MESSAGE = '公開するカードを最大3枚まで選んでください。';
 export const INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE = '公開できるカードは残っていません。';
 export const INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE =
   'バックステージアクションを実行できる状態ではありません。';
@@ -50,7 +50,7 @@ export const INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE =
 export const INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE = 'バックステージアクションを完了しました。';
 
 export const INTERMISSION_BACKSTAGE_DECIDE_LABEL = '決定';
-export const INTERMISSION_BACKSTAGE_CONFIRM_MESSAGE = 'このカードにしますか？';
+export const INTERMISSION_BACKSTAGE_CONFIRM_MESSAGE = '選択したカードを公開しますか？';
 export const INTERMISSION_BACKSTAGE_CONFIRM_OK_LABEL = 'OK';
 export const INTERMISSION_BACKSTAGE_CONFIRM_CANCEL_LABEL = '戻る';
 export const INTERMISSION_BACKSTAGE_PREVIEW_TITLE = 'カードの最終確認';
@@ -66,7 +66,27 @@ export const INTERMISSION_BACKSTAGE_STAGE_MOVE_MESSAGE = (playerName: string): s
 export const INTERMISSION_BACKSTAGE_DRAW_DECIDE_LABEL = '決定';
 export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_TITLE = 'カードを取得しました';
 export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE = (cardLabel: string): string =>
-  `${cardLabel}を手札に加えました。`;
+  `引いたカードは${cardLabel}です。手札に加えました。`;
+export const INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE = (cardLabel: string): string =>
+  `バックステージから${cardLabel}を取得しました。`;
+
+export const INTERMISSION_VIEW_GATE_LABEL = 'ハンドオフゲートへ';
+export const INTERMISSION_VIEW_RESUME_LABEL = '続きから';
+export const INTERMISSION_VIEW_RESUME_TITLE = 'セーブデータ';
+export const INTERMISSION_VIEW_RESUME_CAPTION =
+  'セーブデータの確認と復元フローは今後実装されます。';
+export const INTERMISSION_VIEW_RESUME_EMPTY = 'セーブデータはまだ保存されていません。';
+export const INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX = '保存日時：';
+export const INTERMISSION_VIEW_SUMMARY_TITLE = '公開情報のハイライト';
+export const INTERMISSION_VIEW_NOTES_TITLE = '直前のバックステージ結果';
+export const INTERMISSION_TASK_NEXT_PLAYER = (playerName: string): string =>
+  `次は${playerName}の番です。端末を渡す準備を整えましょう。`;
+export const INTERMISSION_TASK_REVIEW =
+  '公開情報を確認するときは「ボードチェック」や「前ラウンド要約」を開いて整理しましょう。';
+export const INTERMISSION_TASK_RESUME =
+  '途中で中断する場合は「続きから」からセーブデータを扱います（復元フローは準備中です）。';
+export const INTERMISSION_TASK_GATE =
+  '準備が整ったら「ハンドオフゲートへ」を押して次のフェーズへ進みます。';
 
 export const BACKSTAGE_GATE_TITLE = 'バックステージ';
 export const BACKSTAGE_GATE_CONFIRM_LABEL = 'バックステージへ';

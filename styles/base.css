@@ -1095,7 +1095,7 @@ p {
   grid-auto-flow: column;
   grid-auto-columns: minmax(clamp(104px, 15vw, 140px), 1fr);
   gap: clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem);
-  justify-content: center;
+  justify-content: start;
   justify-items: center;
   align-items: start;
   align-content: start;
@@ -1999,6 +1999,140 @@ p {
   }
 }
 
+.intermission {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.25rem, 4vw, 3rem);
+  display: grid;
+  gap: clamp(1.5rem, 3vh, 2.5rem);
+}
+
+.intermission__header {
+  display: grid;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.intermission__title {
+  margin: 0;
+  font-size: clamp(1.6rem, 3.2vw, 1.95rem);
+}
+
+.intermission__subtitle {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--color-muted);
+}
+
+.intermission__body {
+  display: grid;
+  gap: clamp(1.5rem, 3vh, 2.25rem);
+}
+
+.intermission__message {
+  margin: 0;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.intermission__tasks-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.intermission__tasks {
+  margin: 0;
+  padding-left: clamp(1.25rem, 3vw, 2rem);
+  display: grid;
+  gap: clamp(0.65rem, 2vh, 0.9rem);
+  max-width: 640px;
+  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+}
+
+.intermission__task {
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.intermission__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.intermission__action-button {
+  min-width: clamp(160px, 35vw, 240px);
+  justify-content: center;
+}
+
+.intermission__action-button--primary {
+  font-weight: 700;
+}
+
+.intermission__resume,
+.intermission__summary,
+.intermission__notes {
+  display: grid;
+  gap: 0.65rem;
+  padding: clamp(1.15rem, 2.6vw, 1.75rem);
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.intermission__section-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.intermission__resume-caption,
+.intermission__resume-summary,
+.intermission__resume-saved-at {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.intermission__resume-summary {
+  font-size: 0.98rem;
+}
+
+.intermission__resume-saved-at {
+  font-size: 0.9rem;
+}
+
+.intermission__summary-content {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.intermission__notes-list {
+  margin: 0;
+  padding-left: clamp(1.25rem, 3vw, 2rem);
+  display: grid;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.intermission__note-item {
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .intermission__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .intermission__action-button {
+    width: 100%;
+  }
+}
+
 .intermission-summary {
   display: grid;
   gap: 1.25rem;
@@ -2583,6 +2717,67 @@ p {
   font-size: 0.95rem;
   color: var(--color-muted);
   text-align: center;
+}
+
+.intermission-backstage__reveal {
+  display: grid;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.intermission-backstage__reveal-section {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1vw, 0.75rem);
+  align-items: center;
+}
+
+.intermission-backstage__reveal-label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.intermission-backstage__reveal-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
+.intermission-backstage__reveal-card--matched {
+  border-color: rgba(34, 197, 94, 0.65);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+}
+
+.intermission-backstage__pair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.intermission-backstage__pair-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 128px;
+}
+
+.intermission-backstage__pair-label {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.intermission-backstage__pair-separator {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  color: var(--color-accent, var(--color-primary));
 }
 
 .intermission-backstage__actions .button {
