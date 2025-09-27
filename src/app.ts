@@ -2904,6 +2904,51 @@ const createBackstageRevealResultList = (
   return list;
 };
 
+const createBackstageMatchPairView = (
+  revealCard: CardSnapshot,
+  matchedCard: CardSnapshot,
+): HTMLDivElement => {
+  const pairContainer = document.createElement('div');
+  pairContainer.className = 'intermission-backstage__pair';
+
+  const createPairCard = (label: string, card: CardSnapshot): HTMLDivElement => {
+    const item = document.createElement('div');
+    item.className = 'intermission-backstage__pair-card';
+
+    const component = new CardComponent({
+      rank: card.rank,
+      suit: card.suit,
+      faceDown: card.face === 'down',
+      annotation: card.annotation,
+    });
+    component.el.classList.add('intermission-backstage__card');
+    item.append(component.el);
+
+    const caption = document.createElement('p');
+    caption.className = 'intermission-backstage__pair-label';
+    caption.textContent = `${label}：${formatCardLabel(card)}`;
+    item.append(caption);
+
+    return item;
+  };
+
+  const actorCard = cloneCardSnapshot(revealCard);
+  actorCard.face = 'up';
+  const backstageCard = cloneCardSnapshot(matchedCard);
+  backstageCard.face = 'up';
+
+  pairContainer.append(createPairCard('セットカード', actorCard));
+
+  const separator = document.createElement('span');
+  separator.className = 'intermission-backstage__pair-separator';
+  separator.textContent = '×';
+  pairContainer.append(separator);
+
+  pairContainer.append(createPairCard('バックステージカード', backstageCard));
+
+  return pairContainer;
+};
+
 const resolveBackstageRevealContext = (itemIds: string[]): BackstageRevealContext | null => {
   const state = gameStore.getState();
   const backstage = getBackstageState(state);
@@ -3069,6 +3114,11 @@ const openBackstageRevealResultDialog = (
     ? INTERMISSION_BACKSTAGE_RESULT_MATCH
     : INTERMISSION_BACKSTAGE_RESULT_MISMATCH;
   container.append(message);
+
+  const matchedEntry = outcome.revealedCards.find((entry) => entry.matched);
+  if (outcome.matched && matchedEntry) {
+    container.append(createBackstageMatchPairView(outcome.reveal.card, matchedEntry.card));
+  }
 
   container.append(createBackstageRevealResultList(outcome.reveal.card, outcome.revealedCards));
 
