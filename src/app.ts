@@ -16,6 +16,7 @@ import {
   saveGame,
   saveResult,
 } from './storage.js';
+import { resolveNextIntermissionActivePlayer } from './turn.js';
 import {
   createInitialBackstageState,
   createInitialState,
@@ -5059,7 +5060,7 @@ const handleIntermissionGatePass = (router: Router): void => {
     const timestamp = Date.now();
     const currentTurn = current.turn ?? { count: 0, startedAt: timestamp };
     const previousWatchState = current.watch ?? createInitialWatchState();
-    const nextActivePlayerId = getOpponentId(current.activePlayer);
+    const nextActivePlayerId = resolveNextIntermissionActivePlayer(current);
     const backstage = getBackstageState(current);
 
     return {
@@ -5325,7 +5326,6 @@ const completeWatchDecision = (decision: WatchDecision): CompleteWatchDecisionRe
 
     const timestamp = Date.now();
     const nextRoute = WATCH_DECISION_TO_PATH[decision];
-    const nextActivePlayerId = getOpponentId(current.activePlayer);
     const nextPlayer: PlayerState = {
       ...player,
       clapCount: decision === 'clap' ? player.clapCount + 1 : player.clapCount,
@@ -5342,7 +5342,6 @@ const completeWatchDecision = (decision: WatchDecision): CompleteWatchDecisionRe
         ...current.players,
         [current.activePlayer]: nextPlayer,
       },
-      activePlayer: nextActivePlayerId,
       watch: {
         ...previousWatchState,
         decision,
