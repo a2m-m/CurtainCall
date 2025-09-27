@@ -66,7 +66,9 @@ export const INTERMISSION_BACKSTAGE_STAGE_MOVE_MESSAGE = (playerName: string): s
 export const INTERMISSION_BACKSTAGE_DRAW_DECIDE_LABEL = '決定';
 export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_TITLE = 'カードを取得しました';
 export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE = (cardLabel: string): string =>
-  `${cardLabel}を手札に加えました。`;
+  `引いたカードは${cardLabel}です。手札に加えました。`;
+export const INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE = (cardLabel: string): string =>
+  `バックステージから${cardLabel}を取得しました。`;
 
 export const BACKSTAGE_GATE_TITLE = 'バックステージ';
 export const BACKSTAGE_GATE_CONFIRM_LABEL = 'バックステージへ';
