@@ -60,6 +60,11 @@ import {
 import { createWatchView, WatchStageViewModel, WatchStatusViewModel } from './views/watch.js';
 import { createSpotlightView, SpotlightStageViewModel } from './views/spotlight.js';
 import {
+  createBackstageView,
+  type BackstageViewContent,
+  type BackstageRevealItemViewModel,
+} from './views/backstage.js';
+import {
   createCurtainCallView,
   CurtainCallPlayerSummaryViewModel,
   CurtainCallResultViewModel,
@@ -2175,6 +2180,36 @@ const createBackstageGateSubtitle = (state: GameState): string => {
   return `${actorName}がバックステージアクションを実行します`;
 };
 
+const mapBackstageRevealItems = (state: GameState): BackstageRevealItemViewModel[] => {
+  return getBackstageRevealableItems(state).map((item, index) => ({
+    id: item.id,
+    order: index + 1,
+    rank: item.card.rank,
+    suit: item.card.suit,
+    annotation: item.card.annotation ?? null,
+  }));
+};
+
+const mapBackstageViewContent = (state: GameState): BackstageViewContent => {
+  if (!canPerformBackstageAction(state)) {
+    return {
+      hasAction: false,
+      message: INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE,
+      instruction: null,
+      items: [],
+    };
+  }
+
+  const items = mapBackstageRevealItems(state);
+
+  return {
+    hasAction: items.length > 0,
+    message: INTERMISSION_BACKSTAGE_DESCRIPTION,
+    instruction: INTERMISSION_BACKSTAGE_REVEAL_MESSAGE,
+    items,
+  };
+};
+
 const createIntermissionBackstageNotes = (state: GameState): string[] => {
   const backstage = getBackstageState(state);
   const notes: string[] = [];
@@ -3035,114 +3070,6 @@ const startBackstageRevealFlow = (itemId: string): void => {
   }
 
   openBackstageRevealConfirmDialog(modal, context);
-};
-
-const createBackstageGateContent = (state: GameState): HTMLElement | null => {
-  if (!canPerformBackstageAction(state)) {
-    return null;
-  }
-
-  const revealableItems = getBackstageRevealableItems(state);
-
-  if (typeof window === 'undefined') {
-    if (revealableItems.length > 0) {
-      const outcome = finalizeBackstageReveal(revealableItems[0].id);
-      if (outcome) {
-        handleBackstageRevealOutcome(outcome);
-      }
-    } else {
-      completeBackstageSkip();
-    }
-    return null;
-  }
-
-  const container = document.createElement('section');
-  container.className = 'intermission-backstage';
-
-  const title = document.createElement('h2');
-  title.className = 'intermission-backstage__title';
-  title.textContent = INTERMISSION_BACKSTAGE_ACTION_LABEL;
-  container.append(title);
-
-  const message = document.createElement('p');
-  message.className = 'intermission-backstage__message';
-  message.textContent =
-    revealableItems.length > 0
-      ? INTERMISSION_BACKSTAGE_DESCRIPTION
-      : INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE;
-  container.append(message);
-
-  let confirmButton: UIButton | null = null;
-
-  if (revealableItems.length > 0) {
-    const instruction = document.createElement('p');
-    instruction.className = 'intermission-backstage__instruction';
-    instruction.textContent = INTERMISSION_BACKSTAGE_REVEAL_MESSAGE;
-    container.append(instruction);
-
-    const list = document.createElement('ul');
-    list.className = 'intermission-backstage__list';
-
-    const buttonMap = new Map<string, HTMLButtonElement>();
-    let selectedItemId: string | null = null;
-
-    const updateSelection = (itemId: string | null) => {
-      selectedItemId = itemId;
-      buttonMap.forEach((button, id) => {
-        button.classList.toggle('intermission-backstage__button--selected', id === itemId);
-      });
-      confirmButton?.setDisabled(!itemId);
-    };
-
-    revealableItems.forEach((item, index) => {
-      const listItem = createBackstageCardButton(item, index + 1, () => {
-        const nextId = selectedItemId === item.id ? null : item.id;
-        updateSelection(nextId);
-      });
-      const button = listItem.querySelector<HTMLButtonElement>('button');
-      if (button) {
-        buttonMap.set(item.id, button);
-      }
-      list.append(listItem);
-    });
-
-    container.append(list);
-
-    confirmButton = new UIButton({
-      label: INTERMISSION_BACKSTAGE_DECIDE_LABEL,
-      preventRapid: true,
-      disabled: true,
-    });
-
-    confirmButton.onClick(() => {
-      if (!selectedItemId) {
-        return;
-      }
-      startBackstageRevealFlow(selectedItemId);
-    });
-  }
-
-  const actions = document.createElement('div');
-  actions.className = 'intermission-backstage__actions';
-
-  if (confirmButton) {
-    actions.append(confirmButton.el);
-  }
-
-  const skipButton = new UIButton({
-    label: INTERMISSION_BACKSTAGE_SKIP_LABEL,
-    variant: 'ghost',
-    preventRapid: true,
-  });
-
-  skipButton.onClick(() => {
-    completeBackstageSkip();
-  });
-
-  actions.append(skipButton.el);
-  container.append(actions);
-
-  return container;
 };
 
 const handleBackstageRevealOutcome = (outcome: BackstageRevealResult): void => {
@@ -4881,7 +4808,7 @@ const handleIntermissionGatePass = (router: Router): void => {
 const handleBackstageGatePass = (router: Router): void => {
   const state = gameStore.getState();
   if (shouldEnterBackstagePhase(state)) {
-    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_PENDING_MESSAGE);
+    router.go(BACKSTAGE_PHASE_PATH);
     return;
   }
 
@@ -5971,6 +5898,7 @@ let activeTurnIndicatorCleanup: (() => void) | null = null;
 let activeScoutCleanup: (() => void) | null = null;
 let activeActionCleanup: (() => void) | null = null;
 let activeWatchCleanup: (() => void) | null = null;
+let activeBackstageCleanup: (() => void) | null = null;
 let activeSpotlightCleanup: (() => void) | null = null;
 let activeCurtainCallCleanup: (() => void) | null = null;
 
@@ -6013,6 +5941,14 @@ const cleanupActiveWatchView = (): void => {
   }
 };
 
+const cleanupActiveBackstageView = (): void => {
+  if (activeBackstageCleanup) {
+    const cleanup = activeBackstageCleanup;
+    activeBackstageCleanup = null;
+    cleanup();
+  }
+};
+
 const cleanupActiveSpotlightView = (): void => {
   if (activeSpotlightCleanup) {
     const cleanup = activeSpotlightCleanup;
@@ -6044,6 +5980,7 @@ const withRouteCleanup = (
     cleanupActiveScoutView();
     cleanupActiveActionView();
     cleanupActiveWatchView();
+    cleanupActiveBackstageView();
     cleanupActiveSpotlightView();
     cleanupActiveCurtainCallView();
     const view = render(context);
@@ -6185,7 +6122,20 @@ const ROUTES: RouteDescriptor[] = [
       confirmLabel: BACKSTAGE_GATE_CONFIRM_LABEL,
       resolveMessage: () => BACKSTAGE_GATE_MESSAGE,
       resolveSubtitle: (state) => createBackstageGateSubtitle(state),
-      resolveContent: ({ state }) => createBackstageGateContent(state),
+      resolveActions: () => [
+        {
+          label: INTERMISSION_BOARD_CHECK_LABEL,
+          variant: 'ghost',
+          preventRapid: true,
+          onSelect: () => showBoardCheck(),
+        },
+        {
+          label: INTERMISSION_SUMMARY_LABEL,
+          variant: 'ghost',
+          preventRapid: true,
+          onSelect: () => openIntermissionSummaryDialog(),
+        },
+      ],
       onPass: (nextRouter) => handleBackstageGatePass(nextRouter),
     }),
   },
@@ -6686,6 +6636,54 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             revokeSpotlightSecretAccess();
             isSpotlightSecretPairInProgress = false;
             isSpotlightExitInProgress = false;
+          };
+
+          return view;
+        },
+      };
+    } else if (route.path === BACKSTAGE_PHASE_PATH) {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: ({ router: contextRouter }) => {
+          const state = gameStore.getState();
+
+          if (!shouldEnterBackstagePhase(state)) {
+            handleBackstageGatePass(contextRouter);
+            return createPlaceholderView({
+              title: route.heading,
+              subtitle: BACKSTAGE_GATE_SUBTITLE,
+            });
+          }
+
+          const view = createBackstageView({
+            title: route.heading,
+            subtitle: createBackstageGateSubtitle(state),
+            content: mapBackstageViewContent(state),
+            notes: createIntermissionBackstageNotes(state),
+            confirmLabel: INTERMISSION_BACKSTAGE_DECIDE_LABEL,
+            skipLabel: INTERMISSION_BACKSTAGE_SKIP_LABEL,
+            revealLabel: INTERMISSION_BACKSTAGE_REVEAL_LABEL,
+            boardCheckLabel: INTERMISSION_BOARD_CHECK_LABEL,
+            summaryLabel: INTERMISSION_SUMMARY_LABEL,
+            onConfirmSelection: (itemId) => startBackstageRevealFlow(itemId),
+            onSkip: () => completeBackstageSkip(),
+            onOpenBoardCheck: () => showBoardCheck(),
+            onOpenSummary: () => openIntermissionSummaryDialog(),
+          });
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            if (!shouldEnterBackstagePhase(nextState)) {
+              handleBackstageGatePass(contextRouter);
+              return;
+            }
+            view.updateSubtitle(createBackstageGateSubtitle(nextState));
+            view.updateContent(mapBackstageViewContent(nextState));
+            view.updateNotes(createIntermissionBackstageNotes(nextState));
+          });
+
+          activeBackstageCleanup = () => {
+            unsubscribe();
           };
 
           return view;
