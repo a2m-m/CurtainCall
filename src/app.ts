@@ -2457,7 +2457,6 @@ const finalizeBackstageDraw = (itemId: string): void => {
 
   const modal = window.curtainCall?.modal;
   if (modal) {
-    isIntermissionBackstageDialogOpen = false;
     modal.close();
   }
 
@@ -2866,7 +2865,6 @@ const openIntermissionBackstageDrawDialog = (): void => {
   hiddenItems.forEach((item, index) => {
     list.append(
       createBackstageCardButton(item, index + 1, () => {
-        isIntermissionBackstageDialogOpen = false;
         modal.close();
         finalizeBackstageDraw(item.id);
       }),
@@ -2874,8 +2872,6 @@ const openIntermissionBackstageDrawDialog = (): void => {
   });
 
   container.append(list);
-
-  isIntermissionBackstageDialogOpen = true;
 
   modal.open({
     title: INTERMISSION_BACKSTAGE_DRAW_TITLE,
@@ -4743,7 +4739,6 @@ let isSpotlightExitInProgress = false;
 let isCurtainCallSaveDialogOpen = false;
 let isCurtainCallSaveInProgress = false;
 let isIntermissionBackstageActionInProgress = false;
-let isIntermissionBackstageDialogOpen = false;
 
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
