@@ -2651,6 +2651,7 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
 
 const createBackstageCardButton = (
   item: BackstageItemState,
+  order: number,
   onSelect: () => void,
 ): HTMLLIElement => {
   const listItem = document.createElement('li');
@@ -2662,7 +2663,7 @@ const createBackstageCardButton = (
   button.addEventListener('click', () => onSelect());
   button.setAttribute(
     'aria-label',
-    `${INTERMISSION_BACKSTAGE_REVEAL_LABEL}：カード #${String(item.position + 1).padStart(2, '0')}`,
+    `${INTERMISSION_BACKSTAGE_REVEAL_LABEL}：カード ${String(order).padStart(2, '0')}`,
   );
 
   const cardComponent = new CardComponent({
@@ -2676,7 +2677,7 @@ const createBackstageCardButton = (
 
   const label = document.createElement('span');
   label.className = 'intermission-backstage__label';
-  label.textContent = `カード #${String(item.position + 1).padStart(2, '0')}`;
+  label.textContent = `カード ${String(order).padStart(2, '0')}`;
   button.append(label);
 
   listItem.append(button);
@@ -2714,9 +2715,9 @@ const openIntermissionBackstageDrawDialog = (): void => {
   const list = document.createElement('ul');
   list.className = 'intermission-backstage__list';
 
-  hiddenItems.forEach((item) => {
+  hiddenItems.forEach((item, index) => {
     list.append(
-      createBackstageCardButton(item, () => {
+      createBackstageCardButton(item, index + 1, () => {
         isIntermissionBackstageDialogOpen = false;
         modal.close();
         finalizeBackstageDraw(item.id);
@@ -2814,9 +2815,9 @@ const openIntermissionBackstageActionDialog = (): void => {
   const list = document.createElement('ul');
   list.className = 'intermission-backstage__list';
 
-  revealableItems.forEach((item) => {
+  revealableItems.forEach((item, index) => {
     list.append(
-      createBackstageCardButton(item, () => {
+      createBackstageCardButton(item, index + 1, () => {
         modal.close();
         isIntermissionBackstageDialogOpen = false;
         const outcome = finalizeBackstageReveal(item.id);
