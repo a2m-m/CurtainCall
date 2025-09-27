@@ -317,10 +317,10 @@ export const CARD_COMPOSITION = Object.freeze({
 
 export const REQUIRED_BOO_COUNT = 3;
 
-const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
+export const DEFAULT_PLAYER_NAMES: Readonly<Record<PlayerId, string>> = Object.freeze({
   lumina: 'プレイヤーA',
   nox: 'プレイヤーB',
-};
+});
 
 const createInitialScore = (): PlayerScore => ({
   sumKami: 0,

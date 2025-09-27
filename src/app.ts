@@ -21,6 +21,7 @@ import {
   createInitialBackstageState,
   createInitialState,
   createInitialWatchState,
+  DEFAULT_PLAYER_NAMES,
   gameStore,
   PLAYER_IDS,
   REQUIRED_BOO_COUNT,
@@ -1080,10 +1081,7 @@ const HOME_START_PATH = '#/standby';
 const HOME_RESUME_GATE_PATH = '#/resume/gate';
 const RULEBOOK_PATH = './rulebook.md';
 
-const PLAYER_LABELS: Record<PlayerId, string> = {
-  lumina: 'ルミナ',
-  nox: 'ノクス',
-};
+const PLAYER_LABELS: Readonly<Record<PlayerId, string>> = DEFAULT_PLAYER_NAMES;
 
 const PLAYER_ROLES: Record<PlayerId, string> = {
   lumina: 'プレイヤーA',
@@ -2361,20 +2359,24 @@ const formatIntermissionSetSummary = (state: GameState): string => {
 const formatIntermissionScoreSummary = (state: GameState): string => {
   const luminaScore = state.players.lumina?.score?.final ?? 0;
   const noxScore = state.players.nox?.score?.final ?? 0;
+  const luminaName = getPlayerDisplayName(state, 'lumina');
+  const noxName = getPlayerDisplayName(state, 'nox');
   const diff = luminaScore - noxScore;
   if (diff > 0) {
-    return `ルミナ +${diff}｜ルミナ ${luminaScore} / ノクス ${noxScore}`;
+    return `${luminaName} +${diff}｜${luminaName} ${luminaScore} / ${noxName} ${noxScore}`;
   }
   if (diff < 0) {
-    return `ノクス +${Math.abs(diff)}｜ルミナ ${luminaScore} / ノクス ${noxScore}`;
+    return `${noxName} +${Math.abs(diff)}｜${luminaName} ${luminaScore} / ${noxName} ${noxScore}`;
   }
-  return `同点｜ルミナ ${luminaScore} / ノクス ${noxScore}`;
+  return `同点｜${luminaName} ${luminaScore} / ${noxName} ${noxScore}`;
 };
 
 const formatIntermissionBooSummary = (state: GameState): string => {
   const luminaBoo = state.players.lumina?.booCount ?? 0;
   const noxBoo = state.players.nox?.booCount ?? 0;
-  return `ルミナ ${luminaBoo} / 3 ｜ ノクス ${noxBoo} / 3`;
+  const luminaName = getPlayerDisplayName(state, 'lumina');
+  const noxName = getPlayerDisplayName(state, 'nox');
+  return `${luminaName} ${luminaBoo} / 3 ｜ ${noxName} ${noxBoo} / 3`;
 };
 
 const formatIntermissionNextPlayerSummary = (state: GameState): string => {
