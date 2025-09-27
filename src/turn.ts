@@ -10,9 +10,15 @@ export const getOpponentId = (player: PlayerId): PlayerId =>
 
 /**
  * インターミッション再開時の次手番プレイヤーを判定する。
- * ブーイング成功かどうかに関わらず、常に現在の手番プレイヤーの相手を返す。
+ * ブーイング成功などでアクティブプレイヤーが入れ替わっていても、
+ * 直前のスカウトを担当したプレイヤーの相手を次のアクティブとして返す。
  * @param state 現在のゲーム状態
  * @returns 次にアクティブになるプレイヤーID
  */
-export const resolveNextIntermissionActivePlayer = (state: GameState): PlayerId =>
-  getOpponentId(state.activePlayer);
+export const resolveNextIntermissionActivePlayer = (state: GameState): PlayerId => {
+  const lastScoutPlayer = state.lastScoutPlayer;
+  if (lastScoutPlayer === 'lumina' || lastScoutPlayer === 'nox') {
+    return getOpponentId(lastScoutPlayer);
+  }
+  return getOpponentId(state.activePlayer);
+};
