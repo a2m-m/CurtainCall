@@ -22,6 +22,7 @@ export interface GateViewOptions {
   lockDuration?: number;
   onGatePass?: () => void;
   actions?: GateViewAction[];
+  content?: HTMLElement | null;
 }
 
 const createTextParagraph = (content: string): HTMLParagraphElement => {
@@ -94,6 +95,10 @@ export const createGateView = (options: GateViewOptions): HTMLElement => {
   const hints = renderHintList(options.hints);
   if (hints) {
     main.append(hints);
+  }
+
+  if (options.content) {
+    main.append(options.content);
   }
 
   const actions = renderActions(options.actions);

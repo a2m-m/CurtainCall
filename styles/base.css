@@ -2345,6 +2345,13 @@ p {
   justify-items: center;
 }
 
+.intermission-backstage__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 .intermission-backstage__message,
 .intermission-backstage__instruction {
   margin: 0;
@@ -2426,6 +2433,16 @@ p {
 .intermission-backstage__label {
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.intermission-backstage__actions {
+  display: flex;
+  gap: clamp(0.75rem, 1.5vw, 1rem);
+  justify-content: center;
+}
+
+.intermission-backstage__actions .button {
+  min-width: clamp(8rem, 18vw, 10rem);
 }
 
 .spotlight-set-picker {

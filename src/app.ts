@@ -49,7 +49,7 @@ import { CardComponent } from './ui/card.js';
 import { showBoardCheck } from './ui/board-check.js';
 import { setGateModalController } from './ui/gate.js';
 import { createGateView } from './views/gate.js';
-import type { ButtonVariant } from './ui/button.js';
+import { UIButton, type ButtonVariant } from './ui/button.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
 import {
@@ -95,6 +95,8 @@ interface GateDescriptor {
   onPass?: (router: Router) => void;
   resolveSubtitle?: (state: GameState) => string | undefined;
   resolveActions?: (context: { state: GameState; router: Router }) => GateActionDescriptor[];
+  content?: HTMLElement | null;
+  resolveContent?: (context: { state: GameState; router: Router }) => HTMLElement | null;
 }
 
 interface RouteDescriptor {
@@ -146,7 +148,6 @@ const {
   INTERMISSION_BACKSTAGE_DESCRIPTION,
   INTERMISSION_BACKSTAGE_REVEAL_LABEL,
   INTERMISSION_BACKSTAGE_SKIP_LABEL,
-  INTERMISSION_BACKSTAGE_REVEAL_TITLE,
   INTERMISSION_BACKSTAGE_REVEAL_MESSAGE,
   INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE,
   INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE,
@@ -2688,6 +2689,84 @@ const createBackstageCardButton = (
   return listItem;
 };
 
+const createBackstageGateContent = (state: GameState): HTMLElement | null => {
+  if (!canPerformBackstageAction(state)) {
+    return null;
+  }
+
+  const revealableItems = getBackstageRevealableItems(state);
+
+  if (typeof window === 'undefined') {
+    if (revealableItems.length > 0) {
+      const outcome = finalizeBackstageReveal(revealableItems[0].id);
+      if (outcome) {
+        handleBackstageRevealOutcome(outcome);
+      }
+    } else {
+      completeBackstageSkip();
+    }
+    return null;
+  }
+
+  const container = document.createElement('section');
+  container.className = 'intermission-backstage';
+
+  const title = document.createElement('h2');
+  title.className = 'intermission-backstage__title';
+  title.textContent = INTERMISSION_BACKSTAGE_ACTION_LABEL;
+  container.append(title);
+
+  const message = document.createElement('p');
+  message.className = 'intermission-backstage__message';
+  message.textContent =
+    revealableItems.length > 0
+      ? INTERMISSION_BACKSTAGE_DESCRIPTION
+      : INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE;
+  container.append(message);
+
+  if (revealableItems.length > 0) {
+    const instruction = document.createElement('p');
+    instruction.className = 'intermission-backstage__instruction';
+    instruction.textContent = INTERMISSION_BACKSTAGE_REVEAL_MESSAGE;
+    container.append(instruction);
+
+    const list = document.createElement('ul');
+    list.className = 'intermission-backstage__list';
+
+    revealableItems.forEach((item, index) => {
+      list.append(
+        createBackstageCardButton(item, index + 1, () => {
+          const outcome = finalizeBackstageReveal(item.id);
+          if (!outcome) {
+            return;
+          }
+          handleBackstageRevealOutcome(outcome);
+        }),
+      );
+    });
+
+    container.append(list);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'intermission-backstage__actions';
+
+  const skipButton = new UIButton({
+    label: INTERMISSION_BACKSTAGE_SKIP_LABEL,
+    variant: 'ghost',
+    preventRapid: true,
+  });
+
+  skipButton.onClick(() => {
+    completeBackstageSkip();
+  });
+
+  actions.append(skipButton.el);
+  container.append(actions);
+
+  return container;
+};
+
 const showBackstageRevealResultDialog = (
   modal: ModalController,
   outcome: BackstageRevealResult,
@@ -2803,96 +2882,6 @@ const openIntermissionBackstageDrawDialog = (): void => {
     body: container,
     dismissible: false,
     actions: [],
-  });
-};
-
-const openIntermissionBackstageActionDialog = (): void => {
-  const state = gameStore.getState();
-
-  if (!canPerformBackstageAction(state)) {
-    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
-    return;
-  }
-
-  const revealableItems = getBackstageRevealableItems(state);
-  if (revealableItems.length === 0) {
-    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE);
-    return;
-  }
-
-  if (typeof window === 'undefined') {
-    const outcome = finalizeBackstageReveal(revealableItems[0].id);
-    if (!outcome) {
-      return;
-    }
-    handleBackstageRevealOutcome(outcome);
-    return;
-  }
-
-  const modal = window.curtainCall?.modal;
-  if (!modal) {
-    const outcome = finalizeBackstageReveal(revealableItems[0].id);
-    if (!outcome) {
-      return;
-    }
-    handleBackstageRevealOutcome(outcome);
-    return;
-  }
-
-  if (isIntermissionBackstageDialogOpen) {
-    return;
-  }
-
-  const container = document.createElement('div');
-  container.className = 'intermission-backstage';
-
-  const message = document.createElement('p');
-  message.className = 'intermission-backstage__message';
-  message.textContent = INTERMISSION_BACKSTAGE_DESCRIPTION;
-  container.append(message);
-
-  const instruction = document.createElement('p');
-  instruction.className = 'intermission-backstage__instruction';
-  instruction.textContent = INTERMISSION_BACKSTAGE_REVEAL_MESSAGE;
-  container.append(instruction);
-
-  const list = document.createElement('ul');
-  list.className = 'intermission-backstage__list';
-
-  revealableItems.forEach((item, index) => {
-    list.append(
-      createBackstageCardButton(item, index + 1, () => {
-        modal.close();
-        isIntermissionBackstageDialogOpen = false;
-        const outcome = finalizeBackstageReveal(item.id);
-        if (!outcome) {
-          return;
-        }
-        handleBackstageRevealOutcome(outcome);
-      }),
-    );
-  });
-
-  container.append(list);
-
-  isIntermissionBackstageDialogOpen = true;
-
-  modal.open({
-    title: INTERMISSION_BACKSTAGE_REVEAL_TITLE,
-    body: container,
-    dismissible: false,
-    actions: [
-      {
-        label: INTERMISSION_BACKSTAGE_SKIP_LABEL,
-        variant: 'ghost',
-        preventRapid: true,
-        onSelect: () => {
-          modal.close();
-          isIntermissionBackstageDialogOpen = false;
-          completeBackstageSkip();
-        },
-      },
-    ],
   });
 };
 
@@ -5772,19 +5761,7 @@ const ROUTES: RouteDescriptor[] = [
       confirmLabel: BACKSTAGE_GATE_CONFIRM_LABEL,
       resolveMessage: () => BACKSTAGE_GATE_MESSAGE,
       resolveSubtitle: (state) => createBackstageGateSubtitle(state),
-      resolveActions: ({ state }) => {
-        const actions: GateActionDescriptor[] = [];
-
-        if (canPerformBackstageAction(state)) {
-          actions.push({
-            label: INTERMISSION_BACKSTAGE_ACTION_LABEL,
-            variant: 'primary',
-            preventRapid: true,
-            onSelect: () => openIntermissionBackstageActionDialog(),
-          });
-        }
-        return actions;
-      },
+      resolveContent: ({ state }) => createBackstageGateContent(state),
       onPass: (nextRouter) => handleBackstageGatePass(nextRouter),
     }),
   },
@@ -5869,6 +5846,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             createTurnGateMessage(state, confirmLabel);
           const resolvedSubtitle = route.gate?.resolveSubtitle?.(state) ?? route.subtitle;
           const resolvedActions = route.gate?.resolveActions?.({ state, router: contextRouter }) ?? [];
+          const resolvedContent =
+            route.gate?.resolveContent?.({ state, router: contextRouter }) ?? route.gate?.content ?? null;
           const baseNotes = route.gate?.modalNotes ?? [];
           const dynamicNotes = route.gate?.resolveModalNotes?.(state) ?? [];
           const combinedNotes = [...baseNotes, ...dynamicNotes].filter(
@@ -5893,6 +5872,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               lockDuration: action.lockDuration,
               onSelect: () => action.onSelect?.({ router: contextRouter }),
             })),
+            content: resolvedContent ?? undefined,
             onGatePass: () => {
               if (route.gate?.onPass) {
                 route.gate.onPass(contextRouter);
