@@ -2022,6 +2022,21 @@ const findLatestCompleteStagePair = (stage: StageArea | undefined): StagePair | 
   return null;
 };
 
+const findLatestHiddenStagePair = (stage: StageArea | undefined): StagePair | null => {
+  if (!stage) {
+    return null;
+  }
+
+  for (let index = stage.pairs.length - 1; index >= 0; index -= 1) {
+    const pair = stage.pairs[index];
+    if (pair?.actor?.card && pair.kuroko?.card?.face === 'down') {
+      return pair;
+    }
+  }
+
+  return null;
+};
+
 const findLatestWatchStagePair = (state: GameState): StagePair | null => {
   const opponentId = getOpponentId(state.activePlayer);
   const opponent = state.players[opponentId];
@@ -2071,14 +2086,24 @@ const mapWatchStage = (state: GameState): WatchStageViewModel => {
 
 const findLatestSpotlightPair = (state: GameState): StagePair | null => {
   const activePlayer = state.players[state.activePlayer];
-  const activePair = findLatestCompleteStagePair(activePlayer?.stage);
+  const opponentId = getOpponentId(state.activePlayer);
+  const opponent = state.players[opponentId];
 
+  const activeHiddenPair = findLatestHiddenStagePair(activePlayer?.stage);
+  if (activeHiddenPair) {
+    return activeHiddenPair;
+  }
+
+  const opponentHiddenPair = findLatestHiddenStagePair(opponent?.stage);
+  if (opponentHiddenPair) {
+    return opponentHiddenPair;
+  }
+
+  const activePair = findLatestCompleteStagePair(activePlayer?.stage);
   if (activePair) {
     return activePair;
   }
 
-  const opponentId = getOpponentId(state.activePlayer);
-  const opponent = state.players[opponentId];
   return findLatestCompleteStagePair(opponent?.stage);
 };
 
