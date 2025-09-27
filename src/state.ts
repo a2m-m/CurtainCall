@@ -7,6 +7,7 @@ export type PhaseKey =
   | 'action'
   | 'watch'
   | 'spotlight'
+  | 'backstage'
   | 'intermission'
   | 'curtaincall';
 
@@ -185,6 +186,7 @@ export type HistoryEntryType =
   | 'action'
   | 'watch'
   | 'spotlight'
+  | 'backstage'
   | 'intermission'
   | 'curtaincall'
   | 'result';
