@@ -154,6 +154,9 @@ export interface BackstageState {
   lastSpotlightPairFormed: boolean;
   canActPlayer: PlayerId | null;
   actedThisIntermission: boolean;
+  lastResult: 'match' | 'mismatch' | null;
+  lastResultMessage: string | null;
+  lastCompletionMessage: string | null;
 }
 
 export type CurtainCallReason = 'jokerBonus' | 'setRemaining1';
@@ -372,6 +375,9 @@ export const createInitialBackstageState = (): BackstageState => ({
   lastSpotlightPairFormed: false,
   canActPlayer: null,
   actedThisIntermission: false,
+  lastResult: null,
+  lastResultMessage: null,
+  lastCompletionMessage: null,
 });
 
 export const createInitialState = (): GameState => {

@@ -2329,6 +2329,95 @@ p {
   color: var(--color-muted);
 }
 
+.intermission-backstage {
+  display: grid;
+  gap: clamp(1rem, 2.5vh, 1.5rem);
+  justify-items: center;
+}
+
+.intermission-backstage__message,
+.intermission-backstage__instruction {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.intermission-backstage__instruction {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.intermission-backstage__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  display: grid;
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+
+.intermission-backstage__item {
+  display: flex;
+  justify-content: center;
+}
+
+.intermission-backstage__button {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+.intermission-backstage__button:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(15, 23, 42, 0.65);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(251, 191, 36, 0.18);
+}
+
+.intermission-backstage__button:focus-visible {
+  outline: 3px solid rgba(251, 191, 36, 0.55);
+  outline-offset: 3px;
+}
+
+.intermission-backstage__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.intermission-backstage__card {
+  width: clamp(72px, 15vw, 100px);
+  height: clamp(104px, 21vw, 140px);
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  transition:
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+}
+
+.intermission-backstage__button:hover:not(:disabled) .intermission-backstage__card {
+  border-color: rgba(251, 191, 36, 0.55);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
+}
+
+.intermission-backstage__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .spotlight-set-picker {
   display: grid;
   gap: 1.25rem;
@@ -2781,12 +2870,14 @@ p {
 
   .scout-hand__grid,
   .myhand__hand-list,
-  .spotlight-set-picker__list {
+  .spotlight-set-picker__list,
+  .intermission-backstage__list {
     grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
   }
 
   .scout-hand__card-button,
-  .spotlight-set-picker__button {
+  .spotlight-set-picker__button,
+  .intermission-backstage__button {
     padding: 0.65rem;
   }
 
