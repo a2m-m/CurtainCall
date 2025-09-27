@@ -65,6 +65,10 @@ import {
   type BackstageRevealItemViewModel,
 } from './views/backstage.js';
 import {
+  createIntermissionView,
+  type IntermissionResumeInfo,
+} from './views/intermission.js';
+import {
   createCurtainCallView,
   CurtainCallPlayerSummaryViewModel,
   CurtainCallResultViewModel,
@@ -184,6 +188,18 @@ const {
   INTERMISSION_BACKSTAGE_DRAW_CONFIRM_TITLE,
   INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE,
   INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE,
+  INTERMISSION_VIEW_GATE_LABEL,
+  INTERMISSION_VIEW_RESUME_LABEL,
+  INTERMISSION_VIEW_RESUME_TITLE,
+  INTERMISSION_VIEW_RESUME_CAPTION,
+  INTERMISSION_VIEW_RESUME_EMPTY,
+  INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX,
+  INTERMISSION_VIEW_SUMMARY_TITLE,
+  INTERMISSION_VIEW_NOTES_TITLE,
+  INTERMISSION_TASK_NEXT_PLAYER,
+  INTERMISSION_TASK_REVIEW,
+  INTERMISSION_TASK_RESUME,
+  INTERMISSION_TASK_GATE,
   BACKSTAGE_GATE_TITLE,
   BACKSTAGE_GATE_CONFIRM_LABEL,
   BACKSTAGE_GATE_MESSAGE,
@@ -367,14 +383,14 @@ const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
 
 const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
 
-const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
+const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission';
 const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
 const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight';
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
 const BACKSTAGE_PHASE_PATH = '#/phase/backstage';
 const BACKSTAGE_GATE_PATH = '#/phase/backstage/gate';
 const SPOTLIGHT_TO_BACKSTAGE_PATH = BACKSTAGE_GATE_PATH;
-const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
+const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission';
 
 const CURTAINCALL_BOO_PENALTY = 15;
 
@@ -2228,6 +2244,39 @@ const createIntermissionBackstageNotes = (state: GameState): string[] => {
   }
 
   return notes;
+};
+
+const createIntermissionTasks = (state: GameState): string[] => {
+  const nextPlayerName = getPlayerDisplayName(state, state.activePlayer);
+  return [
+    INTERMISSION_TASK_NEXT_PLAYER(nextPlayerName),
+    INTERMISSION_TASK_REVIEW,
+    INTERMISSION_TASK_RESUME,
+    INTERMISSION_TASK_GATE,
+  ];
+};
+
+const mapIntermissionResumeInfo = (): IntermissionResumeInfo => {
+  const metadata = getSavedGameMetadata();
+
+  if (!metadata) {
+    return {
+      available: false,
+      summary: INTERMISSION_VIEW_RESUME_EMPTY,
+      savedAtLabel: null,
+    };
+  }
+
+  const savedAt = formatResumeTimestamp(metadata.savedAt);
+  const savedAtLabel = savedAt
+    ? `${INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX}${savedAt}`
+    : null;
+
+  return {
+    available: true,
+    summary: createResumeSummary(metadata.activePlayer, metadata.phase),
+    savedAtLabel,
+  };
 };
 
 const findLatestStagePairForIntermission = (state: GameState): StagePair | null => {
@@ -6132,6 +6181,7 @@ let activeTurnIndicatorCleanup: (() => void) | null = null;
 let activeScoutCleanup: (() => void) | null = null;
 let activeActionCleanup: (() => void) | null = null;
 let activeWatchCleanup: (() => void) | null = null;
+let activeIntermissionCleanup: (() => void) | null = null;
 let activeBackstageCleanup: (() => void) | null = null;
 let activeSpotlightCleanup: (() => void) | null = null;
 let activeCurtainCallCleanup: (() => void) | null = null;
@@ -6175,6 +6225,14 @@ const cleanupActiveWatchView = (): void => {
   }
 };
 
+const cleanupActiveIntermissionView = (): void => {
+  if (activeIntermissionCleanup) {
+    const cleanup = activeIntermissionCleanup;
+    activeIntermissionCleanup = null;
+    cleanup();
+  }
+};
+
 const cleanupActiveBackstageView = (): void => {
   if (activeBackstageCleanup) {
     const cleanup = activeBackstageCleanup;
@@ -6214,6 +6272,7 @@ const withRouteCleanup = (
     cleanupActiveScoutView();
     cleanupActiveActionView();
     cleanupActiveWatchView();
+    cleanupActiveIntermissionView();
     cleanupActiveBackstageView();
     cleanupActiveSpotlightView();
     cleanupActiveCurtainCallView();
@@ -6883,6 +6942,74 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             revokeSpotlightSecretAccess();
             isSpotlightSecretPairInProgress = false;
             isSpotlightExitInProgress = false;
+          };
+
+          return view;
+        },
+      };
+    } else if (route.path === '#/phase/intermission') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: ({ router: contextRouter }) => {
+          const state = gameStore.getState();
+
+          if (shouldEnterBackstagePhase(state)) {
+            if (contextRouter) {
+              contextRouter.go(BACKSTAGE_GATE_PATH);
+            } else {
+              navigateToBackstageGate();
+            }
+
+            return createPlaceholderView({
+              title: route.heading,
+              subtitle: INTERMISSION_BACKSTAGE_PENDING_MESSAGE,
+            });
+          }
+
+          const view = createIntermissionView({
+            title: route.heading,
+            subtitle: createIntermissionGateSubtitle(state),
+            message: createTurnGateMessage(state, INTERMISSION_GATE_CONFIRM_LABEL),
+            tasks: createIntermissionTasks(state),
+            summaryTitle: INTERMISSION_VIEW_SUMMARY_TITLE,
+            summaryContent: createIntermissionSummaryView(state),
+            notesTitle: INTERMISSION_VIEW_NOTES_TITLE,
+            notes: createIntermissionBackstageNotes(state),
+            boardCheckLabel: INTERMISSION_BOARD_CHECK_LABEL,
+            summaryLabel: INTERMISSION_SUMMARY_LABEL,
+            resumeLabel: INTERMISSION_VIEW_RESUME_LABEL,
+            resumeTitle: INTERMISSION_VIEW_RESUME_TITLE,
+            resumeCaption: INTERMISSION_VIEW_RESUME_CAPTION,
+            resumeInfo: mapIntermissionResumeInfo(),
+            gateLabel: INTERMISSION_VIEW_GATE_LABEL,
+            onOpenBoardCheck: () => showBoardCheck(),
+            onOpenSummary: () => openIntermissionSummaryDialog(),
+            onOpenResume: () => contextRouter.go('#/resume/gate'),
+            onOpenGate: () => contextRouter.go('#/phase/intermission/gate'),
+          });
+
+          view.setGateDisabled(shouldEnterBackstagePhase(state));
+
+          const unsubscribe = gameStore.subscribe((nextState) => {
+            if (shouldEnterBackstagePhase(nextState)) {
+              view.setGateDisabled(true);
+              navigateToBackstageGate();
+              return;
+            }
+
+            view.updateSubtitle(createIntermissionGateSubtitle(nextState));
+            view.updateMessage(
+              createTurnGateMessage(nextState, INTERMISSION_GATE_CONFIRM_LABEL),
+            );
+            view.updateTasks(createIntermissionTasks(nextState));
+            view.updateSummary(createIntermissionSummaryView(nextState));
+            view.updateNotes(createIntermissionBackstageNotes(nextState));
+            view.setResumeInfo(mapIntermissionResumeInfo());
+          });
+
+          activeIntermissionCleanup = () => {
+            unsubscribe();
           };
 
           return view;
