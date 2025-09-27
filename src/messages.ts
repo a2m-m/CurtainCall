@@ -69,7 +69,7 @@ export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE = (cardLabel: string): 
   `${cardLabel}を手札に加えました。`;
 
 export const BACKSTAGE_GATE_TITLE = 'バックステージ';
-export const BACKSTAGE_GATE_CONFIRM_LABEL = 'インターミッションへ';
+export const BACKSTAGE_GATE_CONFIRM_LABEL = 'バックステージへ';
 export const BACKSTAGE_GATE_MESSAGE =
   'バックステージアクションを完了するとインターミッションへ移動します。公開またはスキップの処理を行ってください。';
 export const BACKSTAGE_GATE_SUBTITLE = 'バックステージアクション担当のプレイヤーを呼び出してください。';
