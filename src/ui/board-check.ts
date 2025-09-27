@@ -7,7 +7,6 @@ import {
   PlayerId,
   PLAYER_IDS,
   REQUIRED_BOO_COUNT,
-  SetRevealBonus,
   StageCardPlacement,
   StagePair,
   gameStore,
@@ -19,8 +18,7 @@ import type { ModalController } from './modal.js';
 
 export type BoardCheckTabKey =
   | 'overview'
-  | 'set'
-  | 'backstage'
+  | 'setBackstage'
   | 'stage'
   | 'score'
   | 'luminaStage'
@@ -44,12 +42,6 @@ const SUIT_LABEL: Record<CardSnapshot['suit'], string> = {
   joker: 'ジョーカー',
 };
 
-const SET_BONUS_LABEL: Record<SetRevealBonus, string> = {
-  joker: 'JOKERボーナス',
-  pair: '追加公開',
-  secretPair: 'シークレットペア',
-};
-
 const BACKSTAGE_STATUS_LABEL: Record<BackstageItemStatus, string> = {
   backstage: 'バックステージ',
   stage: 'ステージ',
@@ -63,14 +55,9 @@ const TAB_DEFINITIONS: TabDefinition[] = [
     render: (state) => renderOverviewTab(state),
   },
   {
-    key: 'set',
-    label: 'セット',
-    render: (state) => renderSetTab(state),
-  },
-  {
-    key: 'backstage',
-    label: 'バックステージ',
-    render: (state) => renderBackstageTab(state),
+    key: 'setBackstage',
+    label: 'セット／バック',
+    render: (state) => renderSetBackstageTab(state),
   },
   {
     key: 'stage',
@@ -201,108 +188,6 @@ const createEmptyMessage = (message: string): HTMLParagraphElement => {
   return paragraph;
 };
 
-const renderSetTab = (state: GameState): HTMLElement => {
-  const container = document.createElement('div');
-  container.className = 'board-check__content';
-
-  const total = state.meta?.composition?.set ?? CARD_COMPOSITION.set;
-  const opened = state.set.opened.length;
-  const remaining = Math.max(total - opened, 0);
-  const hiddenSetCards = state.set.cards.filter((setCard) => setCard.card.face !== 'up');
-  const closed = hiddenSetCards.length > 0 ? hiddenSetCards.length : remaining;
-
-  const summary = createSection('セットの状況');
-  summary.append(
-    createDefinitionList(
-      [
-        { term: '合計', description: `${total}枚` },
-        { term: '公開済み', description: `${opened}枚` },
-        { term: '残り', description: `${remaining}枚` },
-        { term: '伏せ札', description: `${closed}枚` },
-      ],
-      'board-check__stats',
-    ),
-  );
-  container.append(summary);
-
-  const openedSection = createSection('公開済みカード');
-  if (state.set.opened.length === 0) {
-    openedSection.append(createEmptyMessage('公開されたカードはありません。'));
-  } else {
-    const list = document.createElement('ul');
-    list.className = 'board-check__card-list';
-    state.set.opened
-      .slice()
-      .sort((a, b) => a.openedAt - b.openedAt)
-      .forEach((reveal) => {
-        const item = document.createElement('li');
-        item.className = 'board-check__card-item';
-        const card = new CardComponent({
-          rank: reveal.card.rank,
-          suit: reveal.card.suit,
-          faceDown: reveal.card.face !== 'up',
-          annotation: reveal.card.annotation,
-        });
-        item.append(card.el);
-
-        const details = createDefinitionList(
-          [
-            { term: 'カード', description: formatCardLabel(reveal.card) },
-            {
-              term: '公開者',
-              description: state.players[reveal.openedBy]?.name ?? reveal.openedBy,
-            },
-            ...(reveal.assignedTo
-              ? [
-                  {
-                    term: '現在の所有',
-                    description: state.players[reveal.assignedTo]?.name ?? reveal.assignedTo,
-                  },
-                ]
-              : []),
-            ...(reveal.bonus
-              ? [
-                  {
-                    term: 'ボーナス',
-                    description: SET_BONUS_LABEL[reveal.bonus],
-                  },
-                ]
-              : []),
-          ],
-          'board-check__card-details',
-        );
-        item.append(details);
-        list.append(item);
-      });
-    openedSection.append(list);
-  }
-
-  container.append(openedSection);
-
-  const hiddenSection = createSection('伏せ札');
-  if (closed === 0) {
-    hiddenSection.append(createEmptyMessage('伏せ札はありません。'));
-  } else {
-    const list = document.createElement('ul');
-    list.className = 'board-check__card-list board-check__card-list--grid';
-    for (let index = 0; index < closed; index += 1) {
-      const item = document.createElement('li');
-      item.className = 'board-check__card-grid-item';
-      const card = new CardComponent({
-        rank: '?',
-        suit: 'spades',
-        faceDown: true,
-      });
-      item.append(card.el);
-      list.append(item);
-    }
-    hiddenSection.append(list);
-  }
-  container.append(hiddenSection);
-
-  return container;
-};
-
 const getPlayerName = (state: GameState, playerId: PlayerId | null | undefined): string | null => {
   if (!playerId) {
     return null;
@@ -336,83 +221,121 @@ const formatBackstageLocation = (state: GameState, item: BackstageItemState): st
   return baseLabel;
 };
 
-const renderBackstageTab = (state: GameState): HTMLElement => {
+const createCardGallery = (cardElements: HTMLElement[]): HTMLUListElement => {
+  const list = document.createElement('ul');
+  list.className = 'board-check__card-list board-check__card-list--grid';
+  cardElements.forEach((cardElement) => {
+    const item = document.createElement('li');
+    item.className = 'board-check__card-grid-item';
+    item.append(cardElement);
+    list.append(item);
+  });
+  return list;
+};
+
+const appendCardGallery = (
+  section: HTMLDivElement,
+  cardElements: HTMLElement[],
+  emptyMessage: string,
+): void => {
+  if (cardElements.length === 0) {
+    section.append(createEmptyMessage(emptyMessage));
+    return;
+  }
+
+  section.append(createCardGallery(cardElements));
+};
+
+const renderSetSection = (state: GameState): HTMLDivElement => {
+  const section = createSection('セット');
+  const total = state.meta?.composition?.set ?? CARD_COMPOSITION.set;
+  const opened = state.set.opened.length;
+  const remaining = Math.max(total - opened, 0);
+  const hiddenSetCards = state.set.cards.filter((setCard) => setCard.card.face !== 'up');
+  const closed = hiddenSetCards.length > 0 ? hiddenSetCards.length : remaining;
+
+  const cardElements: HTMLElement[] = [];
+  state.set.opened
+    .slice()
+    .sort((a, b) => a.openedAt - b.openedAt)
+    .forEach((reveal) => {
+      const cardComponent = new CardComponent({
+        rank: reveal.card.rank,
+        suit: reveal.card.suit,
+        faceDown: reveal.card.face !== 'up',
+        annotation: reveal.card.annotation,
+      });
+      if (reveal.card.face === 'up') {
+        cardComponent.el.setAttribute('aria-label', formatCardLabel(reveal.card));
+      }
+      cardElements.push(cardComponent.el);
+    });
+
+  for (let index = 0; index < closed; index += 1) {
+    const hiddenCard = new CardComponent({
+      rank: '?',
+      suit: 'spades',
+      faceDown: true,
+    });
+    cardElements.push(hiddenCard.el);
+  }
+
+  appendCardGallery(section, cardElements, '表示できるカードはありません。');
+  return section;
+};
+
+const renderBackstageSection = (state: GameState): HTMLDivElement => {
+  const section = createSection('バックステージ');
+  const items = state.backstage?.items ?? [];
+  if (items.length === 0) {
+    section.append(createEmptyMessage('表示できるカードはありません。'));
+    return section;
+  }
+
+  const publicItems = items
+    .filter((item) => item.isPublic)
+    .sort((a, b) => {
+      const timeDiff = (a.revealedAt ?? Number.MAX_SAFE_INTEGER) - (b.revealedAt ?? Number.MAX_SAFE_INTEGER);
+      if (timeDiff !== 0) {
+        return timeDiff;
+      }
+      return a.position - b.position;
+    });
+
+  const hiddenCount = items.length - publicItems.length;
+
+  const cardElements: HTMLElement[] = [];
+  publicItems.forEach((item) => {
+    const cardComponent = new CardComponent({
+      rank: item.card.rank,
+      suit: item.card.suit,
+      faceDown: item.card.face !== 'up',
+      annotation: item.card.annotation,
+    });
+    const cardLabel = formatCardLabel(item.card);
+    const locationLabel = formatBackstageLocation(state, item);
+    cardComponent.el.setAttribute('aria-label', `${cardLabel}（${locationLabel}）`);
+    cardElements.push(cardComponent.el);
+  });
+
+  for (let index = 0; index < hiddenCount; index += 1) {
+    const hiddenCard = new CardComponent({
+      rank: '?',
+      suit: 'spades',
+      faceDown: true,
+    });
+    hiddenCard.el.setAttribute('aria-label', '秘匿アイテム');
+    cardElements.push(hiddenCard.el);
+  }
+
+  appendCardGallery(section, cardElements, '表示できるカードはありません。');
+  return section;
+};
+
+const renderSetBackstageTab = (state: GameState): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'board-check__content';
-
-  const items = state.backstage?.items ?? [];
-  const publicItems = items.filter((item) => item.isPublic);
-  const hiddenItems = items.filter((item) => !item.isPublic);
-
-  const summarySection = createSection('アイテム数');
-  summarySection.append(
-    createDefinitionList(
-      [
-        { term: '全アイテム', description: `${items.length}枚` },
-        { term: '公開済み', description: `${publicItems.length}枚` },
-        { term: '秘匿', description: `${hiddenItems.length}枚` },
-      ],
-      'board-check__stats',
-    ),
-  );
-  container.append(summarySection);
-
-  const publicSection = createSection('公開済みアイテム');
-  if (publicItems.length === 0) {
-    publicSection.append(createEmptyMessage('公開されたアイテムはありません。'));
-  } else {
-    const list = document.createElement('ul');
-    list.className = 'board-check__card-list';
-    publicItems
-      .slice()
-      .sort((a, b) => {
-        const timeDiff = (a.revealedAt ?? Number.MAX_SAFE_INTEGER) - (b.revealedAt ?? Number.MAX_SAFE_INTEGER);
-        if (timeDiff !== 0) {
-          return timeDiff;
-        }
-        return a.position - b.position;
-      })
-      .forEach((item) => {
-        const listItem = document.createElement('li');
-        listItem.className = 'board-check__card-item';
-
-        const cardComponent = new CardComponent({
-          rank: item.card.rank,
-          suit: item.card.suit,
-          faceDown: !item.isPublic || item.card.face !== 'up',
-          annotation: item.card.annotation,
-        });
-        const cardLabel = formatCardLabel(item.card);
-        cardComponent.el.setAttribute('aria-label', cardLabel);
-
-        const details: { term: string; description: string }[] = [
-          { term: 'カード', description: cardLabel },
-          { term: '現在の状態', description: formatBackstageLocation(state, item) },
-        ];
-
-        const revealedByName = getPlayerName(state, item.revealedBy);
-        if (revealedByName) {
-          details.push({ term: '公開者', description: revealedByName });
-        }
-
-        listItem.append(cardComponent.el, createDefinitionList(details, 'board-check__card-details'));
-        list.append(listItem);
-      });
-    publicSection.append(list);
-  }
-  container.append(publicSection);
-
-  const hiddenSection = createSection('秘匿アイテム');
-  if (hiddenItems.length === 0) {
-    hiddenSection.append(createEmptyMessage('秘匿されているアイテムはありません。'));
-  } else {
-    const message = document.createElement('p');
-    message.className = 'board-check__empty';
-    message.textContent = `秘匿アイテムが${hiddenItems.length}枚あります。詳細は非公開情報のため表示されません。`;
-    hiddenSection.append(message);
-  }
-  container.append(hiddenSection);
-
+  container.append(renderSetSection(state), renderBackstageSection(state));
   return container;
 };
 
@@ -655,7 +578,7 @@ class BoardCheckView extends UIComponent<HTMLDivElement> {
   }
 
   private setActiveTab(key: BoardCheckTabKey, options: { focus?: boolean } = {}): void {
-    const fallback = TAB_DEFINITIONS[0]?.key ?? 'set';
+    const fallback = TAB_DEFINITIONS[0]?.key ?? 'overview';
     const target = this.tabButtons.has(key) ? key : fallback;
 
     this.tabButtons.forEach((button, tabKey) => {
@@ -738,7 +661,7 @@ const ensureModalController = (): ModalController => {
 };
 
 const resolveInitialTab = (tab: BoardCheckTabKey | undefined): BoardCheckTabKey => {
-  const fallback = TAB_DEFINITIONS[0]?.key ?? 'set';
+  const fallback = TAB_DEFINITIONS[0]?.key ?? 'overview';
   if (!tab) {
     return fallback;
   }
