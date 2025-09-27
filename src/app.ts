@@ -428,7 +428,7 @@ const formatCardLabel = (card: CardSnapshot): string => {
   return `${CARD_SUIT_LABEL[card.suit]}の${card.rank}`;
 };
 
-const formatSetCardPositionLabel = (_setCard: SetCardState): string => SPOTLIGHT_SET_CARD_LABEL_PREFIX;
+const formatSetCardPositionLabel = (): string => SPOTLIGHT_SET_CARD_LABEL_PREFIX;
 
 const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
   `${formatCardLabel(card)}を引きました！アクションフェーズへ移行します`;
@@ -3336,7 +3336,7 @@ const openSpotlightSetConfirmDialog = (setCardId: string): void => {
   }
 
   const playerName = getPlayerDisplayName(state, state.activePlayer);
-  const positionLabel = formatSetCardPositionLabel(setCard);
+  const positionLabel = formatSetCardPositionLabel();
 
   const container = document.createElement('div');
   container.className = 'spotlight-set-confirm';
