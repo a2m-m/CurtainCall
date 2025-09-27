@@ -37,9 +37,12 @@ export const INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE =
   'バックステージアクションを実行できる状態ではありません。';
 export const INTERMISSION_BACKSTAGE_PENDING_MESSAGE =
   'バックステージアクションを実行するか、スキップしてください。';
-export const INTERMISSION_BACKSTAGE_RESULT_MATCH = '一致！セットのカードとペアが成立しました。';
+export const INTERMISSION_BACKSTAGE_RESULT_MATCH = '一致！セットのカードとペアが成立しました。ステージに配置しました。';
 export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH =
   '一致しませんでした。さらに1枚を手札に加えてください。';
+export const INTERMISSION_BACKSTAGE_RESULT_TITLE = 'バックステージ判定';
+export const INTERMISSION_BACKSTAGE_RESULT_MATCH_OK_LABEL = 'インターミッションへ';
+export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH_OK_LABEL = 'バックステージから取得へ';
 export const INTERMISSION_BACKSTAGE_DRAW_TITLE = 'バックステージから取得';
 export const INTERMISSION_BACKSTAGE_DRAW_MESSAGE = '手札に加えるカードを選んでください（非公開）';
 export const INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE =

@@ -11,6 +11,7 @@ import {
   deleteResult,
   getSavedGameMetadata,
   listResultHistory,
+  loadGame,
   ResultHistoryEntry,
   saveGame,
   saveResult,
@@ -48,7 +49,7 @@ import { CardComponent } from './ui/card.js';
 import { showBoardCheck } from './ui/board-check.js';
 import { setGateModalController } from './ui/gate.js';
 import { createGateView } from './views/gate.js';
-import type { ButtonVariant } from './ui/button.js';
+import { UIButton, type ButtonVariant } from './ui/button.js';
 import { createHomeView } from './views/home.js';
 import { createPlaceholderView } from './views/placeholder.js';
 import {
@@ -94,6 +95,8 @@ interface GateDescriptor {
   onPass?: (router: Router) => void;
   resolveSubtitle?: (state: GameState) => string | undefined;
   resolveActions?: (context: { state: GameState; router: Router }) => GateActionDescriptor[];
+  content?: HTMLElement | null;
+  resolveContent?: (context: { state: GameState; router: Router }) => HTMLElement | null;
 }
 
 interface RouteDescriptor {
@@ -145,13 +148,15 @@ const {
   INTERMISSION_BACKSTAGE_DESCRIPTION,
   INTERMISSION_BACKSTAGE_REVEAL_LABEL,
   INTERMISSION_BACKSTAGE_SKIP_LABEL,
-  INTERMISSION_BACKSTAGE_REVEAL_TITLE,
   INTERMISSION_BACKSTAGE_REVEAL_MESSAGE,
   INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE,
   INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE,
   INTERMISSION_BACKSTAGE_PENDING_MESSAGE,
   INTERMISSION_BACKSTAGE_RESULT_MATCH,
   INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
+  INTERMISSION_BACKSTAGE_RESULT_TITLE,
+  INTERMISSION_BACKSTAGE_RESULT_MATCH_OK_LABEL,
+  INTERMISSION_BACKSTAGE_RESULT_MISMATCH_OK_LABEL,
   INTERMISSION_BACKSTAGE_DRAW_TITLE,
   INTERMISSION_BACKSTAGE_DRAW_MESSAGE,
   INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE,
@@ -2452,7 +2457,6 @@ const finalizeBackstageDraw = (itemId: string): void => {
 
   const modal = window.curtainCall?.modal;
   if (modal) {
-    isIntermissionBackstageDialogOpen = false;
     modal.close();
   }
 
@@ -2651,6 +2655,7 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
 
 const createBackstageCardButton = (
   item: BackstageItemState,
+  order: number,
   onSelect: () => void,
 ): HTMLLIElement => {
   const listItem = document.createElement('li');
@@ -2662,7 +2667,7 @@ const createBackstageCardButton = (
   button.addEventListener('click', () => onSelect());
   button.setAttribute(
     'aria-label',
-    `${INTERMISSION_BACKSTAGE_REVEAL_LABEL}：カード #${String(item.position + 1).padStart(2, '0')}`,
+    `${INTERMISSION_BACKSTAGE_REVEAL_LABEL}：カード ${String(order).padStart(2, '0')}`,
   );
 
   const cardComponent = new CardComponent({
@@ -2676,11 +2681,154 @@ const createBackstageCardButton = (
 
   const label = document.createElement('span');
   label.className = 'intermission-backstage__label';
-  label.textContent = `カード #${String(item.position + 1).padStart(2, '0')}`;
+  label.textContent = `カード ${String(order).padStart(2, '0')}`;
   button.append(label);
 
   listItem.append(button);
   return listItem;
+};
+
+const createBackstageGateContent = (state: GameState): HTMLElement | null => {
+  if (!canPerformBackstageAction(state)) {
+    return null;
+  }
+
+  const revealableItems = getBackstageRevealableItems(state);
+
+  if (typeof window === 'undefined') {
+    if (revealableItems.length > 0) {
+      const outcome = finalizeBackstageReveal(revealableItems[0].id);
+      if (outcome) {
+        handleBackstageRevealOutcome(outcome);
+      }
+    } else {
+      completeBackstageSkip();
+    }
+    return null;
+  }
+
+  const container = document.createElement('section');
+  container.className = 'intermission-backstage';
+
+  const title = document.createElement('h2');
+  title.className = 'intermission-backstage__title';
+  title.textContent = INTERMISSION_BACKSTAGE_ACTION_LABEL;
+  container.append(title);
+
+  const message = document.createElement('p');
+  message.className = 'intermission-backstage__message';
+  message.textContent =
+    revealableItems.length > 0
+      ? INTERMISSION_BACKSTAGE_DESCRIPTION
+      : INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE;
+  container.append(message);
+
+  if (revealableItems.length > 0) {
+    const instruction = document.createElement('p');
+    instruction.className = 'intermission-backstage__instruction';
+    instruction.textContent = INTERMISSION_BACKSTAGE_REVEAL_MESSAGE;
+    container.append(instruction);
+
+    const list = document.createElement('ul');
+    list.className = 'intermission-backstage__list';
+
+    revealableItems.forEach((item, index) => {
+      list.append(
+        createBackstageCardButton(item, index + 1, () => {
+          const outcome = finalizeBackstageReveal(item.id);
+          if (!outcome) {
+            return;
+          }
+          handleBackstageRevealOutcome(outcome);
+        }),
+      );
+    });
+
+    container.append(list);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'intermission-backstage__actions';
+
+  const skipButton = new UIButton({
+    label: INTERMISSION_BACKSTAGE_SKIP_LABEL,
+    variant: 'ghost',
+    preventRapid: true,
+  });
+
+  skipButton.onClick(() => {
+    completeBackstageSkip();
+  });
+
+  actions.append(skipButton.el);
+  container.append(actions);
+
+  return container;
+};
+
+const showBackstageRevealResultDialog = (
+  modal: ModalController,
+  outcome: BackstageRevealResult,
+  onComplete: () => void,
+): void => {
+  const container = document.createElement('div');
+  container.className = 'intermission-backstage';
+
+  const message = document.createElement('p');
+  message.className = 'intermission-backstage__message';
+  message.textContent = outcome.matched
+    ? INTERMISSION_BACKSTAGE_RESULT_MATCH
+    : INTERMISSION_BACKSTAGE_RESULT_MISMATCH;
+  container.append(message);
+
+  modal.open({
+    title: INTERMISSION_BACKSTAGE_RESULT_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [
+      {
+        label: outcome.matched
+          ? INTERMISSION_BACKSTAGE_RESULT_MATCH_OK_LABEL
+          : INTERMISSION_BACKSTAGE_RESULT_MISMATCH_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        onSelect: () => {
+          modal.close();
+          onComplete();
+        },
+      },
+    ],
+  });
+};
+
+const handleBackstageRevealOutcome = (outcome: BackstageRevealResult): void => {
+  const proceed = outcome.matched
+    ? () => autoAdvanceFromBackstage()
+    : () => openIntermissionBackstageDrawDialog();
+  const message = outcome.matched
+    ? INTERMISSION_BACKSTAGE_RESULT_MATCH
+    : INTERMISSION_BACKSTAGE_RESULT_MISMATCH;
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    proceed();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (modal) {
+    showBackstageRevealResultDialog(modal, outcome, proceed);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: outcome.matched ? 'success' : 'info' });
+  } else {
+    console.info(message);
+  }
+
+  proceed();
 };
 
 const openIntermissionBackstageDrawDialog = (): void => {
@@ -2714,10 +2862,9 @@ const openIntermissionBackstageDrawDialog = (): void => {
   const list = document.createElement('ul');
   list.className = 'intermission-backstage__list';
 
-  hiddenItems.forEach((item) => {
+  hiddenItems.forEach((item, index) => {
     list.append(
-      createBackstageCardButton(item, () => {
-        isIntermissionBackstageDialogOpen = false;
+      createBackstageCardButton(item, index + 1, () => {
         modal.close();
         finalizeBackstageDraw(item.id);
       }),
@@ -2726,151 +2873,11 @@ const openIntermissionBackstageDrawDialog = (): void => {
 
   container.append(list);
 
-  isIntermissionBackstageDialogOpen = true;
-
   modal.open({
     title: INTERMISSION_BACKSTAGE_DRAW_TITLE,
     body: container,
     dismissible: false,
     actions: [],
-  });
-};
-
-const openIntermissionBackstageActionDialog = (): void => {
-  const state = gameStore.getState();
-
-  if (!canPerformBackstageAction(state)) {
-    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
-    return;
-  }
-
-  const revealableItems = getBackstageRevealableItems(state);
-  if (revealableItems.length === 0) {
-    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE);
-    return;
-  }
-
-  if (typeof window === 'undefined') {
-    const outcome = finalizeBackstageReveal(revealableItems[0].id);
-    if (!outcome) {
-      return;
-    }
-    if (outcome.matched) {
-      if (typeof window === 'undefined') {
-        console.info(INTERMISSION_BACKSTAGE_RESULT_MATCH);
-      }
-    } else {
-      console.info(INTERMISSION_BACKSTAGE_RESULT_MISMATCH);
-      openIntermissionBackstageDrawDialog();
-    }
-    return;
-  }
-
-  const modal = window.curtainCall?.modal;
-  if (!modal) {
-    const outcome = finalizeBackstageReveal(revealableItems[0].id);
-    if (!outcome) {
-      return;
-    }
-    if (!outcome.matched) {
-      if (typeof window !== 'undefined') {
-        const toast = window.curtainCall?.toast;
-        if (toast) {
-          toast.show({ message: INTERMISSION_BACKSTAGE_RESULT_MISMATCH, variant: 'info' });
-        } else {
-          console.info(INTERMISSION_BACKSTAGE_RESULT_MISMATCH);
-        }
-      }
-      openIntermissionBackstageDrawDialog();
-    } else if (typeof window !== 'undefined') {
-      const toast = window.curtainCall?.toast;
-      if (toast) {
-        toast.show({ message: INTERMISSION_BACKSTAGE_RESULT_MATCH, variant: 'success' });
-      } else {
-        console.info(INTERMISSION_BACKSTAGE_RESULT_MATCH);
-      }
-      autoAdvanceFromBackstage();
-    }
-    return;
-  }
-
-  if (isIntermissionBackstageDialogOpen) {
-    return;
-  }
-
-  const container = document.createElement('div');
-  container.className = 'intermission-backstage';
-
-  const message = document.createElement('p');
-  message.className = 'intermission-backstage__message';
-  message.textContent = INTERMISSION_BACKSTAGE_DESCRIPTION;
-  container.append(message);
-
-  const instruction = document.createElement('p');
-  instruction.className = 'intermission-backstage__instruction';
-  instruction.textContent = INTERMISSION_BACKSTAGE_REVEAL_MESSAGE;
-  container.append(instruction);
-
-  const list = document.createElement('ul');
-  list.className = 'intermission-backstage__list';
-
-  revealableItems.forEach((item) => {
-    list.append(
-      createBackstageCardButton(item, () => {
-        modal.close();
-        isIntermissionBackstageDialogOpen = false;
-        const outcome = finalizeBackstageReveal(item.id);
-        if (!outcome) {
-          return;
-        }
-
-        if (typeof window !== 'undefined') {
-          const toast = window.curtainCall?.toast;
-          if (toast) {
-            toast.show({
-              message: outcome.matched
-                ? INTERMISSION_BACKSTAGE_RESULT_MATCH
-                : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
-              variant: outcome.matched ? 'success' : 'info',
-            });
-          } else {
-            console.info(
-              outcome.matched
-                ? INTERMISSION_BACKSTAGE_RESULT_MATCH
-                : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
-            );
-          }
-        }
-
-        if (!outcome.matched) {
-          openIntermissionBackstageDrawDialog();
-        } else {
-          autoAdvanceFromBackstage();
-        }
-      }),
-    );
-  });
-
-  container.append(list);
-
-  isIntermissionBackstageDialogOpen = true;
-
-  modal.open({
-    title: INTERMISSION_BACKSTAGE_REVEAL_TITLE,
-    body: container,
-    dismissible: false,
-    actions: [
-      {
-        label: INTERMISSION_BACKSTAGE_SKIP_LABEL,
-        variant: 'ghost',
-        preventRapid: true,
-        onSelect: () => {
-          modal.close();
-          isIntermissionBackstageDialogOpen = false;
-          completeBackstageSkip();
-        },
-      },
-    ],
   });
 };
 
@@ -3360,6 +3367,17 @@ const openSpotlightSetConfirmDialog = (setCardId: string): void => {
       {
         label: SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL,
         variant: 'ghost',
+        dismiss: false,
+        onSelect: () => {
+          const activePlayer = gameStore.getState().activePlayer;
+          modal.close();
+          if (!activePlayer) {
+            return;
+          }
+          window.setTimeout(() => {
+            openSpotlightSetPickerDialog(activePlayer);
+          }, 0);
+        },
       },
       {
         label: SPOTLIGHT_SET_CONFIRM_OK_LABEL,
@@ -4744,7 +4762,6 @@ let isSpotlightExitInProgress = false;
 let isCurtainCallSaveDialogOpen = false;
 let isCurtainCallSaveInProgress = false;
 let isIntermissionBackstageActionInProgress = false;
-let isIntermissionBackstageDialogOpen = false;
 
 const showWatchResultDialog = (
   { decision, nextRoute }: CompleteWatchDecisionResult,
@@ -5762,32 +5779,7 @@ const ROUTES: RouteDescriptor[] = [
       confirmLabel: BACKSTAGE_GATE_CONFIRM_LABEL,
       resolveMessage: () => BACKSTAGE_GATE_MESSAGE,
       resolveSubtitle: (state) => createBackstageGateSubtitle(state),
-      resolveActions: ({ state }) => {
-        const actions: GateActionDescriptor[] = [];
-
-        if (canPerformBackstageAction(state)) {
-          actions.push({
-            label: INTERMISSION_BACKSTAGE_ACTION_LABEL,
-            variant: 'primary',
-            preventRapid: true,
-            onSelect: () => openIntermissionBackstageActionDialog(),
-          });
-        }
-
-        actions.push({
-          label: INTERMISSION_BOARD_CHECK_LABEL,
-          variant: 'ghost',
-          onSelect: () => showBoardCheck(),
-        });
-
-        actions.push({
-          label: INTERMISSION_SUMMARY_LABEL,
-          variant: 'ghost',
-          onSelect: () => openIntermissionSummaryDialog(),
-        });
-
-        return actions;
-      },
+      resolveContent: ({ state }) => createBackstageGateContent(state),
       onPass: (nextRouter) => handleBackstageGatePass(nextRouter),
     }),
   },
@@ -5872,6 +5864,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             createTurnGateMessage(state, confirmLabel);
           const resolvedSubtitle = route.gate?.resolveSubtitle?.(state) ?? route.subtitle;
           const resolvedActions = route.gate?.resolveActions?.({ state, router: contextRouter }) ?? [];
+          const resolvedContent =
+            route.gate?.resolveContent?.({ state, router: contextRouter }) ?? route.gate?.content ?? null;
           const baseNotes = route.gate?.modalNotes ?? [];
           const dynamicNotes = route.gate?.resolveModalNotes?.(state) ?? [];
           const combinedNotes = [...baseNotes, ...dynamicNotes].filter(
@@ -5896,6 +5890,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               lockDuration: action.lockDuration,
               onSelect: () => action.onSelect?.({ router: contextRouter }),
             })),
+            content: resolvedContent ?? undefined,
             onGatePass: () => {
               if (route.gate?.onPass) {
                 route.gate.onPass(contextRouter);
@@ -6415,7 +6410,22 @@ const initializeApp = (): void => {
 
   buildRouteDefinitions(router).forEach((definition) => router.register(definition));
 
-  gameStore.setState(createInitialState());
+  const initialState: GameState = (() => {
+    try {
+      const payload = loadGame({
+        allowUnsafe: true,
+        currentPath: typeof window !== 'undefined' ? window.location.hash ?? null : null,
+      });
+      if (payload?.state) {
+        return payload.state;
+      }
+    } catch (error) {
+      console.warn('セーブデータの復元に失敗したため、新しいゲームを開始します。', error);
+    }
+    return createInitialState();
+  })();
+
+  gameStore.setState(initialState);
 
   router.subscribe((path) => {
     const current = gameStore.getState();
