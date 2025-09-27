@@ -3336,6 +3336,17 @@ const openSpotlightSetConfirmDialog = (setCardId: string): void => {
       {
         label: SPOTLIGHT_SET_CONFIRM_CANCEL_LABEL,
         variant: 'ghost',
+        dismiss: false,
+        onSelect: () => {
+          const activePlayer = gameStore.getState().activePlayer;
+          modal.close();
+          if (!activePlayer) {
+            return;
+          }
+          window.setTimeout(() => {
+            openSpotlightSetPickerDialog(activePlayer);
+          }, 0);
+        },
       },
       {
         label: SPOTLIGHT_SET_CONFIRM_OK_LABEL,
