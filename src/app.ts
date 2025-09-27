@@ -5688,7 +5688,7 @@ const ROUTES: RouteDescriptor[] = [
       resolveMessage: (state) =>
         createPhaseGateMessage(state, 'インターミッション', INTERMISSION_GATE_CONFIRM_LABEL),
       resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
-      resolveActions: ({ state }) => {
+      resolveActions: () => {
         return [
           {
             label: INTERMISSION_BOARD_CHECK_LABEL,
