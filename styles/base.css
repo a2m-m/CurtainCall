@@ -1095,7 +1095,7 @@ p {
   grid-auto-flow: column;
   grid-auto-columns: minmax(clamp(104px, 15vw, 140px), 1fr);
   gap: clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem);
-  justify-content: center;
+  justify-content: start;
   justify-items: center;
   align-items: start;
   align-content: start;
