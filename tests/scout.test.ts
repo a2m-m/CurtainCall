@@ -31,7 +31,7 @@ describe('createScoutView', () => {
     firstButton?.click();
 
     expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith(0);
+    expect(onSelect).toHaveBeenCalledWith('opponent-0');
   });
 
   it('選択更新で「これを引く」ボタンが有効化され、押下で確定ハンドラが動作する', () => {
@@ -51,7 +51,7 @@ describe('createScoutView', () => {
     expect(confirmButton?.disabled).toBe(true);
 
     const cards = createOpponentCards(2);
-    view.updateOpponentHand(cards, 1);
+    view.updateOpponentHand(cards, 'opponent-1');
 
     expect(confirmButton?.disabled).toBe(false);
 

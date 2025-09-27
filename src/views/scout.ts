@@ -17,11 +17,11 @@ export interface ScoutViewOptions {
   title: string;
   opponentLabel?: string;
   cards: ScoutOpponentHandCardViewModel[];
-  selectedIndex?: number | null;
+  selectedCardId?: string | null;
   recentTakenCards?: ScoutRecentTakenCardViewModel[];
   recentTakenTitle?: string;
   recentTakenEmptyLabel?: string;
-  onSelectCard?: (index: number | null) => void;
+  onSelectCard?: (cardId: string | null) => void;
   onConfirmSelection?: () => void;
   onClearSelection?: () => void;
   confirmLabel?: string;
@@ -38,7 +38,7 @@ export interface ScoutViewOptions {
 export interface ScoutViewElement extends HTMLElement {
   updateOpponentHand: (
     cards: ScoutOpponentHandCardViewModel[],
-    selectedIndex: number | null,
+    selectedCardId: string | null,
   ) => void;
   updateRecentTaken: (cards: ScoutRecentTakenCardViewModel[]) => void;
 }
@@ -158,7 +158,8 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   main.append(recentSection);
 
   let currentCards = options.cards.slice();
-  let currentSelectedIndex = options.selectedIndex ?? null;
+  let currentSelectedCardId =
+    options.selectedCardId === undefined ? null : options.selectedCardId;
   let currentRecentTaken = options.recentTakenCards ? options.recentTakenCards.slice() : [];
 
   const actions = document.createElement('div');
@@ -167,7 +168,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   const clearButton = new UIButton({
     label: options.clearLabel ?? '選択をクリア',
     variant: 'ghost',
-    disabled: currentSelectedIndex === null,
+    disabled: currentSelectedCardId === null,
     preventRapid: false,
   });
   clearButton.el.classList.add('scout-actions__button', 'scout-actions__button--secondary');
@@ -182,7 +183,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   const confirmButton = new UIButton({
     label: options.confirmLabel ?? 'これを引く',
     variant: 'primary',
-    disabled: currentSelectedIndex === null || currentCards.length === 0,
+    disabled: currentSelectedCardId === null || currentCards.length === 0,
   });
   confirmButton.el.classList.add('scout-actions__button', 'scout-actions__button--primary');
   confirmButton.onClick(() => {
@@ -196,15 +197,19 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     handCount.textContent = `${count}枚`;
   };
 
-  const handleSelect = (index: number) => {
-    if (index < 0 || index >= currentCards.length) {
+  const handleSelect = (cardId: string) => {
+    const hasCard = currentCards.some((card) => card.id === cardId);
+    if (!hasCard) {
       return;
     }
-    const next = currentSelectedIndex === index ? null : index;
+    const next = currentSelectedCardId === cardId ? null : cardId;
     options.onSelectCard?.(next);
   };
 
-  const renderCards = (cards: ScoutOpponentHandCardViewModel[], selectedIndex: number | null) => {
+  const renderCards = (
+    cards: ScoutOpponentHandCardViewModel[],
+    selectedCardId: string | null,
+  ) => {
     handGrid.replaceChildren();
 
     if (cards.length === 0) {
@@ -215,7 +220,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
       return;
     }
 
-    cards.forEach((_card, index) => {
+    cards.forEach((card, index) => {
       const item = document.createElement('li');
       item.className = 'scout-hand__item';
 
@@ -223,7 +228,8 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
       button.type = 'button';
       button.className = 'scout-hand__card-button';
       button.dataset.index = index.toString();
-      button.setAttribute('aria-pressed', selectedIndex === index ? 'true' : 'false');
+      const isSelected = selectedCardId === card.id;
+      button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
       button.setAttribute('aria-label', `${opponentTitle} ${index + 1}枚目`);
 
       const cardComponent = new CardComponent({
@@ -233,12 +239,12 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
       });
       cardComponent.el.classList.add('scout-hand__card');
 
-      if (selectedIndex === index) {
+      if (isSelected) {
         button.classList.add('is-selected');
       }
 
       button.addEventListener('click', () => {
-        handleSelect(index);
+        handleSelect(card.id);
       });
 
       button.append(cardComponent.el);
@@ -277,13 +283,13 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
 
   const view = section as ScoutViewElement;
 
-  view.updateOpponentHand = (cards, selectedIndex) => {
+  view.updateOpponentHand = (cards, selectedCardId) => {
     currentCards = cards.slice();
-    currentSelectedIndex = selectedIndex ?? null;
+    currentSelectedCardId = selectedCardId ?? null;
     updateCount(currentCards.length);
-    renderCards(currentCards, currentSelectedIndex);
-    confirmButton.setDisabled(currentSelectedIndex === null || currentCards.length === 0);
-    clearButton.setDisabled(currentSelectedIndex === null);
+    renderCards(currentCards, currentSelectedCardId);
+    confirmButton.setDisabled(currentSelectedCardId === null || currentCards.length === 0);
+    clearButton.setDisabled(currentSelectedCardId === null);
   };
 
   view.updateRecentTaken = (cards) => {
@@ -291,7 +297,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     renderRecentTaken(currentRecentTaken);
   };
 
-  view.updateOpponentHand(currentCards, currentSelectedIndex);
+  view.updateOpponentHand(currentCards, currentSelectedCardId);
   view.updateRecentTaken(currentRecentTaken);
 
   return view;

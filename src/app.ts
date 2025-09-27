@@ -1,6 +1,11 @@
 import { Router, RouteDefinition } from './router.js';
 import type { RouteContext } from './router.js';
-import { createSeededRandom, dealInitialSetup, sortCardsByDescendingValue } from './cards.js';
+import {
+  createSeededRandom,
+  dealInitialSetup,
+  shuffleCards,
+  sortCardsByDescendingValue,
+} from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
   deleteResult,
@@ -1184,12 +1189,14 @@ const openMyHandDialog = (): void => {
   handHeading.textContent = `${playerName}の${MY_HAND_SECTION_TITLE}`;
   handSection.append(handHeading);
 
+  const sortedHand = sortCardsByDescendingValue(player.hand.cards);
+
   const handCount = document.createElement('p');
   handCount.className = 'myhand__count';
-  handCount.textContent = `${player.hand.cards.length}枚`;
+  handCount.textContent = `${sortedHand.length}枚`;
   handSection.append(handCount);
 
-  if (player.hand.cards.length === 0) {
+  if (sortedHand.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'myhand__empty';
     empty.textContent = MY_HAND_EMPTY_MESSAGE;
@@ -1199,7 +1206,7 @@ const openMyHandDialog = (): void => {
     handList.className = 'myhand__hand-list';
     handList.setAttribute('aria-label', `${playerName}の${MY_HAND_SECTION_TITLE}`);
 
-    player.hand.cards.forEach((card) => {
+    sortedHand.forEach((card) => {
       const item = document.createElement('li');
       item.className = 'myhand__hand-item';
 
@@ -1603,8 +1610,8 @@ const navigateToActionPhase = (): void => {
 const completeScoutPick = (): CardSnapshot | null => {
   let pickedCard: CardSnapshot | null = null;
   gameStore.setState((current) => {
-    const selectedIndex = current.scout.selectedOpponentCardIndex;
-    if (selectedIndex === null) {
+    const selectedCardId = current.scout.selectedOpponentCardId;
+    if (!selectedCardId) {
       return current;
     }
 
@@ -1617,11 +1624,13 @@ const completeScoutPick = (): CardSnapshot | null => {
       return current;
     }
 
-    if (selectedIndex < 0 || selectedIndex >= opponent.hand.cards.length) {
+    const sourceIndex = opponent.hand.cards.findIndex((card) => card.id === selectedCardId);
+
+    if (sourceIndex === -1) {
       return current;
     }
 
-    const sourceCard = opponent.hand.cards[selectedIndex];
+    const sourceCard = opponent.hand.cards[sourceIndex];
     if (!sourceCard) {
       return current;
     }
@@ -1631,7 +1640,7 @@ const completeScoutPick = (): CardSnapshot | null => {
     const recentCard = cloneCardSnapshot(sourceCard);
     const takenHistoryCard = cloneCardSnapshot(sourceCard);
 
-    const nextOpponentCards = opponent.hand.cards.filter((_card, index) => index !== selectedIndex);
+    const nextOpponentCards = opponent.hand.cards.filter((card) => card.id !== selectedCardId);
     const nextPlayerCards = sortCardsByDescendingValue([
       ...activePlayer.hand.cards,
       transferredCard,
@@ -1670,7 +1679,7 @@ const completeScoutPick = (): CardSnapshot | null => {
       },
       scout: {
         ...current.scout,
-        selectedOpponentCardIndex: null,
+        selectedOpponentCardId: null,
       },
       recentScoutedCard: recentCard,
       revision: current.revision + 1,
@@ -1707,7 +1716,7 @@ const finalizeScoutPick = (): void => {
 
 const openScoutPickConfirmDialog = (): void => {
   const state = gameStore.getState();
-  if (state.scout.selectedOpponentCardIndex === null) {
+  if (state.scout.selectedOpponentCardId === null) {
     return;
   }
 
@@ -1750,13 +1759,62 @@ const openScoutPickConfirmDialog = (): void => {
   });
 };
 
+let scoutOpponentHandOwner: PlayerId | null = null;
+let scoutOpponentHandOrder: string[] = [];
+
+const resetScoutOpponentHandOrder = (): void => {
+  scoutOpponentHandOwner = null;
+  scoutOpponentHandOrder = [];
+};
+
+const resolveScoutOpponentHandOrder = (state: GameState): string[] => {
+  const opponentId = getOpponentId(state.activePlayer);
+  const opponent = state.players[opponentId];
+  if (!opponent) {
+    resetScoutOpponentHandOrder();
+    return [];
+  }
+
+  const cardIds = opponent.hand.cards.map((card) => card.id);
+
+  if (cardIds.length === 0) {
+    scoutOpponentHandOwner = opponentId;
+    scoutOpponentHandOrder = [];
+    return scoutOpponentHandOrder;
+  }
+
+  if (scoutOpponentHandOwner !== opponentId) {
+    scoutOpponentHandOwner = opponentId;
+    scoutOpponentHandOrder = shuffleCards(cardIds);
+    return scoutOpponentHandOrder;
+  }
+
+  let currentOrder = scoutOpponentHandOrder.filter((id) => cardIds.includes(id));
+  const missingIds = cardIds.filter((id) => !currentOrder.includes(id));
+
+  if (missingIds.length > 0) {
+    currentOrder = shuffleCards([...currentOrder, ...missingIds]);
+  }
+
+  if (currentOrder.length !== cardIds.length) {
+    currentOrder = shuffleCards(cardIds);
+  }
+
+  scoutOpponentHandOwner = opponentId;
+  scoutOpponentHandOrder = currentOrder;
+  return scoutOpponentHandOrder;
+};
+
 const mapOpponentHandCards = (state: GameState): ScoutOpponentHandCardViewModel[] => {
   const opponentId = getOpponentId(state.activePlayer);
   const opponent = state.players[opponentId];
   if (!opponent) {
+    resetScoutOpponentHandOrder();
     return [];
   }
-  return opponent.hand.cards.map((card) => ({ id: card.id }));
+
+  const order = resolveScoutOpponentHandOrder(state);
+  return order.map((id) => ({ id }));
 };
 
 const getOpponentHandCount = (state: GameState): number => {
@@ -1785,7 +1843,8 @@ const mapActionHandCards = (state: GameState): ActionHandCardViewModel[] => {
   if (!player) {
     return [];
   }
-  return player.hand.cards.map((card) => ({
+  const sorted = sortCardsByDescendingValue(player.hand.cards);
+  return sorted.map((card) => ({
     id: card.id,
     rank: card.rank,
     suit: card.suit,
@@ -2029,7 +2088,7 @@ const shouldEnterBackstagePhase = (state: GameState): boolean => {
     return false;
   }
 
-  const revealableItems = getBackstageRevealableItems(state);
+  const revealableItems = shuffleCards(getBackstageRevealableItems(state));
   if (revealableItems.length === 0) {
     return false;
   }
@@ -2427,7 +2486,7 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
     return null;
   }
 
-  const revealableItems = getBackstageRevealableItems(state);
+    const revealableItems = getBackstageRevealableItems(state);
   if (!revealableItems.some((item) => item.id === itemId)) {
     showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
     return null;
@@ -2626,7 +2685,7 @@ const createBackstageCardButton = (
 
 const openIntermissionBackstageDrawDialog = (): void => {
   const state = gameStore.getState();
-  const hiddenItems = getBackstageRevealableItems(state);
+  const hiddenItems = shuffleCards(getBackstageRevealableItems(state));
 
   if (hiddenItems.length === 0) {
     showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE);
@@ -3155,9 +3214,7 @@ const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
   }
 
   const playerName = getPlayerDisplayName(state, playerId);
-  const availableCards = getAvailableSpotlightSetCards(state)
-    .slice()
-    .sort((a, b) => a.position - b.position);
+  const availableCards = shuffleCards(getAvailableSpotlightSetCards(state));
 
   const container = document.createElement('div');
   container.className = 'spotlight-set-picker';
@@ -3293,9 +3350,7 @@ const openSpotlightSetConfirmDialog = (setCardId: string): void => {
 const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: string): void => {
   const resolveAutomatically = (): void => {
     const state = gameStore.getState();
-    const availableCards = getAvailableSpotlightSetCards(state)
-      .slice()
-      .sort((a, b) => a.position - b.position);
+    const availableCards = shuffleCards(getAvailableSpotlightSetCards(state));
 
     if (availableCards.length === 0) {
       completeSpotlightJokerBonus(jokerReveal, null);
@@ -3317,9 +3372,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
   }
 
   const state = gameStore.getState();
-  const availableCards = getAvailableSpotlightSetCards(state)
-    .slice()
-    .sort((a, b) => a.position - b.position);
+  const availableCards = shuffleCards(getAvailableSpotlightSetCards(state));
 
   const container = document.createElement('div');
   container.className = 'spotlight-set-picker';
@@ -5455,7 +5508,7 @@ let isScoutPickInProgress = false;
 
 const clearScoutSecretState = (): void => {
   gameStore.setState((current) => {
-    const hasSelection = current.scout.selectedOpponentCardIndex !== null;
+    const hasSelection = current.scout.selectedOpponentCardId !== null;
     const hasRecent = current.recentScoutedCard !== null;
 
     if (!hasSelection && !hasRecent) {
@@ -5468,7 +5521,7 @@ const clearScoutSecretState = (): void => {
       ...current,
       scout: {
         ...current.scout,
-        selectedOpponentCardIndex: null,
+        selectedOpponentCardId: null,
       },
       recentScoutedCard: null,
       updatedAt: timestamp,
@@ -5476,6 +5529,7 @@ const clearScoutSecretState = (): void => {
     };
   });
 
+  resetScoutOpponentHandOrder();
   isScoutPickInProgress = false;
   isScoutResultDialogOpen = false;
 };
@@ -5987,14 +6041,13 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             return placeholder;
           }
 
-          const updateSelectedOpponentCard = (index: number | null): void => {
+          const updateSelectedOpponentCard = (cardId: string | null): void => {
             gameStore.setState((current) => {
               const opponentId = getOpponentId(current.activePlayer);
               const opponent = current.players[opponentId];
-              const handSize = opponent?.hand.cards.length ?? 0;
-              const normalizedIndex =
-                index === null || handSize === 0 || index < 0 || index >= handSize ? null : index;
-              if (current.scout.selectedOpponentCardIndex === normalizedIndex) {
+              const hasCard = opponent?.hand.cards.some((card) => card.id === cardId) ?? false;
+              const normalizedId = hasCard ? cardId : null;
+              if (current.scout.selectedOpponentCardId === normalizedId) {
                 return current;
               }
               const timestamp = Date.now();
@@ -6002,7 +6055,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
                 ...current,
                 scout: {
                   ...current.scout,
-                  selectedOpponentCardIndex: normalizedIndex,
+                  selectedOpponentCardId: normalizedId,
                 },
                 updatedAt: timestamp,
                 revision: current.revision + 1,
@@ -6013,7 +6066,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           const view = createScoutView({
             title: route.heading,
             cards: mapOpponentHandCards(state),
-            selectedIndex: state.scout.selectedOpponentCardIndex,
+            selectedCardId: state.scout.selectedOpponentCardId,
             recentTakenCards: mapRecentTakenCards(state),
             boardCheckLabel: SCOUT_BOARD_CHECK_LABEL,
             myHandLabel: SCOUT_MY_HAND_LABEL,
@@ -6034,7 +6087,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             }
             view.updateOpponentHand(
               mapOpponentHandCards(nextState),
-              nextState.scout.selectedOpponentCardIndex,
+              nextState.scout.selectedOpponentCardId,
             );
             view.updateRecentTaken(mapRecentTakenCards(nextState));
           });
