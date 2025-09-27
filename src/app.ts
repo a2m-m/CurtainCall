@@ -3674,6 +3674,7 @@ const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
   modal.open({
     title: SPOTLIGHT_SET_PICKER_TITLE,
     body: container,
+    className: 'modal--spotlight-set-picker',
     dismissible: false,
     actions: [
       {
@@ -3804,6 +3805,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
     modal.open({
       title: SPOTLIGHT_JOKER_BONUS_TITLE,
       body: container,
+      className: 'modal--spotlight-set-picker',
       dismissible: false,
       actions: [
         {
@@ -3871,6 +3873,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
   modal.open({
     title: SPOTLIGHT_JOKER_BONUS_TITLE,
     body: container,
+    className: 'modal--spotlight-set-picker',
     dismissible: false,
     actions: [],
   });
@@ -4265,6 +4268,7 @@ const openSpotlightSecretPairDialog = (request: SpotlightSecretPairRequest): voi
   modal.open({
     title: SPOTLIGHT_SECRET_PAIR_TITLE,
     body: container,
+    className: 'modal--spotlight-set-picker',
     dismissible: false,
     actions: [
       {
