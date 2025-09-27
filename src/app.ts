@@ -115,6 +115,7 @@ const NAVIGATION_BLOCKED_PHASES = new Set<PhaseKey>([
   'action',
   'watch',
   'spotlight',
+  'backstage',
   'intermission',
 ]);
 
@@ -148,6 +149,10 @@ const {
   INTERMISSION_BACKSTAGE_DRAW_MESSAGE,
   INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE,
   INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
+  BACKSTAGE_GATE_TITLE,
+  BACKSTAGE_GATE_CONFIRM_LABEL,
+  BACKSTAGE_GATE_MESSAGE,
+  BACKSTAGE_GATE_SUBTITLE,
   STANDBY_DEAL_ERROR_MESSAGE,
   STANDBY_FIRST_PLAYER_ERROR_MESSAGE,
   SCOUT_PICK_CONFIRM_TITLE,
@@ -330,6 +335,9 @@ const WATCH_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 const SPOTLIGHT_GATE_PATH = '#/phase/spotlight/gate';
 const WATCH_TO_SPOTLIGHT_PATH = '#/phase/spotlight';
 const SPOTLIGHT_TO_CURTAINCALL_PATH = '#/phase/curtaincall/gate';
+const BACKSTAGE_PHASE_PATH = '#/phase/backstage';
+const BACKSTAGE_GATE_PATH = '#/phase/backstage/gate';
+const SPOTLIGHT_TO_BACKSTAGE_PATH = BACKSTAGE_GATE_PATH;
 const SPOTLIGHT_TO_INTERMISSION_PATH = '#/phase/intermission/gate';
 
 const CURTAINCALL_BOO_PENALTY = 15;
@@ -1072,6 +1080,7 @@ const PHASE_LABELS: Record<PhaseKey, string> = {
   action: 'アクション',
   watch: 'ウォッチ',
   spotlight: 'スポットライト',
+  backstage: 'バックステージ',
   intermission: 'インターミッション',
   curtaincall: 'カーテンコール',
 };
@@ -2000,6 +2009,34 @@ const getBackstageRevealableItems = (state: GameState): BackstageItemState[] => 
   return backstage.items.filter((item) => item.status === 'backstage' && !item.isPublic);
 };
 
+const shouldEnterBackstagePhase = (state: GameState): boolean => {
+  const backstage = getBackstageState(state);
+
+  if (backstage.lastSpotlightPairFormed) {
+    return false;
+  }
+
+  if (!backstage.canActPlayer) {
+    return false;
+  }
+
+  if (backstage.actedThisIntermission) {
+    return false;
+  }
+
+  const reveal = getLatestSpotlightSetReveal(state);
+  if (!reveal || reveal.assignedTo) {
+    return false;
+  }
+
+  const revealableItems = getBackstageRevealableItems(state);
+  if (revealableItems.length === 0) {
+    return false;
+  }
+
+  return true;
+};
+
 const canPerformBackstageAction = (state: GameState): boolean => {
   const backstage = getBackstageState(state);
 
@@ -2024,10 +2061,15 @@ const canPerformBackstageAction = (state: GameState): boolean => {
 };
 
 const createIntermissionGateSubtitle = (state: GameState): string => {
-  const backstage = getBackstageState(state);
-  const nextPlayerId = backstage.canActPlayer ?? state.activePlayer;
-  const nextPlayerName = getPlayerDisplayName(state, nextPlayerId);
+  const nextPlayerName = getPlayerDisplayName(state, state.activePlayer);
   return `次は${nextPlayerName}の番です`;
+};
+
+const createBackstageGateSubtitle = (state: GameState): string => {
+  const backstage = getBackstageState(state);
+  const actorId = backstage.canActPlayer ?? state.activePlayer;
+  const actorName = getPlayerDisplayName(state, actorId);
+  return `${actorName}がバックステージアクションを実行します`;
 };
 
 const findLatestStagePairForIntermission = (state: GameState): StagePair | null => {
@@ -2235,6 +2277,8 @@ const completeBackstageSkip = (): void => {
   } else {
     console.info(INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE);
   }
+
+  autoAdvanceFromBackstage();
 };
 
 const finalizeBackstageDraw = (itemId: string): void => {
@@ -2337,6 +2381,8 @@ const finalizeBackstageDraw = (itemId: string): void => {
   } else {
     console.info(INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE);
   }
+
+  autoAdvanceFromBackstage();
 };
 
 interface BackstageRevealResult {
@@ -2652,6 +2698,7 @@ const openIntermissionBackstageActionDialog = (): void => {
       } else {
         console.info(INTERMISSION_BACKSTAGE_RESULT_MATCH);
       }
+      autoAdvanceFromBackstage();
     }
     return;
   }
@@ -2706,6 +2753,8 @@ const openIntermissionBackstageActionDialog = (): void => {
 
         if (!outcome.matched) {
           openIntermissionBackstageDrawDialog();
+        } else {
+          autoAdvanceFromBackstage();
         }
       }),
     );
@@ -4252,9 +4301,21 @@ const navigateToIntermissionGate = (): void => {
   }
 };
 
+const navigateToBackstageGate = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const router = window.curtainCall?.router;
+  if (router) {
+    router.go(SPOTLIGHT_TO_BACKSTAGE_PATH);
+  } else {
+    window.location.hash = SPOTLIGHT_TO_BACKSTAGE_PATH;
+  }
+};
+
 const handleIntermissionGatePass = (router: Router): void => {
   const state = gameStore.getState();
-  if (canPerformBackstageAction(state)) {
+  if (shouldEnterBackstagePhase(state)) {
     showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_PENDING_MESSAGE);
     return;
   }
@@ -4283,6 +4344,50 @@ const handleIntermissionGatePass = (router: Router): void => {
   });
 
   router.go(INTERMISSION_TO_SCOUT_PATH);
+};
+
+const handleBackstageGatePass = (router: Router): void => {
+  const state = gameStore.getState();
+  if (shouldEnterBackstagePhase(state)) {
+    showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_PENDING_MESSAGE);
+    return;
+  }
+
+  router.go(SPOTLIGHT_TO_INTERMISSION_PATH);
+};
+
+const navigateFromSpotlightToNextPhase = (): void => {
+  const latestState = gameStore.getState();
+  if (shouldEnterBackstagePhase(latestState)) {
+    navigateToBackstageGate();
+  } else {
+    navigateToIntermissionGate();
+  }
+};
+
+const autoAdvanceFromBackstage = (): void => {
+  const currentState = gameStore.getState();
+  if (shouldEnterBackstagePhase(currentState)) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const router = window.curtainCall?.router;
+  if (!router) {
+    const currentHash = window.location.hash || '';
+    if (currentHash === BACKSTAGE_GATE_PATH || currentHash === BACKSTAGE_PHASE_PATH) {
+      window.location.hash = SPOTLIGHT_TO_INTERMISSION_PATH;
+    }
+    return;
+  }
+
+  const currentPath = router.getCurrentPath();
+  if (currentPath === BACKSTAGE_GATE_PATH || currentPath === BACKSTAGE_PHASE_PATH) {
+    handleBackstageGatePass(router);
+  }
 };
 
 const completeSpotlightPhaseTransition = (): void => {
@@ -4325,7 +4430,7 @@ const completeSpotlightPhaseTransition = (): void => {
   if (typeof window === 'undefined') {
     latestSpotlightPairCheckOutcome = null;
     latestSpotlightPairCards = null;
-    navigateToIntermissionGate();
+    navigateFromSpotlightToNextPhase();
     return;
   }
 
@@ -4333,7 +4438,7 @@ const completeSpotlightPhaseTransition = (): void => {
   if (!modal) {
     latestSpotlightPairCheckOutcome = null;
     latestSpotlightPairCards = null;
-    navigateToIntermissionGate();
+    navigateFromSpotlightToNextPhase();
     return;
   }
 
@@ -4402,7 +4507,7 @@ const completeSpotlightPhaseTransition = (): void => {
         dismiss: false,
         onSelect: () => {
           modal.close();
-          navigateToIntermissionGate();
+          navigateFromSpotlightToNextPhase();
         },
       },
     ],
@@ -5519,23 +5624,22 @@ const ROUTES: RouteDescriptor[] = [
     }),
   },
   {
-    path: '#/phase/intermission',
-    title: INTERMISSION_GATE_TITLE,
-    heading: INTERMISSION_GATE_TITLE,
-    subtitle: '手番交代中です。ハンドオフゲートを通過してください。',
-    phase: 'intermission',
+    path: BACKSTAGE_PHASE_PATH,
+    title: BACKSTAGE_GATE_TITLE,
+    heading: BACKSTAGE_GATE_TITLE,
+    subtitle: BACKSTAGE_GATE_SUBTITLE,
+    phase: 'backstage',
   },
   {
-    path: '#/phase/intermission/gate',
-    title: `${INTERMISSION_GATE_TITLE}ゲート`,
-    heading: INTERMISSION_GATE_TITLE,
-    subtitle: '次のプレイヤーに端末を渡しましょう。',
-    phase: 'intermission',
+    path: BACKSTAGE_GATE_PATH,
+    title: `${BACKSTAGE_GATE_TITLE}ゲート`,
+    heading: BACKSTAGE_GATE_TITLE,
+    subtitle: BACKSTAGE_GATE_SUBTITLE,
+    phase: 'backstage',
     gate: createHandOffGateConfig({
-      confirmLabel: INTERMISSION_GATE_CONFIRM_LABEL,
-      resolveMessage: (state) =>
-        createPhaseGateMessage(state, 'インターミッション', INTERMISSION_GATE_CONFIRM_LABEL),
-      resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
+      confirmLabel: BACKSTAGE_GATE_CONFIRM_LABEL,
+      resolveMessage: () => BACKSTAGE_GATE_MESSAGE,
+      resolveSubtitle: (state) => createBackstageGateSubtitle(state),
       resolveActions: ({ state }) => {
         const actions: GateActionDescriptor[] = [];
 
@@ -5561,6 +5665,41 @@ const ROUTES: RouteDescriptor[] = [
         });
 
         return actions;
+      },
+      onPass: (nextRouter) => handleBackstageGatePass(nextRouter),
+    }),
+  },
+  {
+    path: '#/phase/intermission',
+    title: INTERMISSION_GATE_TITLE,
+    heading: INTERMISSION_GATE_TITLE,
+    subtitle: '手番交代中です。ハンドオフゲートを通過してください。',
+    phase: 'intermission',
+  },
+  {
+    path: '#/phase/intermission/gate',
+    title: `${INTERMISSION_GATE_TITLE}ゲート`,
+    heading: INTERMISSION_GATE_TITLE,
+    subtitle: '次のプレイヤーに端末を渡しましょう。',
+    phase: 'intermission',
+    gate: createHandOffGateConfig({
+      confirmLabel: INTERMISSION_GATE_CONFIRM_LABEL,
+      resolveMessage: (state) =>
+        createPhaseGateMessage(state, 'インターミッション', INTERMISSION_GATE_CONFIRM_LABEL),
+      resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
+      resolveActions: ({ state }) => {
+        return [
+          {
+            label: INTERMISSION_BOARD_CHECK_LABEL,
+            variant: 'ghost',
+            onSelect: () => showBoardCheck(),
+          },
+          {
+            label: INTERMISSION_SUMMARY_LABEL,
+            variant: 'ghost',
+            onSelect: () => openIntermissionSummaryDialog(),
+          },
+        ];
       },
       onPass: (nextRouter) => handleIntermissionGatePass(nextRouter),
     }),

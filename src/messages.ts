@@ -27,7 +27,7 @@ export const INTERMISSION_SUMMARY_CAPTION = '前ラウンドで公開された�
 export const INTERMISSION_SUMMARY_EMPTY = '公開情報はまだありません。';
 export const INTERMISSION_BACKSTAGE_ACTION_LABEL = 'バックステージ';
 export const INTERMISSION_BACKSTAGE_DESCRIPTION =
-  '直前のスポットライトでペア不成立でした。あなたはバックステージから1枚公開できます（1回）。';
+  '直前のスポットライトでペア不成立でした。あなたはバックステージから1枚公開できます（1回）。処理が終わると自動的にインターミッションへ進みます。';
 export const INTERMISSION_BACKSTAGE_REVEAL_LABEL = 'バックステージを公開';
 export const INTERMISSION_BACKSTAGE_SKIP_LABEL = 'スキップ';
 export const INTERMISSION_BACKSTAGE_REVEAL_TITLE = 'バックステージを公開';
@@ -45,6 +45,12 @@ export const INTERMISSION_BACKSTAGE_DRAW_MESSAGE = '手札に加えるカード�
 export const INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE =
   'これ以上取得できるカードはありません。';
 export const INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE = 'バックステージアクションを完了しました。';
+
+export const BACKSTAGE_GATE_TITLE = 'バックステージ';
+export const BACKSTAGE_GATE_CONFIRM_LABEL = 'インターミッションへ';
+export const BACKSTAGE_GATE_MESSAGE =
+  'バックステージアクションを完了するとインターミッションへ移動します。公開またはスキップの処理を行ってください。';
+export const BACKSTAGE_GATE_SUBTITLE = 'バックステージアクション担当のプレイヤーを呼び出してください。';
 
 export const STANDBY_DEAL_ERROR_MESSAGE =
   'スタンバイの初期化に失敗しました。もう一度お試しください。';
@@ -174,7 +180,7 @@ export const SPOTLIGHT_PAIR_CHECK_SKIPPED_MESSAGE = '今回はセットを公開
 export const SPOTLIGHT_PAIR_CHECK_PAIRED_MESSAGE = 'ペアができました！';
 export const SPOTLIGHT_PAIR_CHECK_UNPAIRED_MESSAGE = 'ペアはできませんでした！';
 export const SPOTLIGHT_PAIR_CHECK_CAPTION =
-  '判定が終わったら「OK」を押してインターミッションへ進みましょう。';
+  '判定が終わったら「OK」を押して、必要に応じてバックステージ処理へ進みましょう。';
 export const SPOTLIGHT_PAIR_CHECK_CONFIRM_LABEL = 'OK';
 export const SPOTLIGHT_JOKER_BONUS_TITLE = 'JOKERボーナス';
 export const SPOTLIGHT_JOKER_BONUS_MESSAGE = (playerName: string): string =>
