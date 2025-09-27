@@ -2342,9 +2342,10 @@ p {
 }
 
 .intermission-backstage {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: clamp(1rem, 2.5vh, 1.5rem);
-  justify-items: center;
+  align-items: stretch;
 }
 
 .intermission-backstage__title {
