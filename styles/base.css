@@ -2418,6 +2418,17 @@ p {
   opacity: 0.65;
 }
 
+.intermission-backstage__button--selected {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(15, 23, 42, 0.7);
+  box-shadow: 0 16px 36px rgba(251, 191, 36, 0.22);
+}
+
+.intermission-backstage__button--selected .intermission-backstage__card {
+  border-color: rgba(251, 191, 36, 0.55);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
+}
+
 .intermission-backstage__card {
   width: clamp(72px, 15vw, 100px);
   height: clamp(104px, 21vw, 140px);
@@ -2437,10 +2448,24 @@ p {
   font-weight: 600;
 }
 
+.intermission-backstage__card-description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
 .intermission-backstage__actions {
   display: flex;
   gap: clamp(0.75rem, 1.5vw, 1rem);
   justify-content: center;
+}
+
+.intermission-backstage__note {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  text-align: center;
 }
 
 .intermission-backstage__actions .button {
