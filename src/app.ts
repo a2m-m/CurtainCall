@@ -3428,18 +3428,15 @@ const openIntermissionBackstageDrawDialog = (): void => {
   const buttonMap = new Map<string, HTMLButtonElement>();
   let selectedItemId: string | null = null;
 
-  const decideButton = new UIButton({
-    label: INTERMISSION_BACKSTAGE_DRAW_DECIDE_LABEL,
-    preventRapid: true,
-    disabled: true,
-  });
+  const confirmActionId = 'intermission-backstage-draw-confirm';
+  let confirmActionButton: UIButton | null = null;
 
   const updateSelection = (itemId: string | null) => {
     selectedItemId = itemId;
     buttonMap.forEach((button, id) => {
       button.classList.toggle('intermission-backstage__button--selected', id === itemId);
     });
-    decideButton.setDisabled(!itemId);
+    confirmActionButton?.setDisabled(!itemId);
   };
 
   hiddenItems.forEach((item, index) => {
@@ -3456,30 +3453,35 @@ const openIntermissionBackstageDrawDialog = (): void => {
 
   container.append(list);
 
-  const actions = document.createElement('div');
-  actions.className = 'intermission-backstage__actions';
-
-  decideButton.onClick(() => {
-    if (!selectedItemId) {
-      return;
-    }
-    const result = finalizeBackstageDraw(selectedItemId);
-    if (!result) {
-      updateSelection(null);
-      return;
-    }
-    handleBackstageDrawResult(result);
-  });
-
-  actions.append(decideButton.el);
-  container.append(actions);
-
   modal.open({
     title: INTERMISSION_BACKSTAGE_DRAW_TITLE,
     body: container,
     dismissible: false,
-    actions: [],
+    actions: [
+      {
+        id: confirmActionId,
+        label: INTERMISSION_BACKSTAGE_DRAW_DECIDE_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        dismiss: false,
+        disabled: true,
+        onSelect: () => {
+          if (!selectedItemId) {
+            return;
+          }
+          const result = finalizeBackstageDraw(selectedItemId);
+          if (!result) {
+            updateSelection(null);
+            return;
+          }
+          handleBackstageDrawResult(result);
+        },
+      },
+    ],
   });
+
+  confirmActionButton = modal.getActionButton(confirmActionId);
+  confirmActionButton?.setDisabled(!selectedItemId);
 };
 
 const canRevealSpotlightKuroko = (state: GameState): boolean => {
