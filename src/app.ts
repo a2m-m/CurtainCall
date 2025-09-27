@@ -1749,6 +1749,7 @@ const completeScoutPick = (): CardSnapshot | null => {
         ...current.scout,
         selectedOpponentCardId: null,
       },
+      lastScoutPlayer: activePlayerId,
       recentScoutedCard: recentCard,
       revision: current.revision + 1,
       updatedAt: timestamp,
@@ -6707,6 +6708,18 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               return;
             }
             hasTriggeredAutoAdvance = true;
+            gameStore.setState((current) => {
+              if (current.lastScoutPlayer === current.activePlayer) {
+                return current;
+              }
+              const timestamp = Date.now();
+              return {
+                ...current,
+                lastScoutPlayer: current.activePlayer,
+                updatedAt: timestamp,
+                revision: current.revision + 1,
+              };
+            });
             if (typeof window !== 'undefined') {
               window.curtainCall?.modal?.close();
             }

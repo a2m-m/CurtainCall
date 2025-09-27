@@ -256,10 +256,15 @@ const normalizeBackstageState = (value: unknown): BackstageState => {
   };
 };
 
-const normalizeGameStateForLoad = (state: GameState): GameState => ({
-  ...state,
-  backstage: normalizeBackstageState((state as Record<string, unknown>).backstage),
-});
+const normalizeGameStateForLoad = (state: GameState): GameState => {
+  const record = state as Record<string, unknown>;
+  const lastScoutPlayer = isPlayerId(record.lastScoutPlayer) ? record.lastScoutPlayer : null;
+  return {
+    ...state,
+    lastScoutPlayer,
+    backstage: normalizeBackstageState(record.backstage),
+  };
+};
 
 const isResultHistoryEntry = (value: unknown): value is ResultHistoryEntry => {
   if (!value || typeof value !== 'object') {

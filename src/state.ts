@@ -252,6 +252,7 @@ export interface GameState extends Record<string, unknown> {
   history: HistoryEntry[];
   meta: GameMeta;
   resume?: ResumeSnapshot;
+  lastScoutPlayer: PlayerId | null;
   recentScoutedCard: CardSnapshot | null;
   scout: ScoutState;
   action: ActionState;
@@ -409,6 +410,7 @@ export const createInitialState = (): GameState => {
       composition: { ...CARD_COMPOSITION },
     },
     resume: undefined,
+    lastScoutPlayer: null,
     recentScoutedCard: null,
     scout: {
       selectedOpponentCardId: null,
