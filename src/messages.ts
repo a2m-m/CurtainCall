@@ -39,15 +39,34 @@ export const INTERMISSION_BACKSTAGE_PENDING_MESSAGE =
   'バックステージアクションを実行するか、スキップしてください。';
 export const INTERMISSION_BACKSTAGE_RESULT_MATCH = '一致！セットのカードとペアが成立しました。ステージに配置しました。';
 export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH =
-  '一致しませんでした。さらに1枚を手札に加えてください。';
+  '一致しませんでした。バックステージからカードを引いてください。';
 export const INTERMISSION_BACKSTAGE_RESULT_TITLE = 'バックステージ判定';
 export const INTERMISSION_BACKSTAGE_RESULT_MATCH_OK_LABEL = 'インターミッションへ';
-export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH_OK_LABEL = 'バックステージから取得へ';
+export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH_OK_LABEL = 'OK';
 export const INTERMISSION_BACKSTAGE_DRAW_TITLE = 'バックステージから取得';
 export const INTERMISSION_BACKSTAGE_DRAW_MESSAGE = '手札に加えるカードを選んでください（非公開）';
 export const INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE =
   'これ以上取得できるカードはありません。';
 export const INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE = 'バックステージアクションを完了しました。';
+
+export const INTERMISSION_BACKSTAGE_DECIDE_LABEL = '決定';
+export const INTERMISSION_BACKSTAGE_CONFIRM_MESSAGE = 'このカードにしますか？';
+export const INTERMISSION_BACKSTAGE_CONFIRM_OK_LABEL = 'OK';
+export const INTERMISSION_BACKSTAGE_CONFIRM_CANCEL_LABEL = '戻る';
+export const INTERMISSION_BACKSTAGE_PREVIEW_TITLE = 'カードの最終確認';
+export const INTERMISSION_BACKSTAGE_PREVIEW_MESSAGE =
+  '直前に公開されたカードと選択したカードを確認してください。';
+export const INTERMISSION_BACKSTAGE_PREVIEW_CONFIRM_LABEL = 'カードを確認';
+export const INTERMISSION_BACKSTAGE_REVEAL_READY_TITLE = 'カードをオープン';
+export const INTERMISSION_BACKSTAGE_REVEAL_READY_MESSAGE = 'カードをオープンします。';
+export const INTERMISSION_BACKSTAGE_REVEAL_READY_OK_LABEL = 'OK';
+export const INTERMISSION_BACKSTAGE_RESULT_MISMATCH_INSTRUCTION = 'バックステージからカードを引いてください。';
+export const INTERMISSION_BACKSTAGE_STAGE_MOVE_MESSAGE = (playerName: string): string =>
+  `${playerName}のステージに移動します。`;
+export const INTERMISSION_BACKSTAGE_DRAW_DECIDE_LABEL = '決定';
+export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_TITLE = 'カードを取得しました';
+export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE = (cardLabel: string): string =>
+  `${cardLabel}を手札に加えました。`;
 
 export const BACKSTAGE_GATE_TITLE = 'バックステージ';
 export const BACKSTAGE_GATE_CONFIRM_LABEL = 'インターミッションへ';
