@@ -427,6 +427,8 @@ p {
 .standby__players {
   display: grid;
   gap: clamp(1rem, 3.5vh, 1.25rem);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  align-items: start;
 }
 
 .standby-player {
