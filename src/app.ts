@@ -183,6 +183,7 @@ const {
   INTERMISSION_BACKSTAGE_DRAW_DECIDE_LABEL,
   INTERMISSION_BACKSTAGE_DRAW_CONFIRM_TITLE,
   INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE,
+  INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE,
   BACKSTAGE_GATE_TITLE,
   BACKSTAGE_GATE_CONFIRM_LABEL,
   BACKSTAGE_GATE_MESSAGE,
@@ -2482,6 +2483,7 @@ const finalizeBackstageDraw = (itemId: string): BackstageDrawResult | null => {
     const nextItems = latestBackstage.items.slice();
     const cardForHand = cloneCardSnapshot(item.card);
     cardForHand.face = 'down';
+    const cardLabel = formatCardLabel(cardForHand);
 
     nextItems[itemIndex] = {
       ...item,
@@ -2496,6 +2498,8 @@ const finalizeBackstageDraw = (itemId: string): BackstageDrawResult | null => {
       actedThisIntermission: true,
       canActPlayer: latestBackstage.canActPlayer,
       pile: Math.max(0, latestBackstage.pile - 1),
+      lastResult: 'mismatch',
+      lastResultMessage: INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE(cardLabel),
       lastCompletionMessage: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
     };
 
@@ -3046,6 +3050,23 @@ const openBackstageDrawResultDialog = (
   });
 };
 
+const announceBackstageDrawResult = (result: BackstageDrawResult): void => {
+  const message = INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE(formatCardLabel(result.card));
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: 'info' });
+    return;
+  }
+
+  console.info(message);
+};
+
 const startBackstageRevealFlow = (itemId: string): void => {
   if (typeof window === 'undefined') {
     const outcome = finalizeBackstageReveal(itemId);
@@ -3115,6 +3136,7 @@ const openIntermissionBackstageDrawDialog = (): void => {
   if (typeof window === 'undefined') {
     const result = finalizeBackstageDraw(hiddenItems[0].id);
     if (result) {
+      announceBackstageDrawResult(result);
       autoAdvanceFromBackstage();
     }
     return;
@@ -3124,6 +3146,7 @@ const openIntermissionBackstageDrawDialog = (): void => {
   if (!modal) {
     const result = finalizeBackstageDraw(hiddenItems[0].id);
     if (result) {
+      announceBackstageDrawResult(result);
       autoAdvanceFromBackstage();
     }
     return;
