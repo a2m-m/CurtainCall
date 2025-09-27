@@ -312,7 +312,7 @@ const renderBackstageSection = (state: GameState): HTMLDivElement => {
     const cardComponent = new CardComponent({
       rank: item.card.rank,
       suit: item.card.suit,
-      faceDown: item.card.face !== 'up',
+      faceDown: !item.isPublic,
       annotation: item.card.annotation,
     });
     const cardLabel = formatCardLabel(item.card);

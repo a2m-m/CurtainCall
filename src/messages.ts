@@ -27,11 +27,11 @@ export const INTERMISSION_SUMMARY_CAPTION = '前ラウンドで公開された�
 export const INTERMISSION_SUMMARY_EMPTY = '公開情報はまだありません。';
 export const INTERMISSION_BACKSTAGE_ACTION_LABEL = 'バックステージ';
 export const INTERMISSION_BACKSTAGE_DESCRIPTION =
-  '直前のスポットライトでペア不成立でした。あなたはバックステージから1枚公開できます（1回）。処理が終わると自動的にインターミッションへ進みます。';
+  '直前のスポットライトでペア不成立でした。あなたはバックステージから最大3枚まで公開できます（1回）。処理が終わると自動的にインターミッションへ進みます。';
 export const INTERMISSION_BACKSTAGE_REVEAL_LABEL = 'バックステージを公開';
 export const INTERMISSION_BACKSTAGE_SKIP_LABEL = 'スキップ';
 export const INTERMISSION_BACKSTAGE_REVEAL_TITLE = 'バックステージを公開';
-export const INTERMISSION_BACKSTAGE_REVEAL_MESSAGE = '公開するカードを選んでください。';
+export const INTERMISSION_BACKSTAGE_REVEAL_MESSAGE = '公開するカードを最大3枚まで選んでください。';
 export const INTERMISSION_BACKSTAGE_REVEAL_EMPTY_MESSAGE = '公開できるカードは残っていません。';
 export const INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE =
   'バックステージアクションを実行できる状態ではありません。';
@@ -50,7 +50,7 @@ export const INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE =
 export const INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE = 'バックステージアクションを完了しました。';
 
 export const INTERMISSION_BACKSTAGE_DECIDE_LABEL = '決定';
-export const INTERMISSION_BACKSTAGE_CONFIRM_MESSAGE = 'このカードにしますか？';
+export const INTERMISSION_BACKSTAGE_CONFIRM_MESSAGE = '選択したカードを公開しますか？';
 export const INTERMISSION_BACKSTAGE_CONFIRM_OK_LABEL = 'OK';
 export const INTERMISSION_BACKSTAGE_CONFIRM_CANCEL_LABEL = '戻る';
 export const INTERMISSION_BACKSTAGE_PREVIEW_TITLE = 'カードの最終確認';
