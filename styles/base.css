@@ -2585,6 +2585,36 @@ p {
   text-align: center;
 }
 
+.intermission-backstage__pair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.intermission-backstage__pair-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 128px;
+}
+
+.intermission-backstage__pair-label {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.intermission-backstage__pair-separator {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  color: var(--color-accent, var(--color-primary));
+}
+
 .intermission-backstage__actions .button {
   min-width: clamp(8rem, 18vw, 10rem);
 }
