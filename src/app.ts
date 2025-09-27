@@ -3219,6 +3219,32 @@ const requestSpotlightSecretPair = (
   }
 };
 
+interface SpotlightPickerLayout {
+  container: HTMLDivElement;
+  panel: HTMLDivElement;
+}
+
+const createSpotlightPickerLayout = (title: string): SpotlightPickerLayout => {
+  const container = document.createElement('div');
+  container.className = 'spotlight-set-picker';
+
+  const panel = document.createElement('div');
+  panel.className = 'spotlight-set-picker__panel';
+
+  const header = document.createElement('div');
+  header.className = 'spotlight-set-picker__header';
+
+  const heading = document.createElement('h2');
+  heading.className = 'spotlight-set-picker__title';
+  heading.textContent = title;
+
+  header.append(heading);
+  panel.append(header);
+  container.append(panel);
+
+  return { container, panel };
+};
+
 const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
   if (typeof window === 'undefined') {
     return;
@@ -3238,19 +3264,18 @@ const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
   const playerName = getPlayerDisplayName(state, playerId);
   const availableCards = shuffleCards(getAvailableSpotlightSetCards(state));
 
-  const container = document.createElement('div');
-  container.className = 'spotlight-set-picker';
+  const { container, panel } = createSpotlightPickerLayout(SPOTLIGHT_SET_PICKER_TITLE);
 
   const message = document.createElement('p');
   message.className = 'spotlight-set-picker__message';
   message.textContent = `${playerName}のターンです。${SPOTLIGHT_SET_PICKER_MESSAGE}`;
-  container.append(message);
+  panel.append(message);
 
   if (availableCards.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'spotlight-set-picker__empty';
     empty.textContent = SPOTLIGHT_SET_PICKER_EMPTY_MESSAGE;
-    container.append(empty);
+    panel.append(empty);
   } else {
     const list = document.createElement('ul');
     list.className = 'spotlight-set-picker__list';
@@ -3287,7 +3312,7 @@ const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
       list.append(item);
     });
 
-    container.append(list);
+    panel.append(list);
   }
 
   modal.open({
@@ -3407,19 +3432,18 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
   const state = gameStore.getState();
   const availableCards = shuffleCards(getAvailableSpotlightSetCards(state));
 
-  const container = document.createElement('div');
-  container.className = 'spotlight-set-picker';
+  const { container, panel } = createSpotlightPickerLayout(SPOTLIGHT_JOKER_BONUS_TITLE);
 
   const message = document.createElement('p');
   message.className = 'spotlight-set-picker__message';
   message.textContent = SPOTLIGHT_JOKER_BONUS_MESSAGE(playerName);
-  container.append(message);
+  panel.append(message);
 
   if (availableCards.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'spotlight-set-picker__empty';
     empty.textContent = SPOTLIGHT_JOKER_BONUS_EMPTY_MESSAGE;
-    container.append(empty);
+    panel.append(empty);
 
     modal.open({
       title: SPOTLIGHT_JOKER_BONUS_TITLE,
@@ -3449,7 +3473,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
   const prompt = document.createElement('p');
   prompt.className = 'spotlight-set-picker__empty';
   prompt.textContent = SPOTLIGHT_JOKER_BONUS_MULTI_PROMPT;
-  container.append(prompt);
+  panel.append(prompt);
 
   const list = document.createElement('ul');
   list.className = 'spotlight-set-picker__list';
@@ -3486,7 +3510,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
     list.append(item);
   });
 
-  container.append(list);
+  panel.append(list);
 
   modal.open({
     title: SPOTLIGHT_JOKER_BONUS_TITLE,
@@ -3831,19 +3855,18 @@ const openSpotlightSecretPairDialog = (request: SpotlightSecretPairRequest): voi
     return;
   }
 
-  const container = document.createElement('div');
-  container.className = 'spotlight-set-picker';
+  const { container, panel } = createSpotlightPickerLayout(SPOTLIGHT_SECRET_PAIR_TITLE);
 
   const message = document.createElement('p');
   message.className = 'spotlight-set-picker__message';
   message.textContent = SPOTLIGHT_SECRET_PAIR_MESSAGE(playerName, openCardLabel);
-  container.append(message);
+  panel.append(message);
 
   if (candidates.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'spotlight-set-picker__empty';
     empty.textContent = SPOTLIGHT_SECRET_PAIR_EMPTY_MESSAGE;
-    container.append(empty);
+    panel.append(empty);
   } else {
     const list = document.createElement('ul');
     list.className = 'spotlight-set-picker__list';
@@ -3880,7 +3903,7 @@ const openSpotlightSecretPairDialog = (request: SpotlightSecretPairRequest): voi
       list.append(item);
     });
 
-    container.append(list);
+    panel.append(list);
   }
 
   modal.open({
