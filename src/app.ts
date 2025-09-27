@@ -152,6 +152,9 @@ const {
   INTERMISSION_BACKSTAGE_PENDING_MESSAGE,
   INTERMISSION_BACKSTAGE_RESULT_MATCH,
   INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
+  INTERMISSION_BACKSTAGE_RESULT_TITLE,
+  INTERMISSION_BACKSTAGE_RESULT_MATCH_OK_LABEL,
+  INTERMISSION_BACKSTAGE_RESULT_MISMATCH_OK_LABEL,
   INTERMISSION_BACKSTAGE_DRAW_TITLE,
   INTERMISSION_BACKSTAGE_DRAW_MESSAGE,
   INTERMISSION_BACKSTAGE_DRAW_EMPTY_MESSAGE,
@@ -2684,6 +2687,71 @@ const createBackstageCardButton = (
   return listItem;
 };
 
+const showBackstageRevealResultDialog = (
+  modal: ModalController,
+  outcome: BackstageRevealResult,
+  onComplete: () => void,
+): void => {
+  const container = document.createElement('div');
+  container.className = 'intermission-backstage';
+
+  const message = document.createElement('p');
+  message.className = 'intermission-backstage__message';
+  message.textContent = outcome.matched
+    ? INTERMISSION_BACKSTAGE_RESULT_MATCH
+    : INTERMISSION_BACKSTAGE_RESULT_MISMATCH;
+  container.append(message);
+
+  modal.open({
+    title: INTERMISSION_BACKSTAGE_RESULT_TITLE,
+    body: container,
+    dismissible: false,
+    actions: [
+      {
+        label: outcome.matched
+          ? INTERMISSION_BACKSTAGE_RESULT_MATCH_OK_LABEL
+          : INTERMISSION_BACKSTAGE_RESULT_MISMATCH_OK_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        onSelect: () => {
+          modal.close();
+          onComplete();
+        },
+      },
+    ],
+  });
+};
+
+const handleBackstageRevealOutcome = (outcome: BackstageRevealResult): void => {
+  const proceed = outcome.matched
+    ? () => autoAdvanceFromBackstage()
+    : () => openIntermissionBackstageDrawDialog();
+  const message = outcome.matched
+    ? INTERMISSION_BACKSTAGE_RESULT_MATCH
+    : INTERMISSION_BACKSTAGE_RESULT_MISMATCH;
+
+  if (typeof window === 'undefined') {
+    console.info(message);
+    proceed();
+    return;
+  }
+
+  const modal = window.curtainCall?.modal;
+  if (modal) {
+    showBackstageRevealResultDialog(modal, outcome, proceed);
+    return;
+  }
+
+  const toast = window.curtainCall?.toast;
+  if (toast) {
+    toast.show({ message, variant: outcome.matched ? 'success' : 'info' });
+  } else {
+    console.info(message);
+  }
+
+  proceed();
+};
+
 const openIntermissionBackstageDrawDialog = (): void => {
   const state = gameStore.getState();
   const hiddenItems = shuffleCards(getBackstageRevealableItems(state));
@@ -2756,14 +2824,7 @@ const openIntermissionBackstageActionDialog = (): void => {
     if (!outcome) {
       return;
     }
-    if (outcome.matched) {
-      if (typeof window === 'undefined') {
-        console.info(INTERMISSION_BACKSTAGE_RESULT_MATCH);
-      }
-    } else {
-      console.info(INTERMISSION_BACKSTAGE_RESULT_MISMATCH);
-      openIntermissionBackstageDrawDialog();
-    }
+    handleBackstageRevealOutcome(outcome);
     return;
   }
 
@@ -2773,25 +2834,7 @@ const openIntermissionBackstageActionDialog = (): void => {
     if (!outcome) {
       return;
     }
-    if (!outcome.matched) {
-      if (typeof window !== 'undefined') {
-        const toast = window.curtainCall?.toast;
-        if (toast) {
-          toast.show({ message: INTERMISSION_BACKSTAGE_RESULT_MISMATCH, variant: 'info' });
-        } else {
-          console.info(INTERMISSION_BACKSTAGE_RESULT_MISMATCH);
-        }
-      }
-      openIntermissionBackstageDrawDialog();
-    } else if (typeof window !== 'undefined') {
-      const toast = window.curtainCall?.toast;
-      if (toast) {
-        toast.show({ message: INTERMISSION_BACKSTAGE_RESULT_MATCH, variant: 'success' });
-      } else {
-        console.info(INTERMISSION_BACKSTAGE_RESULT_MATCH);
-      }
-      autoAdvanceFromBackstage();
-    }
+    handleBackstageRevealOutcome(outcome);
     return;
   }
 
@@ -2824,30 +2867,7 @@ const openIntermissionBackstageActionDialog = (): void => {
         if (!outcome) {
           return;
         }
-
-        if (typeof window !== 'undefined') {
-          const toast = window.curtainCall?.toast;
-          if (toast) {
-            toast.show({
-              message: outcome.matched
-                ? INTERMISSION_BACKSTAGE_RESULT_MATCH
-                : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
-              variant: outcome.matched ? 'success' : 'info',
-            });
-          } else {
-            console.info(
-              outcome.matched
-                ? INTERMISSION_BACKSTAGE_RESULT_MATCH
-                : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
-            );
-          }
-        }
-
-        if (!outcome.matched) {
-          openIntermissionBackstageDrawDialog();
-        } else {
-          autoAdvanceFromBackstage();
-        }
+        handleBackstageRevealOutcome(outcome);
       }),
     );
   });
@@ -5751,19 +5771,6 @@ const ROUTES: RouteDescriptor[] = [
             onSelect: () => openIntermissionBackstageActionDialog(),
           });
         }
-
-        actions.push({
-          label: INTERMISSION_BOARD_CHECK_LABEL,
-          variant: 'ghost',
-          onSelect: () => showBoardCheck(),
-        });
-
-        actions.push({
-          label: INTERMISSION_SUMMARY_LABEL,
-          variant: 'ghost',
-          onSelect: () => openIntermissionSummaryDialog(),
-        });
-
         return actions;
       },
       onPass: (nextRouter) => handleBackstageGatePass(nextRouter),
