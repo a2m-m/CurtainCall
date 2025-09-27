@@ -1,7 +1,6 @@
 export const DEFAULT_GATE_TITLE = 'ハンドオフゲート';
 export const DEFAULT_GATE_CONFIRM_LABEL = '準備完了';
-export const DEFAULT_GATE_MESSAGE =
-  '端末を次のプレイヤーに渡したら「準備完了」を押して、秘匿情報の閲覧を開始してください。';
+export const DEFAULT_GATE_MESSAGE = '';
 export const DEFAULT_CLOSE_LABEL = '閉じる';
 
 export const NAVIGATION_BLOCK_TITLE = '戻る操作はできません';
@@ -9,10 +8,7 @@ export const NAVIGATION_BLOCK_MESSAGE =
   'ゲーム進行中はブラウザの戻る操作を利用できません。画面内のボタンから操作してください。';
 export const NAVIGATION_BLOCK_CONFIRM_LABEL = 'OK';
 
-export const HANDOFF_GATE_HINTS = Object.freeze([
-  '端末を次のプレイヤーに渡したら「準備完了」を押してください。',
-  'ゲートを通過した後に秘匿情報が画面へ描画されます。',
-]);
+export const HANDOFF_GATE_HINTS = Object.freeze<string[]>([]);
 
 export const HANDOFF_GATE_MODAL_NOTES = Object.freeze([
   'ゲート通過前は秘匿情報を DOM に出力しません。',
