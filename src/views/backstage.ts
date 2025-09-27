@@ -26,10 +26,12 @@ export interface BackstageViewOptions {
   revealLabel: string;
   boardCheckLabel?: string;
   summaryLabel?: string;
+  myHandLabel?: string;
   onConfirmSelection?: (itemId: string) => void;
   onSkip?: () => void;
   onOpenBoardCheck?: () => void;
   onOpenSummary?: () => void;
+  onOpenMyHand?: () => void;
 }
 
 export interface BackstageViewElement extends HTMLElement {
@@ -110,6 +112,17 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
     boardCheckButton.el.classList.add('backstage__header-button');
     boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
     headerActions.append(boardCheckButton.el);
+  }
+
+  if (options.onOpenMyHand) {
+    const myHandButton = new UIButton({
+      label: options.myHandLabel ?? '自分の手札',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    myHandButton.el.classList.add('backstage__header-button');
+    myHandButton.onClick(() => options.onOpenMyHand?.());
+    headerActions.append(myHandButton.el);
   }
 
   if (options.onOpenSummary) {
