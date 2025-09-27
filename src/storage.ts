@@ -234,12 +234,25 @@ const normalizeBackstageState = (value: unknown): BackstageState => {
       : record.actedThisIntermission === false
         ? false
         : fallback.actedThisIntermission;
+  const lastResult =
+    record.lastResult === 'match' || record.lastResult === 'mismatch'
+      ? record.lastResult
+      : fallback.lastResult;
+  const lastResultMessage =
+    typeof record.lastResultMessage === 'string' ? record.lastResultMessage : fallback.lastResultMessage;
+  const lastCompletionMessage =
+    typeof record.lastCompletionMessage === 'string'
+      ? record.lastCompletionMessage
+      : fallback.lastCompletionMessage;
   return {
     items,
     pile,
     lastSpotlightPairFormed,
     canActPlayer,
     actedThisIntermission,
+    lastResult,
+    lastResultMessage,
+    lastCompletionMessage,
   };
 };
 

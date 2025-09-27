@@ -81,6 +81,7 @@ interface GateDescriptor {
   confirmLabel?: string;
   hints?: string[];
   modalNotes?: string[];
+  resolveModalNotes?: (state: GameState) => string[] | undefined;
   modalTitle?: string;
   preventRapid?: boolean;
   lockDuration?: number;
@@ -957,11 +958,9 @@ const createInitialDealState = (
       opened: [],
     },
     backstage: {
+      ...createInitialBackstageState(),
       items: createBackstageItemsForInitialDeal(deal.backstage),
       pile: deal.backstage.length,
-      lastSpotlightPairFormed: false,
-      canActPlayer: null,
-      actedThisIntermission: false,
     },
     history: [],
     updatedAt: timestamp,
@@ -2073,6 +2072,24 @@ const createBackstageGateSubtitle = (state: GameState): string => {
   return `${actorName}がバックステージアクションを実行します`;
 };
 
+const createIntermissionBackstageNotes = (state: GameState): string[] => {
+  const backstage = getBackstageState(state);
+  const notes: string[] = [];
+
+  if (backstage.lastResultMessage) {
+    notes.push(backstage.lastResultMessage);
+  }
+
+  if (
+    backstage.lastCompletionMessage &&
+    backstage.lastCompletionMessage !== backstage.lastResultMessage
+  ) {
+    notes.push(backstage.lastCompletionMessage);
+  }
+
+  return notes;
+};
+
 const findLatestStagePairForIntermission = (state: GameState): StagePair | null => {
   const spotlightPair = findLatestSpotlightPair(state);
   if (!spotlightPair) {
@@ -2253,6 +2270,9 @@ const completeBackstageSkip = (): void => {
         ...backstage,
         actedThisIntermission: true,
         canActPlayer: backstage.canActPlayer,
+        lastResult: null,
+        lastResultMessage: null,
+        lastCompletionMessage: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
       },
       revision: current.revision + 1,
       updatedAt: timestamp,
@@ -2332,6 +2352,7 @@ const finalizeBackstageDraw = (itemId: string): void => {
       actedThisIntermission: true,
       canActPlayer: latestBackstage.canActPlayer,
       pile: Math.max(0, latestBackstage.pile - 1),
+      lastCompletionMessage: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
     };
 
     drawn = true;
@@ -2457,6 +2478,13 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
       ...latestBackstage,
       items: nextItems,
       pile: Math.max(0, latestBackstage.pile - 1),
+      lastResult: matches ? 'match' : 'mismatch',
+      lastResultMessage: matches
+        ? INTERMISSION_BACKSTAGE_RESULT_MATCH
+        : INTERMISSION_BACKSTAGE_RESULT_MISMATCH,
+      lastCompletionMessage: matches
+        ? INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE
+        : null,
     };
 
     if (matches) {
@@ -2491,6 +2519,9 @@ const finalizeBackstageReveal = (itemId: string): BackstageRevealResult | null =
         lastSpotlightPairFormed: true,
         canActPlayer: latestBackstage.canActPlayer,
         actedThisIntermission: true,
+        lastResult: 'match',
+        lastResultMessage: INTERMISSION_BACKSTAGE_RESULT_MATCH,
+        lastCompletionMessage: INTERMISSION_BACKSTAGE_COMPLETE_MESSAGE,
       };
 
       const updatedReveal: SetReveal = {
@@ -2907,6 +2938,9 @@ const openSpotlightSetCard = (setCardId: string): SetReveal | null => {
       lastSpotlightPairFormed: false,
       canActPlayer: getOpponentId(openerId),
       actedThisIntermission: false,
+      lastResult: null,
+      lastResultMessage: null,
+      lastCompletionMessage: null,
     };
 
     return {
@@ -3605,6 +3639,9 @@ const finalizeSpotlightSecretPairSelection = (
           lastSpotlightPairFormed: true,
           canActPlayer: null,
           actedThisIntermission: false,
+          lastResult: null,
+          lastResultMessage: null,
+          lastCompletionMessage: null,
         }
       : getBackstageState(current);
 
@@ -4326,6 +4363,7 @@ const handleIntermissionGatePass = (router: Router): void => {
     const currentTurn = current.turn ?? { count: 0, startedAt: timestamp };
     const previousWatchState = current.watch ?? createInitialWatchState();
     const nextActivePlayerId = getOpponentId(current.activePlayer);
+    const backstage = getBackstageState(current);
 
     return {
       ...current,
@@ -4333,6 +4371,12 @@ const handleIntermissionGatePass = (router: Router): void => {
       turn: {
         count: currentTurn.count + 1,
         startedAt: timestamp,
+      },
+      backstage: {
+        ...backstage,
+        lastResult: null,
+        lastResultMessage: null,
+        lastCompletionMessage: null,
       },
       watch: {
         ...previousWatchState,
@@ -5688,6 +5732,10 @@ const ROUTES: RouteDescriptor[] = [
       resolveMessage: (state) =>
         createPhaseGateMessage(state, 'インターミッション', INTERMISSION_GATE_CONFIRM_LABEL),
       resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
+      resolveModalNotes: (state) => {
+        const notes = createIntermissionBackstageNotes(state);
+        return notes.length > 0 ? notes : undefined;
+      },
       resolveActions: () => {
         return [
           {
@@ -5747,6 +5795,12 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             createTurnGateMessage(state, confirmLabel);
           const resolvedSubtitle = route.gate?.resolveSubtitle?.(state) ?? route.subtitle;
           const resolvedActions = route.gate?.resolveActions?.({ state, router: contextRouter }) ?? [];
+          const baseNotes = route.gate?.modalNotes ?? [];
+          const dynamicNotes = route.gate?.resolveModalNotes?.(state) ?? [];
+          const combinedNotes = [...baseNotes, ...dynamicNotes].filter(
+            (note): note is string => typeof note === 'string' && note.length > 0,
+          );
+          const resolvedModalNotes = combinedNotes.length > 0 ? Array.from(new Set(combinedNotes)) : undefined;
 
           return createGateView({
             title: route.heading,
@@ -5754,7 +5808,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             message: resolvedMessage,
             confirmLabel: route.gate?.confirmLabel,
             hints: route.gate?.hints,
-            modalNotes: route.gate?.modalNotes,
+            modalNotes: resolvedModalNotes,
             modalTitle: route.gate?.modalTitle ?? route.title,
             preventRapid: route.gate?.preventRapid,
             lockDuration: route.gate?.lockDuration,
