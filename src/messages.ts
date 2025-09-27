@@ -74,7 +74,7 @@ export const INTERMISSION_VIEW_GATE_LABEL = 'ハンドオフゲートへ';
 export const INTERMISSION_VIEW_RESUME_LABEL = '続きから';
 export const INTERMISSION_VIEW_RESUME_TITLE = 'セーブデータ';
 export const INTERMISSION_VIEW_RESUME_CAPTION =
-  'セーブデータの確認と復元フローは今後実装されます。';
+  'セーブデータを確認し、レジュームゲートから再開できます。';
 export const INTERMISSION_VIEW_RESUME_EMPTY = 'セーブデータはまだ保存されていません。';
 export const INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX = '保存日時：';
 export const INTERMISSION_VIEW_SUMMARY_TITLE = '公開情報のハイライト';
@@ -84,9 +84,41 @@ export const INTERMISSION_TASK_NEXT_PLAYER = (playerName: string): string =>
 export const INTERMISSION_TASK_REVIEW =
   '公開情報を確認するときは「ボードチェック」や「前ラウンド要約」を開いて整理しましょう。';
 export const INTERMISSION_TASK_RESUME =
-  '途中で中断する場合は「続きから」からセーブデータを扱います（復元フローは準備中です）。';
+  '途中で中断する場合は「続きから」から再開してください。セーブデータの確認と復元はレジュームゲートを通じて行います。';
 export const INTERMISSION_TASK_GATE =
   '準備が整ったら「ハンドオフゲートへ」を押して次のフェーズへ進みます。';
+
+export const RESUME_GATE_MODAL_TITLE = '続きから';
+export const RESUME_GATE_CONFIRM_LABEL = '再開する';
+export const RESUME_GATE_MESSAGE =
+  'セーブデータを読み込みます。端末を受け取ったプレイヤーは周囲の視線を遮り、準備が整ったら「再開する」を押してください。';
+export const RESUME_GATE_HINTS = Object.freeze([
+  'ゲートを通過するまで秘匿情報は表示されません。',
+  '再開後は保存時点の手番とフェーズからゲームが進行します。',
+] as const);
+export const RESUME_GATE_MODAL_NOTES = Object.freeze([
+  '秘匿情報はゲート通過後に描画されます。',
+] as const);
+export const RESUME_GATE_HOME_LABEL = 'HOMEに戻る';
+export const RESUME_GATE_DISCARD_LABEL = '破棄して新規';
+export const RESUME_GATE_DISCARD_CONFIRM_TITLE = 'セーブデータを破棄しますか？';
+export const RESUME_GATE_DISCARD_CONFIRM_MESSAGE =
+  '保存中のゲームを破棄して新しいゲームを始めます。よろしいですか？';
+export const RESUME_GATE_DISCARD_CONFIRM_OK_LABEL = '破棄に進む';
+export const RESUME_GATE_DISCARD_FINAL_TITLE = '最終確認';
+export const RESUME_GATE_DISCARD_FINAL_MESSAGE =
+  'この操作は取り消せません。本当にセーブデータを破棄して新しく開始しますか？';
+export const RESUME_GATE_DISCARD_FINAL_OK_LABEL = '破棄して新規開始';
+export const RESUME_GATE_CANCEL_LABEL = 'やめる';
+export const RESUME_GATE_ERROR_TITLE = '復元に失敗しました';
+export const RESUME_GATE_ERROR_MESSAGE =
+  'セーブデータの復元に失敗しました。HOMEに戻るか、もう一度お試しください。';
+export const RESUME_GATE_ERROR_HOME_LABEL = 'HOMEに戻る';
+export const RESUME_GATE_ERROR_RETRY_LABEL = 'もう一度表示';
+export const RESUME_GATE_EMPTY_TITLE = 'セーブデータが見つかりません';
+export const RESUME_GATE_EMPTY_MESSAGE =
+  '保存されたゲームが見つかりません。HOMEに戻って新しいゲームを始めてください。';
+export const RESUME_GATE_EMPTY_CONFIRM_LABEL = 'HOMEに戻る';
 
 export const BACKSTAGE_GATE_TITLE = 'バックステージ';
 export const BACKSTAGE_GATE_CONFIRM_LABEL = 'バックステージへ';

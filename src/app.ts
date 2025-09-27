@@ -8,6 +8,7 @@ import {
 } from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
+  clearGame,
   deleteResult,
   getSavedGameMetadata,
   listResultHistory,
@@ -15,6 +16,7 @@ import {
   ResultHistoryEntry,
   saveGame,
   saveResult,
+  type SaveMetadata,
 } from './storage.js';
 import { resolveNextIntermissionActivePlayer } from './turn.js';
 import {
@@ -40,6 +42,7 @@ import {
   type StagePair,
   type StageJudgeResult,
   type WatchDecision,
+  type TurnState,
   type CurtainCallPlayerSummary,
   type CurtainCallSummary,
 } from './state.js';
@@ -49,7 +52,7 @@ import { ToastManager } from './ui/toast.js';
 import { animationManager } from './ui/animation.js';
 import { CardComponent } from './ui/card.js';
 import { showBoardCheck } from './ui/board-check.js';
-import { setGateModalController } from './ui/gate.js';
+import { setGateModalController, showGate } from './ui/gate.js';
 import { createGateView } from './views/gate.js';
 import { UIButton, type ButtonVariant } from './ui/button.js';
 import { createHomeView } from './views/home.js';
@@ -1174,6 +1177,286 @@ const createResumeSummary = (player: PlayerId, phase: PhaseKey): string => {
   const playerLabel = PLAYER_LABELS[player] ?? player;
   const phaseLabel = PHASE_LABELS[phase] ?? phase;
   return `手番：${playerLabel}\u3000\uFF5C\u3000フェーズ：${phaseLabel}`;
+};
+
+const createResumeGateTitle = (metadata: SaveMetadata): string => {
+  const playerLabel = PLAYER_LABELS[metadata.activePlayer] ?? metadata.activePlayer;
+  return `${playerLabel}の番から再開`;
+};
+
+const createResumeGateSubtitle = (metadata: SaveMetadata): string => {
+  const phaseLabel = PHASE_LABELS[metadata.phase] ?? metadata.phase;
+  return `フェーズ：${phaseLabel}`;
+};
+
+const formatResumeTurnLabel = (turn: TurnState | undefined): string | null => {
+  if (!turn || !Number.isFinite(turn.count)) {
+    return null;
+  }
+  const count = Math.max(1, Math.floor(turn.count));
+  return `第${count}ターン`;
+};
+
+const createResumeGateContent = (metadata: SaveMetadata): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'resume-gate';
+
+  const summary = document.createElement('p');
+  summary.className = 'resume-gate__summary';
+  summary.textContent = createResumeSummary(metadata.activePlayer, metadata.phase);
+  container.append(summary);
+
+  const details = document.createElement('dl');
+  details.className = 'resume-gate__details';
+
+  const appendDetail = (label: string, value: string | null): void => {
+    if (!value) {
+      return;
+    }
+    const item = document.createElement('div');
+    item.className = 'resume-gate__detail';
+    const term = document.createElement('dt');
+    term.textContent = label;
+    const description = document.createElement('dd');
+    description.textContent = value;
+    item.append(term, description);
+    details.append(item);
+  };
+
+  appendDetail('手番', PLAYER_LABELS[metadata.activePlayer] ?? metadata.activePlayer);
+  appendDetail('フェーズ', PHASE_LABELS[metadata.phase] ?? metadata.phase);
+  appendDetail('ターン', formatResumeTurnLabel(metadata.turn));
+
+  const savedAt = formatResumeTimestamp(metadata.savedAt);
+  appendDetail('保存日時', savedAt);
+
+  container.append(details);
+
+  return container;
+};
+
+const renderResumeGateHints = (): HTMLUListElement | null => {
+  const hints = Array.from(messages.RESUME_GATE_HINTS ?? []);
+  if (hints.length === 0) {
+    return null;
+  }
+  const list = document.createElement('ul');
+  list.className = 'gate-view__hints';
+  hints.forEach((hint) => {
+    const item = document.createElement('li');
+    item.textContent = hint;
+    list.append(item);
+  });
+  return list;
+};
+
+interface ResumeGateViewOptions {
+  metadata: SaveMetadata;
+  onResume: () => void;
+  onHome: () => void;
+  onDiscard: () => void;
+}
+
+const createResumeGateView = (options: ResumeGateViewOptions): HTMLElement => {
+  const section = document.createElement('section');
+  section.className = 'view gate-view';
+
+  const main = document.createElement('main');
+  main.className = 'gate-view__panel';
+  main.setAttribute('data-focus-target', 'true');
+  section.append(main);
+
+  const headingId = `resume-gate-title-${Math.random().toString(36).slice(2, 8)}`;
+
+  const heading = document.createElement('h1');
+  heading.className = 'gate-view__title';
+  heading.id = headingId;
+  heading.textContent = createResumeGateTitle(options.metadata);
+  main.append(heading);
+
+  const subtitle = document.createElement('p');
+  subtitle.className = 'gate-view__subtitle';
+  subtitle.textContent = createResumeGateSubtitle(options.metadata);
+  main.append(subtitle);
+
+  const hints = renderResumeGateHints();
+  if (hints) {
+    main.append(hints);
+  }
+
+  main.append(createResumeGateContent(options.metadata));
+
+  const actions = document.createElement('div');
+  actions.className = 'gate-view__actions';
+
+  const resumeButton = new UIButton({ label: messages.RESUME_GATE_CONFIRM_LABEL, variant: 'primary' });
+  resumeButton.onClick(() => options.onResume());
+  actions.append(resumeButton.el);
+
+  const homeButton = new UIButton({ label: messages.RESUME_GATE_HOME_LABEL, variant: 'ghost' });
+  homeButton.onClick(() => options.onHome());
+  actions.append(homeButton.el);
+
+  const discardButton = new UIButton({ label: messages.RESUME_GATE_DISCARD_LABEL, variant: 'danger' });
+  discardButton.onClick(() => options.onDiscard());
+  actions.append(discardButton.el);
+
+  main.append(actions);
+  main.setAttribute('aria-labelledby', headingId);
+
+  return section;
+};
+
+const createResumeGateEmptyView = (onHome: () => void): HTMLElement => {
+  const section = document.createElement('section');
+  section.className = 'view gate-view';
+
+  const main = document.createElement('main');
+  main.className = 'gate-view__panel';
+  main.setAttribute('data-focus-target', 'true');
+  section.append(main);
+
+  const headingId = `resume-gate-empty-${Math.random().toString(36).slice(2, 8)}`;
+
+  const heading = document.createElement('h1');
+  heading.className = 'gate-view__title';
+  heading.id = headingId;
+  heading.textContent = messages.RESUME_GATE_EMPTY_TITLE;
+  main.append(heading);
+
+  const subtitle = document.createElement('p');
+  subtitle.className = 'gate-view__subtitle';
+  subtitle.textContent = messages.RESUME_GATE_EMPTY_MESSAGE;
+  main.append(subtitle);
+
+  const actions = document.createElement('div');
+  actions.className = 'gate-view__actions';
+
+  const homeButton = new UIButton({ label: messages.RESUME_GATE_EMPTY_CONFIRM_LABEL, variant: 'primary' });
+  homeButton.onClick(() => onHome());
+  actions.append(homeButton.el);
+
+  main.append(actions);
+  main.setAttribute('aria-labelledby', headingId);
+
+  return section;
+};
+
+function handleResumeGatePass(router: Router): void {
+  try {
+    const payload = loadGame({ currentPath: router.getCurrentPath() });
+    if (!payload?.state) {
+      showResumeLoadError(router);
+      return;
+    }
+    gameStore.setState(payload.state);
+    const target = payload.state.route && payload.state.route.length > 0 ? payload.state.route : '#/';
+    router.go(target);
+  } catch (error) {
+    console.warn('セーブデータの復元に失敗しました。', error);
+    showResumeLoadError(router);
+  }
+}
+
+function reopenResumeGate(router: Router): void {
+  router.go(HOME_RESUME_GATE_PATH);
+}
+
+function showResumeLoadError(router: Router): void {
+  if (typeof window === 'undefined') {
+    router.go('#/');
+    return;
+  }
+  const modal = window.curtainCall?.modal ?? null;
+  if (!modal) {
+    router.go('#/');
+    return;
+  }
+  modal.open({
+    title: messages.RESUME_GATE_ERROR_TITLE,
+    body: messages.RESUME_GATE_ERROR_MESSAGE,
+    actions: [
+      {
+        label: messages.RESUME_GATE_ERROR_HOME_LABEL,
+        variant: 'ghost',
+        preventRapid: true,
+        onSelect: () => router.go('#/'),
+      },
+      {
+        label: messages.RESUME_GATE_ERROR_RETRY_LABEL,
+        variant: 'primary',
+        preventRapid: true,
+        onSelect: () => reopenResumeGate(router),
+      },
+    ],
+  });
+}
+
+function openResumeGateModal(router: Router): void {
+  const notes = Array.from(messages.RESUME_GATE_MODAL_NOTES ?? []);
+  showGate({
+    title: messages.RESUME_GATE_MODAL_TITLE,
+    text: messages.RESUME_GATE_MESSAGE,
+    notes,
+    confirmLabel: messages.RESUME_GATE_CONFIRM_LABEL,
+    onOk: () => handleResumeGatePass(router),
+  });
+}
+
+const openResumeDiscardDialog = (router: Router): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const modal = window.curtainCall?.modal ?? null;
+  if (!modal) {
+    console.warn('破棄確認ダイアログを表示できません。');
+    return;
+  }
+
+  const openFinalConfirm = (): void => {
+    modal.open({
+      title: messages.RESUME_GATE_DISCARD_FINAL_TITLE,
+      body: messages.RESUME_GATE_DISCARD_FINAL_MESSAGE,
+      dismissible: false,
+      actions: [
+        {
+          label: messages.RESUME_GATE_CANCEL_LABEL,
+          variant: 'ghost',
+          preventRapid: true,
+        },
+        {
+          label: messages.RESUME_GATE_DISCARD_FINAL_OK_LABEL,
+          variant: 'danger',
+          preventRapid: true,
+          onSelect: () => {
+            clearGame();
+            const initialState = createInitialState();
+            gameStore.setState(initialState);
+            router.go(HOME_START_PATH);
+          },
+        },
+      ],
+    });
+  };
+
+  modal.open({
+    title: messages.RESUME_GATE_DISCARD_CONFIRM_TITLE,
+    body: messages.RESUME_GATE_DISCARD_CONFIRM_MESSAGE,
+    dismissible: false,
+    actions: [
+      {
+        label: messages.RESUME_GATE_CANCEL_LABEL,
+        variant: 'ghost',
+        preventRapid: true,
+      },
+      {
+        label: messages.RESUME_GATE_DISCARD_CONFIRM_OK_LABEL,
+        variant: 'danger',
+        preventRapid: true,
+        onSelect: () => openFinalConfirm(),
+      },
+    ],
+  });
 };
 
 const openSettingsDialog = (): void => {
@@ -6359,15 +6642,8 @@ const ROUTES: RouteDescriptor[] = [
     path: '#/resume/gate',
     title: 'レジュームゲート',
     heading: '続きから',
-    subtitle: 'セーブデータの確認と復元フローは今後実装されます。',
+    subtitle: 'セーブデータを確認してから再開します。',
     phase: 'home',
-    gate: {
-      confirmLabel: '準備OK',
-      message:
-        'セーブデータの復元フローは今後のタスクで実装されます。画面の共有準備のみ行ってください。',
-      modalNotes: ['現在はプレースホルダーのゲート画面です。'],
-      nextPath: null,
-    },
   },
   {
     path: '#/standby',
@@ -6671,6 +6947,24 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             help: {
               onSelect: openRulebookHelp,
             },
+          });
+        },
+      };
+    } else if (route.path === '#/resume/gate') {
+      definition = {
+        path: route.path,
+        title: route.title,
+        render: ({ router: contextRouter }) => {
+          const metadata = getSavedGameMetadata();
+          if (!metadata) {
+            return createResumeGateEmptyView(() => contextRouter.go('#/'));
+          }
+
+          return createResumeGateView({
+            metadata,
+            onResume: () => openResumeGateModal(contextRouter),
+            onHome: () => contextRouter.go('#/'),
+            onDiscard: () => openResumeDiscardDialog(contextRouter),
           });
         },
       };
