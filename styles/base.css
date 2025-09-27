@@ -340,6 +340,43 @@ p {
   animation: view-fade-in var(--motion-duration-medium) var(--motion-ease-out) both;
 }
 
+.turn-indicator {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.45rem 0.9rem;
+  margin: 0 0 1rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.turn-indicator__label {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.turn-indicator__label::after {
+  content: '：';
+  margin-inline: 0.15rem;
+}
+
+.turn-indicator__value {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.turn-indicator__opponent {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
 .home-view {
   min-height: var(--viewport-height);
   display: flex;

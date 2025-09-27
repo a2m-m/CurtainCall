@@ -72,6 +72,7 @@ import type {
 } from './views/scout.js';
 import { createStandbyView } from './views/standby.js';
 import * as messages from './messages.js';
+import { TurnIndicator, type TurnIndicatorState } from './ui/turn-indicator.js';
 
 interface GateActionDescriptor {
   label: string;
@@ -1080,6 +1081,30 @@ const getTurnPlayerNames = (state: GameState): { activeName: string; opponentNam
   const activeName = getPlayerDisplayName(state, state.activePlayer);
   const opponentName = getPlayerDisplayName(state, getOpponentId(state.activePlayer));
   return { activeName, opponentName };
+};
+
+const createTurnIndicatorState = (state: GameState): TurnIndicatorState => {
+  const { activeName, opponentName } = getTurnPlayerNames(state);
+  return { activeName, opponentName };
+};
+
+const attachTurnIndicatorToView = (view: HTMLElement, state: GameState): (() => void) => {
+  const target = view.querySelector('main') ?? view;
+  if (!target) {
+    return () => undefined;
+  }
+
+  const indicator = new TurnIndicator(createTurnIndicatorState(state));
+  target.insertBefore(indicator.el, target.firstChild ?? null);
+
+  const unsubscribe = gameStore.subscribe((nextState) => {
+    indicator.setState(createTurnIndicatorState(nextState));
+  });
+
+  return () => {
+    unsubscribe();
+    indicator.el.remove();
+  };
 };
 
 const createTurnGateMessage = (
@@ -5945,11 +5970,20 @@ const clearScoutSecretState = (): void => {
   isScoutResultDialogOpen = false;
 };
 
+let activeTurnIndicatorCleanup: (() => void) | null = null;
 let activeScoutCleanup: (() => void) | null = null;
 let activeActionCleanup: (() => void) | null = null;
 let activeWatchCleanup: (() => void) | null = null;
 let activeSpotlightCleanup: (() => void) | null = null;
 let activeCurtainCallCleanup: (() => void) | null = null;
+
+const cleanupActiveTurnIndicator = (): void => {
+  if (activeTurnIndicatorCleanup) {
+    const cleanup = activeTurnIndicatorCleanup;
+    activeTurnIndicatorCleanup = null;
+    cleanup();
+  }
+};
 
 const cleanupActiveScoutView = (): void => {
   if (activeScoutCleanup) {
@@ -6009,12 +6043,16 @@ const withRouteCleanup = (
   render: (context: RouteContext) => HTMLElement,
 ): ((context: RouteContext) => HTMLElement) => {
   return (context) => {
+    cleanupActiveTurnIndicator();
     cleanupActiveScoutView();
     cleanupActiveActionView();
     cleanupActiveWatchView();
     cleanupActiveSpotlightView();
     cleanupActiveCurtainCallView();
-    return render(context);
+    const view = render(context);
+    const state = gameStore.getState();
+    activeTurnIndicatorCleanup = attachTurnIndicatorToView(view, state);
+    return view;
   };
 };
 
