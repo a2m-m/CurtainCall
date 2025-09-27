@@ -6122,7 +6122,20 @@ const ROUTES: RouteDescriptor[] = [
       confirmLabel: BACKSTAGE_GATE_CONFIRM_LABEL,
       resolveMessage: () => BACKSTAGE_GATE_MESSAGE,
       resolveSubtitle: (state) => createBackstageGateSubtitle(state),
-      resolveActions: () => [
+      resolveActions: ({ router }) => [
+        {
+          label: INTERMISSION_BACKSTAGE_ACTION_LABEL,
+          preventRapid: true,
+          onSelect: () => {
+            const latestState = gameStore.getState();
+            if (!shouldEnterBackstagePhase(latestState)) {
+              showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_REVEAL_GUARD_MESSAGE);
+              return;
+            }
+
+            router.go(BACKSTAGE_PHASE_PATH);
+          },
+        },
         {
           label: INTERMISSION_BOARD_CHECK_LABEL,
           variant: 'ghost',
