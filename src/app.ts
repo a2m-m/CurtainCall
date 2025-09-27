@@ -97,6 +97,7 @@ interface GateDescriptor {
   resolveActions?: (context: { state: GameState; router: Router }) => GateActionDescriptor[];
   content?: HTMLElement | null;
   resolveContent?: (context: { state: GameState; router: Router }) => HTMLElement | null;
+  showModal?: boolean;
 }
 
 interface RouteDescriptor {
@@ -6152,6 +6153,7 @@ const ROUTES: RouteDescriptor[] = [
       resolveSubtitle: (state) => createBackstageGateSubtitle(state),
       resolveContent: ({ state }) => createBackstageGateContent(state),
       onPass: (nextRouter) => handleBackstageGatePass(nextRouter),
+      showModal: false,
     }),
   },
   {
@@ -6254,6 +6256,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             modalTitle: route.gate?.modalTitle ?? route.title,
             preventRapid: route.gate?.preventRapid,
             lockDuration: route.gate?.lockDuration,
+            showModal: route.gate?.showModal,
             actions: resolvedActions.map((action) => ({
               label: action.label,
               variant: action.variant,

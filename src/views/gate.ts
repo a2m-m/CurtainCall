@@ -23,6 +23,7 @@ export interface GateViewOptions {
   onGatePass?: () => void;
   actions?: GateViewAction[];
   content?: HTMLElement | null;
+  showModal?: boolean;
 }
 
 const createTextParagraph = (content: string): HTMLParagraphElement => {
@@ -109,7 +110,9 @@ export const createGateView = (options: GateViewOptions): HTMLElement => {
   main.setAttribute('aria-labelledby', headingId);
   section.append(main);
 
-  if (typeof window !== 'undefined') {
+  const shouldShowModal = options.showModal ?? true;
+
+  if (shouldShowModal && typeof window !== 'undefined') {
     queueMicrotask(() => {
       const gateOptions: GateOptions = {
         title: options.modalTitle ?? options.title,
