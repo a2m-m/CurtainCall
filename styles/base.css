@@ -2306,14 +2306,19 @@ p {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
   gap: 1rem;
 }
 
 .spotlight-reveal-result__card {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
-  justify-items: center;
 }
 
 .spotlight-reveal-result__card .card {
