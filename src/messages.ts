@@ -70,6 +70,24 @@ export const INTERMISSION_BACKSTAGE_DRAW_CONFIRM_MESSAGE = (cardLabel: string): 
 export const INTERMISSION_BACKSTAGE_DRAW_RESULT_MESSAGE = (cardLabel: string): string =>
   `バックステージから${cardLabel}を取得しました。`;
 
+export const INTERMISSION_VIEW_GATE_LABEL = 'ハンドオフゲートへ';
+export const INTERMISSION_VIEW_RESUME_LABEL = '続きから';
+export const INTERMISSION_VIEW_RESUME_TITLE = 'セーブデータ';
+export const INTERMISSION_VIEW_RESUME_CAPTION =
+  'セーブデータの確認と復元フローは今後実装されます。';
+export const INTERMISSION_VIEW_RESUME_EMPTY = 'セーブデータはまだ保存されていません。';
+export const INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX = '保存日時：';
+export const INTERMISSION_VIEW_SUMMARY_TITLE = '公開情報のハイライト';
+export const INTERMISSION_VIEW_NOTES_TITLE = '直前のバックステージ結果';
+export const INTERMISSION_TASK_NEXT_PLAYER = (playerName: string): string =>
+  `次は${playerName}の番です。端末を渡す準備を整えましょう。`;
+export const INTERMISSION_TASK_REVIEW =
+  '公開情報を確認するときは「ボードチェック」や「前ラウンド要約」を開いて整理しましょう。';
+export const INTERMISSION_TASK_RESUME =
+  '途中で中断する場合は「続きから」からセーブデータを扱います（復元フローは準備中です）。';
+export const INTERMISSION_TASK_GATE =
+  '準備が整ったら「ハンドオフゲートへ」を押して次のフェーズへ進みます。';
+
 export const BACKSTAGE_GATE_TITLE = 'バックステージ';
 export const BACKSTAGE_GATE_CONFIRM_LABEL = 'バックステージへ';
 export const BACKSTAGE_GATE_MESSAGE =
