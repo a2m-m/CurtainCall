@@ -1052,7 +1052,7 @@ p {
 .action-hand__list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem) 0.25rem;
   display: grid;
   grid-template-rows: repeat(2, auto);
   grid-auto-flow: column;
@@ -1063,8 +1063,8 @@ p {
   align-items: start;
   align-content: start;
   overflow-x: auto;
-  padding-bottom: 0.25rem;
   scroll-snap-type: x proximity;
+  scroll-padding-inline: clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem);
 }
 
 .action-hand__list::-webkit-scrollbar {
