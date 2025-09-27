@@ -444,8 +444,7 @@ const formatCardLabel = (card: CardSnapshot): string => {
   return `${CARD_SUIT_LABEL[card.suit]}の${card.rank}`;
 };
 
-const formatSetCardPositionLabel = (setCard: SetCardState): string =>
-  `${SPOTLIGHT_SET_CARD_LABEL_PREFIX} #${String(setCard.position + 1).padStart(2, '0')}`;
+const formatSetCardPositionLabel = (): string => SPOTLIGHT_SET_CARD_LABEL_PREFIX;
 
 const createScoutPickSuccessMessage = (card: CardSnapshot): string =>
   `${formatCardLabel(card)}を引きました！アクションフェーズへ移行します`;
@@ -781,7 +780,6 @@ const createCurtainCallSetSnapshotLines = (state: GameState): string[] => {
   visible.forEach((reveal) => {
     const card = reveal.card;
     const label = formatCardLabel(card);
-    const indexLabel = `#${String(reveal.position + 1).padStart(2, '0')}`;
     const meta: string[] = [];
     const openedBy = getPlayerDisplayName(state, reveal.openedBy);
     meta.push(`公開：${openedBy}`);
@@ -798,7 +796,7 @@ const createCurtainCallSetSnapshotLines = (state: GameState): string[] => {
       meta.push(bonusLabel);
     }
     const metaLabel = meta.length > 0 ? `（${meta.join('／')}）` : '';
-    lines.push(`  ${indexLabel}：${label}${metaLabel}`);
+    lines.push(`  ・${label}${metaLabel}`);
   });
 
   return lines;
@@ -3645,7 +3643,7 @@ const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'spotlight-set-picker__button';
-      button.setAttribute('aria-label', `${formatSetCardPositionLabel(setCard)}を公開する`);
+      button.setAttribute('aria-label', `${SPOTLIGHT_SET_CARD_LABEL_PREFIX}を公開する`);
 
       const cardComponent = new CardComponent({
         rank: setCard.card.rank,
@@ -3658,7 +3656,7 @@ const openSpotlightSetPickerDialog = (playerId: PlayerId): void => {
 
       const label = document.createElement('span');
       label.className = 'spotlight-set-picker__label';
-      label.textContent = formatSetCardPositionLabel(setCard);
+      label.textContent = SPOTLIGHT_SET_CARD_LABEL_PREFIX;
       button.append(label);
 
       button.addEventListener('click', () => {
@@ -3711,7 +3709,7 @@ const openSpotlightSetConfirmDialog = (setCardId: string): void => {
   }
 
   const playerName = getPlayerDisplayName(state, state.activePlayer);
-  const positionLabel = formatSetCardPositionLabel(setCard);
+  const positionLabel = formatSetCardPositionLabel();
 
   const container = document.createElement('div');
   container.className = 'spotlight-set-confirm';
@@ -3843,7 +3841,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'spotlight-set-picker__button';
-    button.setAttribute('aria-label', `${formatSetCardPositionLabel(setCard)}を公開する`);
+    button.setAttribute('aria-label', `${SPOTLIGHT_SET_CARD_LABEL_PREFIX}を公開する`);
 
     const cardComponent = new CardComponent({
       rank: setCard.card.rank,
@@ -3856,7 +3854,7 @@ const openSpotlightJokerBonusDialog = (jokerReveal: SetReveal, playerName: strin
 
     const label = document.createElement('span');
     label.className = 'spotlight-set-picker__label';
-    label.textContent = formatSetCardPositionLabel(setCard);
+    label.textContent = SPOTLIGHT_SET_CARD_LABEL_PREFIX;
     button.append(label);
 
     button.addEventListener('click', () => {

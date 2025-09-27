@@ -146,7 +146,9 @@ export const dealInitialSetup = (options: DealOptions = {}): InitialDealResult =
   }
 
   if (jokerIndex >= setSize) {
-    swap(deck, jokerIndex, setSize - 1);
+    const random = options.random ?? defaultRandom;
+    const targetIndex = Math.min(Math.floor(random() * setSize), setSize - 1);
+    swap(deck, jokerIndex, targetIndex);
   }
 
   const setCards = deck.slice(0, CARD_COMPOSITION.set).map<SetCardState>((card, index) => ({
