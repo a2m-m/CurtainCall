@@ -2585,6 +2585,37 @@ p {
   text-align: center;
 }
 
+.intermission-backstage__reveal {
+  display: grid;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.intermission-backstage__reveal-section {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1vw, 0.75rem);
+  align-items: center;
+}
+
+.intermission-backstage__reveal-label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.intermission-backstage__reveal-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
+.intermission-backstage__reveal-card--matched {
+  border-color: rgba(34, 197, 94, 0.65);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+}
+
 .intermission-backstage__pair {
   display: flex;
   flex-wrap: wrap;

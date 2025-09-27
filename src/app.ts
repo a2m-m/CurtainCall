@@ -2849,59 +2849,75 @@ const createBackstageSelectionList = (items: BackstageRevealContextItem[]): HTML
   return list;
 };
 
-const createBackstageRevealResultList = (
+const createBackstageRevealResultDisplay = (
   revealCard: CardSnapshot,
   revealedCards: BackstageRevealedCardResult[],
-): HTMLUListElement => {
-  const list = document.createElement('ul');
-  list.className = 'intermission-backstage__list';
+): HTMLDivElement => {
+  const container = document.createElement('div');
+  container.className = 'intermission-backstage__reveal';
 
-  const setItem = document.createElement('li');
-  setItem.className = 'intermission-backstage__item';
+  const createSection = (labelText: string): HTMLDivElement => {
+    const section = document.createElement('div');
+    section.className = 'intermission-backstage__reveal-section';
 
-  const setCardComponent = new CardComponent({
-    rank: revealCard.rank,
-    suit: revealCard.suit,
-    faceDown: revealCard.face !== 'up',
-    annotation: revealCard.annotation,
-  });
-  setCardComponent.el.classList.add('intermission-backstage__card');
-  setItem.append(setCardComponent.el);
+    const label = document.createElement('p');
+    label.className = 'intermission-backstage__reveal-label';
+    label.textContent = labelText;
+    section.append(label);
 
-  const setDescription = document.createElement('p');
-  setDescription.className = 'intermission-backstage__card-description';
-  setDescription.textContent = `セットカード：${formatCardLabel(revealCard)}`;
-  setItem.append(setDescription);
+    const cards = document.createElement('div');
+    cards.className = 'intermission-backstage__reveal-cards';
+    section.append(cards);
 
-  list.append(setItem);
+    return section;
+  };
 
-  revealedCards
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .forEach((entry) => {
-      const item = document.createElement('li');
-      item.className = 'intermission-backstage__item';
-
-      const cardComponent = new CardComponent({
-        rank: entry.card.rank,
-        suit: entry.card.suit,
-        faceDown: false,
-        annotation: entry.card.annotation,
-      });
-      cardComponent.el.classList.add('intermission-backstage__card');
-      item.append(cardComponent.el);
-
-      const description = document.createElement('p');
-      description.className = 'intermission-backstage__card-description';
-      const cardLabel = formatCardLabel(entry.card);
-      const suffix = entry.matched ? '（一致）' : '（不一致）';
-      description.textContent = `公開カード（カード ${String(entry.order).padStart(2, '0')}）：${cardLabel}${suffix}`;
-      item.append(description);
-
-      list.append(item);
+  const setSection = createSection('セット');
+  const setCards = setSection.querySelector<HTMLDivElement>(
+    '.intermission-backstage__reveal-cards',
+  );
+  if (setCards) {
+    const setCardComponent = new CardComponent({
+      rank: revealCard.rank,
+      suit: revealCard.suit,
+      faceDown: revealCard.face !== 'up',
+      annotation: revealCard.annotation,
     });
+    setCardComponent.el.classList.add('intermission-backstage__card');
+    setCardComponent.el.setAttribute('aria-label', `セット：${formatCardLabel(revealCard)}`);
+    setCards.append(setCardComponent.el);
+  }
+  container.append(setSection);
 
-  return list;
+  const selectionSection = createSection('選択カード');
+  const selectionCards = selectionSection.querySelector<HTMLDivElement>(
+    '.intermission-backstage__reveal-cards',
+  );
+  if (selectionCards) {
+    revealedCards
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .forEach((entry) => {
+        const cardComponent = new CardComponent({
+          rank: entry.card.rank,
+          suit: entry.card.suit,
+          faceDown: false,
+          annotation: entry.card.annotation,
+        });
+        cardComponent.el.classList.add('intermission-backstage__card');
+        if (entry.matched) {
+          cardComponent.el.classList.add('intermission-backstage__reveal-card--matched');
+        }
+        cardComponent.el.setAttribute(
+          'aria-label',
+          `選択カード（カード ${String(entry.order).padStart(2, '0')}）：${formatCardLabel(entry.card)}`,
+        );
+        selectionCards.append(cardComponent.el);
+      });
+  }
+  container.append(selectionSection);
+
+  return container;
 };
 
 const createBackstageMatchPairView = (
@@ -3120,7 +3136,7 @@ const openBackstageRevealResultDialog = (
     container.append(createBackstageMatchPairView(outcome.reveal.card, matchedEntry.card));
   }
 
-  container.append(createBackstageRevealResultList(outcome.reveal.card, outcome.revealedCards));
+  container.append(createBackstageRevealResultDisplay(outcome.reveal.card, outcome.revealedCards));
 
   if (outcome.matched) {
     const state = gameStore.getState();
