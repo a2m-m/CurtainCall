@@ -362,6 +362,7 @@ const SCOUT_TO_ACTION_PATH = '#/phase/action';
 const INTERMISSION_TO_SCOUT_PATH = '#/phase/scout';
 
 const SCOUT_MY_HAND_LABEL = MY_HAND_LABEL;
+const INTERMISSION_MY_HAND_LABEL = MY_HAND_LABEL;
 const SCOUT_RECENT_TAKEN_HISTORY_LIMIT = 5;
 
 const ACTION_TO_WATCH_PATH = '#/phase/watch/gate';
@@ -6702,10 +6703,12 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             revealLabel: INTERMISSION_BACKSTAGE_REVEAL_LABEL,
             boardCheckLabel: INTERMISSION_BOARD_CHECK_LABEL,
             summaryLabel: INTERMISSION_SUMMARY_LABEL,
+            myHandLabel: INTERMISSION_MY_HAND_LABEL,
             onConfirmSelection: (itemId) => startBackstageRevealFlow(itemId),
             onSkip: () => completeBackstageSkip(),
             onOpenBoardCheck: () => showBoardCheck(),
             onOpenSummary: () => openIntermissionSummaryDialog(),
+            onOpenMyHand: () => openMyHandDialog(),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
