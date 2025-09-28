@@ -67,11 +67,6 @@ const createBackstageRevealListItem = (
   cardComponent.el.classList.add('intermission-backstage__card');
   button.append(cardComponent.el);
 
-  const label = document.createElement('span');
-  label.className = 'intermission-backstage__label';
-  label.textContent = CARD_ORDER_LABEL(item.order);
-  button.append(label);
-
   listItem.append(button);
   return listItem;
 };

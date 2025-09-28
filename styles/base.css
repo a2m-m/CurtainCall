@@ -1732,6 +1732,9 @@ p {
 
 .modal {
   width: min(480px, 100%);
+  max-height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
   background: rgba(15, 23, 42, 0.95);
   border-radius: 20px;
   padding: 1.75rem;
@@ -1792,6 +1795,9 @@ p {
 }
 
 .modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   font-size: 1rem;
   color: var(--color-muted);
   line-height: 1.6;
@@ -2740,11 +2746,6 @@ p {
 .intermission-backstage__button:hover:not(:disabled) .intermission-backstage__card {
   border-color: rgba(251, 191, 36, 0.55);
   box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
-}
-
-.intermission-backstage__label {
-  font-size: 0.9rem;
-  font-weight: 600;
 }
 
 .intermission-backstage__card-description {

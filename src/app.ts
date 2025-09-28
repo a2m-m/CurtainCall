@@ -3177,11 +3177,6 @@ const createBackstageCardButton = (
   cardComponent.el.classList.add('intermission-backstage__card');
   button.append(cardComponent.el);
 
-  const label = document.createElement('span');
-  label.className = 'intermission-backstage__label';
-  label.textContent = `カード ${String(order).padStart(2, '0')}`;
-  button.append(label);
-
   listItem.append(button);
   return listItem;
 };
@@ -3193,7 +3188,7 @@ const createBackstageSelectionList = (items: BackstageRevealContextItem[]): HTML
   items
     .slice()
     .sort((a, b) => a.order - b.order)
-    .forEach(({ item, order }) => {
+    .forEach(({ item }) => {
       const element = document.createElement('li');
       element.className = 'intermission-backstage__item';
 
@@ -3205,11 +3200,6 @@ const createBackstageSelectionList = (items: BackstageRevealContextItem[]): HTML
       });
       cardComponent.el.classList.add('intermission-backstage__card');
       element.append(cardComponent.el);
-
-      const label = document.createElement('span');
-      label.className = 'intermission-backstage__label';
-      label.textContent = `カード ${String(order).padStart(2, '0')}`;
-      element.append(label);
 
       list.append(element);
     });
