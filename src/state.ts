@@ -207,6 +207,8 @@ export interface HistoryEntry {
 export interface TurnState {
   count: number;
   startedAt: number;
+  presenter: PlayerId;
+  watcher: PlayerId;
 }
 
 export interface GameMeta {
@@ -400,6 +402,8 @@ export const createInitialState = (): GameState => {
     turn: {
       count: 1,
       startedAt: timestamp,
+      presenter: 'lumina',
+      watcher: 'nox',
     },
     set: {
       cards: [],

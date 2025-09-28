@@ -5,11 +5,17 @@ import {
   type GameState,
   type PlayerId,
 } from '../src/state.js';
-import { resolveNextIntermissionActivePlayer } from '../src/turn.js';
+import {
+  resolveNextIntermissionActivePlayer,
+  resolveTurnPresenter,
+  resolveTurnWatcher,
+} from '../src/turn.js';
 
 const createState = (activePlayer: PlayerId, configure?: (state: GameState) => void): GameState => {
   const state = createInitialState();
   state.activePlayer = activePlayer;
+  state.turn.presenter = activePlayer;
+  state.turn.watcher = activePlayer === 'lumina' ? 'nox' : 'lumina';
   if (configure) {
     configure(state);
   }
@@ -27,6 +33,8 @@ describe('resolveNextIntermissionActivePlayer', () => {
 
   it('ブーイング成功時でも次手番は相手プレイヤーになる', () => {
     const state = createState('lumina', (draft) => {
+      draft.turn.presenter = 'lumina';
+      draft.turn.watcher = 'nox';
       draft.watch.decision = 'boo';
       draft.players.lumina.booCount = REQUIRED_BOO_COUNT;
       draft.players.nox.clapCount = 1;
@@ -55,5 +63,41 @@ describe('resolveNextIntermissionActivePlayer', () => {
     });
 
     expect(resolveNextIntermissionActivePlayer(state)).toBe('nox');
+  });
+
+  it('直近スカウト情報が無い場合はターン情報から次手番を決定する', () => {
+    const state = createState('lumina', (draft) => {
+      draft.lastScoutPlayer = null;
+      draft.turn.presenter = 'nox';
+      draft.turn.watcher = 'lumina';
+    });
+
+    expect(resolveNextIntermissionActivePlayer(state)).toBe('lumina');
+  });
+});
+
+describe('resolveTurnPresenter / resolveTurnWatcher', () => {
+  it('ターン情報を優先して提示側とウォッチ側を返す', () => {
+    const state = createState('lumina', (draft) => {
+      draft.turn.presenter = 'lumina';
+      draft.turn.watcher = 'nox';
+      draft.activePlayer = 'nox';
+    });
+
+    expect(resolveTurnPresenter(state)).toBe('lumina');
+    expect(resolveTurnWatcher(state)).toBe('nox');
+  });
+
+  it('ターン情報が欠落している場合は直近スカウト担当とその相手を返す', () => {
+    const state = createState('lumina', (draft) => {
+      draft.lastScoutPlayer = 'nox';
+      draft.activePlayer = 'lumina';
+    });
+
+    state.turn.presenter = undefined as unknown as PlayerId;
+    state.turn.watcher = undefined as unknown as PlayerId;
+
+    expect(resolveTurnPresenter(state)).toBe('nox');
+    expect(resolveTurnWatcher(state)).toBe('lumina');
   });
 });

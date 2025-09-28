@@ -18,7 +18,12 @@ import {
   saveResult,
   type SaveMetadata,
 } from './storage.js';
-import { getOpponentId, resolveNextIntermissionActivePlayer } from './turn.js';
+import {
+  getOpponentId,
+  resolveNextIntermissionActivePlayer,
+  resolveTurnPresenter,
+  resolveTurnWatcher,
+} from './turn.js';
 import {
   findLatestCompleteStagePair,
   findLatestWatchStagePair,
@@ -1007,6 +1012,8 @@ const createInitialDealState = (
     turn: {
       count: 1,
       startedAt: timestamp,
+      presenter: firstPlayer,
+      watcher: getOpponentId(firstPlayer),
     },
     set: {
       cards: deal.set.map((entry) => ({
@@ -1141,6 +1148,16 @@ const createTurnGateMessage = (
   confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
 ): string => {
   const { activeName, opponentName } = getTurnPlayerNames(state);
+  return `次は${activeName}のターンです。${opponentName}に画面が見えないことを確認したら「${confirmLabel}」を押してください。`;
+};
+
+const createIntermissionTurnGateMessage = (
+  state: GameState,
+  confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
+): string => {
+  const nextActiveId = resolveNextIntermissionActivePlayer(state);
+  const activeName = getPlayerDisplayName(state, nextActiveId);
+  const opponentName = getPlayerDisplayName(state, getOpponentId(nextActiveId));
   return `次は${activeName}のターンです。${opponentName}に画面が見えないことを確認したら「${confirmLabel}」を押してください。`;
 };
 
@@ -2493,7 +2510,8 @@ const canPerformBackstageAction = (state: GameState): boolean => {
 };
 
 const createIntermissionGateSubtitle = (state: GameState): string => {
-  const nextPlayerName = getPlayerDisplayName(state, state.activePlayer);
+  const nextPlayerId = resolveNextIntermissionActivePlayer(state);
+  const nextPlayerName = getPlayerDisplayName(state, nextPlayerId);
   return `次は${nextPlayerName}の番です`;
 };
 
@@ -5370,6 +5388,7 @@ const handleIntermissionGatePass = (router: Router): void => {
     const currentTurn = current.turn ?? { count: 0, startedAt: timestamp };
     const previousWatchState = current.watch ?? createInitialWatchState();
     const nextActivePlayerId = resolveNextIntermissionActivePlayer(current);
+    const nextWatcherId = getOpponentId(nextActivePlayerId);
     const backstage = getBackstageState(current);
 
     return {
@@ -5378,6 +5397,8 @@ const handleIntermissionGatePass = (router: Router): void => {
       turn: {
         count: currentTurn.count + 1,
         startedAt: timestamp,
+        presenter: nextActivePlayerId,
+        watcher: nextWatcherId,
       },
       backstage: {
         ...backstage,
@@ -5636,6 +5657,9 @@ const completeWatchDecision = (decision: WatchDecision): CompleteWatchDecisionRe
 
     const timestamp = Date.now();
     const nextRoute = WATCH_DECISION_TO_PATH[decision];
+    const presenterId = resolveTurnPresenter(current);
+    const watcherId = resolveTurnWatcher(current);
+    const nextActivePlayerId = decision === 'boo' ? presenterId : watcherId;
     const nextPlayer: PlayerState = {
       ...player,
       clapCount: decision === 'clap' ? player.clapCount + 1 : player.clapCount,
@@ -5657,6 +5681,7 @@ const completeWatchDecision = (decision: WatchDecision): CompleteWatchDecisionRe
         decision,
         nextRoute,
       },
+      activePlayer: nextActivePlayerId,
       revision: current.revision + 1,
       updatedAt: timestamp,
     };
@@ -6070,7 +6095,7 @@ const completeActionPlacement = (): CompleteActionPlacementResult => {
     }
 
     const timestamp = Date.now();
-    const nextActivePlayerId = getOpponentId(current.activePlayer);
+    const nextActivePlayerId = resolveTurnWatcher(current);
     const pairId = createStagePairId(timestamp);
     const actorPlacement = createStagePlacementFromHand(actorCard, 'up', timestamp);
     const kurokoPlacement = createStagePlacementFromHand(kurokoCard, 'down', timestamp);
@@ -6764,7 +6789,7 @@ const ROUTES: RouteDescriptor[] = [
     gate: createHandOffGateConfig({
       confirmLabel: INTERMISSION_GATE_CONFIRM_LABEL,
       resolveMessage: (state) =>
-        createPhaseGateMessage(state, 'インターミッション', INTERMISSION_GATE_CONFIRM_LABEL),
+        createIntermissionTurnGateMessage(state, INTERMISSION_GATE_CONFIRM_LABEL),
       resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
       resolveModalNotes: (state) => {
         const notes = createIntermissionBackstageNotes(state);
@@ -7303,7 +7328,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           const view = createIntermissionView({
             title: route.heading,
             subtitle: createIntermissionGateSubtitle(state),
-            message: createTurnGateMessage(state, INTERMISSION_GATE_CONFIRM_LABEL),
+            message: createIntermissionTurnGateMessage(state, INTERMISSION_GATE_CONFIRM_LABEL),
             tasks: createIntermissionTasks(state),
             summaryTitle: INTERMISSION_VIEW_SUMMARY_TITLE,
             summaryContent: createIntermissionSummaryView(state),
@@ -7333,7 +7358,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
 
             view.updateSubtitle(createIntermissionGateSubtitle(nextState));
             view.updateMessage(
-              createTurnGateMessage(nextState, INTERMISSION_GATE_CONFIRM_LABEL),
+              createIntermissionTurnGateMessage(nextState, INTERMISSION_GATE_CONFIRM_LABEL),
             );
             view.updateTasks(createIntermissionTasks(nextState));
             view.updateSummary(createIntermissionSummaryView(nextState));
