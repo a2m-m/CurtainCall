@@ -8,6 +8,7 @@ import {
   TurnState,
   createInitialBackstageState,
 } from './state.js';
+import { getOpponentId } from './turn.js';
 
 const STORAGE_VERSION = 1;
 
@@ -256,12 +257,33 @@ const normalizeBackstageState = (value: unknown): BackstageState => {
   };
 };
 
+const normalizeTurnState = (state: GameState, lastScoutPlayer: PlayerId | null): TurnState => {
+  const fallbackCount = Number.isFinite(state.turn?.count) ? state.turn.count : 1;
+  const count = Math.max(1, Math.floor(fallbackCount));
+  const startedAt = Number.isFinite(state.turn?.startedAt)
+    ? state.turn.startedAt
+    : state.updatedAt;
+  const presenterCandidate = state.turn?.presenter;
+  const presenter = isPlayerId(presenterCandidate)
+    ? presenterCandidate
+    : lastScoutPlayer ?? state.activePlayer;
+  const watcherCandidate = state.turn?.watcher;
+  const watcher = isPlayerId(watcherCandidate) ? watcherCandidate : getOpponentId(presenter);
+  return {
+    count,
+    startedAt,
+    presenter,
+    watcher,
+  };
+};
+
 const normalizeGameStateForLoad = (state: GameState): GameState => {
   const record = state as Record<string, unknown>;
   const lastScoutPlayer = isPlayerId(record.lastScoutPlayer) ? record.lastScoutPlayer : null;
   return {
     ...state,
     lastScoutPlayer,
+    turn: normalizeTurnState(state, lastScoutPlayer),
     backstage: normalizeBackstageState(record.backstage),
   };
 };
