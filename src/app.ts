@@ -20,6 +20,11 @@ import {
 } from './storage.js';
 import { resolveNextIntermissionActivePlayer } from './turn.js';
 import {
+  findActiveWatchStagePair,
+  findLatestCompleteStagePair,
+  findLatestWatchStagePair,
+} from './watch-stage.js';
+import {
   createInitialBackstageState,
   createInitialState,
   createInitialWatchState,
@@ -2288,42 +2293,6 @@ const notifyActionGuardStatus = (state: GameState, options: { force?: boolean } 
   }
 };
 
-const findLatestCompleteStagePair = (stage: StageArea | undefined): StagePair | null => {
-  if (!stage) {
-    return null;
-  }
-
-  for (let index = stage.pairs.length - 1; index >= 0; index -= 1) {
-    const pair = stage.pairs[index];
-    if (pair?.actor && pair.kuroko) {
-      return pair;
-    }
-  }
-
-  return null;
-};
-
-const findStagePairById = (state: GameState, pairId: string): StagePair | null => {
-  if (!pairId) {
-    return null;
-  }
-
-  const players = state.players ?? {};
-
-  for (const player of Object.values(players)) {
-    const stage = player?.stage;
-    if (!stage?.pairs?.length) {
-      continue;
-    }
-    const target = stage.pairs.find((pair) => pair?.id === pairId);
-    if (target) {
-      return target;
-    }
-  }
-
-  return null;
-};
-
 const findLatestHiddenStagePair = (stage: StageArea | undefined): StagePair | null => {
   if (!stage) {
     return null;
@@ -2337,31 +2306,6 @@ const findLatestHiddenStagePair = (stage: StageArea | undefined): StagePair | nu
   }
 
   return null;
-};
-
-const findLatestWatchStagePair = (state: GameState): StagePair | null => {
-  const opponentId = getOpponentId(state.activePlayer);
-  const opponent = state.players[opponentId];
-  const opponentPair = findLatestCompleteStagePair(opponent?.stage);
-
-  if (opponentPair) {
-    return opponentPair;
-  }
-
-  const activePlayer = state.players[state.activePlayer];
-  return findLatestCompleteStagePair(activePlayer?.stage);
-};
-
-const findActiveWatchStagePair = (state: GameState): StagePair | null => {
-  const watchPairId = state.watch?.pairId ?? null;
-  if (watchPairId) {
-    const selectedPair = findStagePairById(state, watchPairId);
-    if (selectedPair) {
-      return selectedPair;
-    }
-  }
-
-  return findLatestWatchStagePair(state);
 };
 
 const mapWatchStage = (state: GameState): WatchStageViewModel => {
