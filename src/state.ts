@@ -160,7 +160,7 @@ export interface BackstageState {
   lastCompletionMessage: string | null;
 }
 
-export type CurtainCallReason = 'jokerBonus' | 'setRemaining1';
+export type CurtainCallReason = 'jokerBonus' | 'setRemaining1' | 'handDepleted';
 
 export interface CurtainCallPlayerSummary {
   kamiCards: CardSnapshot[];
