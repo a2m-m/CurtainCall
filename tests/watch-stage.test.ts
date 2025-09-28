@@ -6,6 +6,7 @@ import {
   findLatestCompleteStagePair,
   findLatestWatchStagePair,
   findStagePairById,
+  resolveActiveWatchStagePair,
 } from '../src/watch-stage.js';
 
 const createCard = (id: string, rank: CardSnapshot['rank'] = 'A'): CardSnapshot => ({
@@ -107,5 +108,28 @@ describe('watch-stage helpers', () => {
     expect(findStagePairById(state, 'lumina-pair')).toBe(luminaPair);
     expect(findStagePairById(state, 'nox-pair')).toBe(noxPair);
     expect(findStagePairById(state, 'unknown')).toBeNull();
+  });
+
+  it('resolveActiveWatchStagePairはより新しいペアを優先する', () => {
+    const state = createInitialState();
+    state.activePlayer = 'nox';
+    const olderPair = createPair('older', 'action', 'lumina', 1);
+    const newerPair = createPair('newer', 'action', 'lumina', 10);
+    state.players.lumina.stage.pairs = [olderPair, newerPair];
+    state.watch.pairId = olderPair.id;
+
+    const result = resolveActiveWatchStagePair(state);
+    expect(result).toBe(newerPair);
+  });
+
+  it('resolveActiveWatchStagePairは選択済みペアが有効な場合は維持する', () => {
+    const state = createInitialState();
+    state.activePlayer = 'nox';
+    const existingPair = createPair('current', 'action', 'lumina', 5);
+    state.players.lumina.stage.pairs = [existingPair];
+    state.watch.pairId = existingPair.id;
+
+    const result = resolveActiveWatchStagePair(state);
+    expect(result).toBe(existingPair);
   });
 });
