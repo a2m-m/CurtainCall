@@ -1106,8 +1106,6 @@ const getPlayerDisplayName = (state: GameState, playerId: PlayerId): string => {
   return PLAYER_LABELS[playerId] ?? playerId;
 };
 
-const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
-
 const getTurnPlayerNames = (state: GameState): { activeName: string; opponentName: string } => {
   const activeName = getPlayerDisplayName(state, state.activePlayer);
   const opponentName = getPlayerDisplayName(state, getOpponentId(state.activePlayer));
