@@ -22,7 +22,7 @@ import { getOpponentId, resolveNextIntermissionActivePlayer } from './turn.js';
 import {
   findLatestCompleteStagePair,
   findLatestWatchStagePair,
-  findStagePairById,
+  resolveActiveWatchStagePair,
 } from './watch-stage.js';
 import {
   createInitialBackstageState,
@@ -2307,17 +2307,8 @@ const findLatestHiddenStagePair = (stage: StageArea | undefined): StagePair | nu
   return null;
 };
 
-const findActiveWatchStagePair = (state: GameState): StagePair | null => {
-  const watchPairId = state.watch?.pairId ?? null;
-  if (watchPairId) {
-    const selectedPair = findStagePairById(state, watchPairId);
-    if (selectedPair) {
-      return selectedPair;
-    }
-  }
-
-  return findLatestWatchStagePair(state);
-};
+const findActiveWatchStagePair = (state: GameState): StagePair | null =>
+  resolveActiveWatchStagePair(state) ?? findLatestWatchStagePair(state);
 
 const mapWatchStage = (state: GameState): WatchStageViewModel => {
   const latestPair = findActiveWatchStagePair(state);

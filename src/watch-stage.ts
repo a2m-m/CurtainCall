@@ -72,3 +72,28 @@ export const findLatestWatchStagePair = (state: GameState): StagePair | null => 
 
   return findLatestCompleteStagePair(activePlayer?.stage);
 };
+
+const isStagePairComplete = (pair: StagePair | null): pair is StagePair =>
+  Boolean(pair?.actor?.card && pair?.kuroko?.card);
+
+const getCreatedAt = (pair: StagePair | null): number =>
+  Number.isFinite(pair?.createdAt) ? (pair?.createdAt as number) : Number.NEGATIVE_INFINITY;
+
+export const resolveActiveWatchStagePair = (state: GameState): StagePair | null => {
+  const watchPairId = state.watch?.pairId ?? null;
+  const selectedPair = watchPairId ? findStagePairById(state, watchPairId) : null;
+  const latestPair = findLatestWatchStagePair(state);
+
+  if (!latestPair) {
+    return isStagePairComplete(selectedPair) ? selectedPair : null;
+  }
+
+  if (!isStagePairComplete(selectedPair)) {
+    return latestPair;
+  }
+
+  const selectedCreatedAt = getCreatedAt(selectedPair);
+  const latestCreatedAt = getCreatedAt(latestPair);
+
+  return latestCreatedAt > selectedCreatedAt ? latestPair : selectedPair;
+};
