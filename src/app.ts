@@ -18,7 +18,7 @@ import {
   saveResult,
   type SaveMetadata,
 } from './storage.js';
-import { resolveNextIntermissionActivePlayer } from './turn.js';
+import { getOpponentId, resolveNextIntermissionActivePlayer } from './turn.js';
 import {
   findLatestCompleteStagePair,
   findLatestWatchStagePair,
@@ -407,6 +407,7 @@ const CURTAINCALL_BOO_PENALTY = 15;
 const CURTAINCALL_REASON_DESCRIPTIONS: Record<CurtainCallReason, string> = {
   jokerBonus: '終了条件：JOKERボーナス',
   setRemaining1: '終了条件：山札残り1枚',
+  handDepleted: '終了条件：手札枯渇',
 };
 const SPOTLIGHT_STAGE_EMPTY_MESSAGE = WATCH_STAGE_EMPTY_MESSAGE;
 const SPOTLIGHT_KUROKO_HIDDEN_DESCRIPTION = WATCH_KUROKO_DEFAULT_DESCRIPTION;
@@ -1104,8 +1105,6 @@ const getPlayerDisplayName = (state: GameState, playerId: PlayerId): string => {
   }
   return PLAYER_LABELS[playerId] ?? playerId;
 };
-
-const getOpponentId = (player: PlayerId): PlayerId => (player === 'lumina' ? 'nox' : 'lumina');
 
 const getTurnPlayerNames = (state: GameState): { activeName: string; opponentName: string } => {
   const activeName = getPlayerDisplayName(state, state.activePlayer);
@@ -2430,6 +2429,25 @@ const getLatestSpotlightSetReveal = (state: GameState): SetReveal | null => {
 const getBackstageRevealableItems = (state: GameState): BackstageItemState[] => {
   const backstage = getBackstageState(state);
   return backstage.items.filter((item) => item.status === 'backstage');
+};
+
+const shouldTriggerCurtainCallByHandDepletion = (state: GameState): boolean => {
+  const nextPlayerId = resolveNextIntermissionActivePlayer(state);
+  const opponentId = getOpponentId(nextPlayerId);
+  const nextPlayer = state.players[nextPlayerId];
+  const opponent = state.players[opponentId];
+  const nextHandCount = nextPlayer?.hand.cards.length ?? 0;
+  const opponentHandCount = opponent?.hand.cards.length ?? 0;
+
+  if (nextHandCount === 0) {
+    return true;
+  }
+
+  if (nextHandCount === 1 && opponentHandCount === 0) {
+    return true;
+  }
+
+  return false;
 };
 
 const shouldEnterBackstagePhase = (state: GameState): boolean => {
@@ -5355,6 +5373,14 @@ const handleIntermissionGatePass = (router: Router): void => {
   const state = gameStore.getState();
   if (shouldEnterBackstagePhase(state)) {
     showIntermissionBackstageGuard(INTERMISSION_BACKSTAGE_PENDING_MESSAGE);
+    return;
+  }
+
+  if (shouldTriggerCurtainCallByHandDepletion(state)) {
+    prepareCurtainCall('handDepleted');
+    const latest = gameStore.getState();
+    saveGame(latest);
+    router.go(SPOTLIGHT_TO_CURTAINCALL_PATH);
     return;
   }
 
