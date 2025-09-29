@@ -12,6 +12,9 @@ export const NAVIGATION_BLOCK_CONFIRM_LABEL = 'OK';
 export const HELP_LOADING_MESSAGE = 'ヘルプを読み込んでいます…';
 export const HELP_LOAD_ERROR_MESSAGE =
   'ヘルプの読み込みに失敗しました。時間をおいて再度お試しください。';
+export const MARKDOWN_MODAL_LOADING_MESSAGE = '内容を読み込んでいます…';
+export const MARKDOWN_MODAL_LOAD_ERROR_MESSAGE =
+  '内容の読み込みに失敗しました。時間をおいて再度お試しください。';
 export const HELP_MODAL_TITLES = Object.freeze({
   home: 'HOMEのヘルプ',
   standby: 'スタンバイのヘルプ',

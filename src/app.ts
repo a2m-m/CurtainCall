@@ -63,6 +63,7 @@ import { animationManager } from './ui/animation.js';
 import { CardComponent } from './ui/card.js';
 import { showBoardCheck } from './ui/board-check.js';
 import { setGateModalController, showGate } from './ui/gate.js';
+import { createModalMarkdownBody } from './modal-markdown.js';
 import { createGateView } from './views/gate.js';
 import { UIButton, type ButtonVariant } from './ui/button.js';
 import { createHomeView } from './views/home.js';
@@ -156,6 +157,7 @@ const NAVIGATION_BLOCKED_PHASES = new Set<PhaseKey>([
 ]);
 
 const {
+  DEFAULT_GATE_MESSAGE,
   DEFAULT_GATE_CONFIRM_LABEL,
   DEFAULT_CLOSE_LABEL,
   NAVIGATION_BLOCK_TITLE,
@@ -1154,15 +1156,44 @@ const attachTurnIndicatorToView = (view: HTMLElement, state: GameState): (() => 
 
 const createTurnGateMessage = (
   state: GameState,
-  confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
+  confirmLabel = DEFAULT_GATE_CONFIRM_LABEL,
 ): string => {
   const { activeName, opponentName } = getTurnPlayerNames(state);
   return `次は${activeName}のターンです。${opponentName}に画面が見えないことを確認したら「${confirmLabel}」を押してください。`;
 };
 
+const createHandOffMarkdownContent = (): HTMLElement =>
+  createModalMarkdownBody({
+    fileName: 'handoff/gate.md',
+    fallbackText: DEFAULT_GATE_MESSAGE,
+  });
+
+const createHandOffGateMessageContent = (introText: string): HTMLElement => {
+  const container = document.createElement('div');
+  container.className = 'gate-modal__handoff';
+
+  const intro = document.createElement('p');
+  intro.className = 'gate-modal__handoff-intro';
+  intro.textContent = introText;
+  container.append(intro);
+
+  container.append(createHandOffMarkdownContent());
+
+  return container;
+};
+
+const createHandOffGateMessage = (
+  state: GameState,
+  confirmLabel = DEFAULT_GATE_CONFIRM_LABEL,
+  suffix = '',
+): HTMLElement => {
+  const introText = `${createTurnGateMessage(state, confirmLabel)}${suffix}`;
+  return createHandOffGateMessageContent(introText);
+};
+
 const createIntermissionTurnGateMessage = (
   state: GameState,
-  confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
+  confirmLabel = DEFAULT_GATE_CONFIRM_LABEL,
 ): string => {
   const nextActiveId = resolveNextIntermissionActivePlayer(state);
   const activeName = getPlayerDisplayName(state, nextActiveId);
@@ -1170,12 +1201,19 @@ const createIntermissionTurnGateMessage = (
   return `次は${activeName}のターンです。${opponentName}に画面が見えないことを確認したら「${confirmLabel}」を押してください。`;
 };
 
+const createIntermissionGateModalMessage = (
+  state: GameState,
+  confirmLabel = DEFAULT_GATE_CONFIRM_LABEL,
+): HTMLElement => createHandOffGateMessageContent(createIntermissionTurnGateMessage(state, confirmLabel));
+
 const createPhaseGateMessage = (
   state: GameState,
   phaseLabel: string,
-  confirmLabel: string = DEFAULT_GATE_CONFIRM_LABEL,
-): string =>
-  `${createTurnGateMessage(state, confirmLabel)}${phaseLabel ? `${phaseLabel}を始めましょう。` : ''}`;
+  confirmLabel = DEFAULT_GATE_CONFIRM_LABEL,
+): HTMLElement => {
+  const suffix = phaseLabel ? `${phaseLabel}を始めましょう。` : '';
+  return createHandOffGateMessage(state, confirmLabel, suffix);
+};
 
 const PHASE_LABELS: Record<PhaseKey, string> = {
   home: 'HOME',
@@ -1402,9 +1440,14 @@ function showResumeLoadError(router: Router): void {
     router.go('#/');
     return;
   }
+  const body = createModalMarkdownBody({
+    fileName: 'resume-gate/error.md',
+    fallbackText: messages.RESUME_GATE_ERROR_MESSAGE,
+  });
+
   modal.open({
     title: messages.RESUME_GATE_ERROR_TITLE,
-    body: messages.RESUME_GATE_ERROR_MESSAGE,
+    body,
     actions: [
       {
         label: messages.RESUME_GATE_ERROR_HOME_LABEL,
@@ -1424,9 +1467,13 @@ function showResumeLoadError(router: Router): void {
 
 function openResumeGateModal(router: Router): void {
   const notes = Array.from(messages.RESUME_GATE_MODAL_NOTES ?? []);
+  const messageBody = createModalMarkdownBody({
+    fileName: 'resume-gate/message.md',
+    fallbackText: messages.RESUME_GATE_MESSAGE,
+  });
   showGate({
     title: messages.RESUME_GATE_MODAL_TITLE,
-    text: messages.RESUME_GATE_MESSAGE,
+    text: messageBody,
     notes,
     confirmLabel: messages.RESUME_GATE_CONFIRM_LABEL,
     onOk: () => handleResumeGatePass(router),
@@ -1444,9 +1491,14 @@ const openResumeDiscardDialog = (router: Router): void => {
   }
 
   const openFinalConfirm = (): void => {
+    const body = createModalMarkdownBody({
+      fileName: 'resume-gate/discard-final.md',
+      fallbackText: messages.RESUME_GATE_DISCARD_FINAL_MESSAGE,
+    });
+
     modal.open({
       title: messages.RESUME_GATE_DISCARD_FINAL_TITLE,
-      body: messages.RESUME_GATE_DISCARD_FINAL_MESSAGE,
+      body,
       dismissible: false,
       actions: [
         {
@@ -1469,9 +1521,14 @@ const openResumeDiscardDialog = (router: Router): void => {
     });
   };
 
+  const body = createModalMarkdownBody({
+    fileName: 'resume-gate/discard-confirm.md',
+    fallbackText: messages.RESUME_GATE_DISCARD_CONFIRM_MESSAGE,
+  });
+
   modal.open({
     title: messages.RESUME_GATE_DISCARD_CONFIRM_TITLE,
-    body: messages.RESUME_GATE_DISCARD_CONFIRM_MESSAGE,
+    body,
     dismissible: false,
     actions: [
       {
@@ -1499,9 +1556,14 @@ const openSettingsDialog = (): void => {
     return;
   }
 
+  const body = createModalMarkdownBody({
+    fileName: 'home/settings.md',
+    fallbackText: HOME_SETTINGS_MESSAGE,
+  });
+
   modal.open({
     title: HOME_SETTINGS_TITLE,
-    body: HOME_SETTINGS_MESSAGE,
+    body,
     actions: [
       {
         label: DEFAULT_CLOSE_LABEL,
@@ -6705,13 +6767,17 @@ const ROUTES: RouteDescriptor[] = [
         const secretPairRequest = pendingSpotlightSecretPair;
         if (secretPairRequest) {
           const playerName = getPlayerDisplayName(state, secretPairRequest.playerId);
-          return SPOTLIGHT_SECRET_PAIR_GATE_MESSAGE(playerName);
+          return createHandOffGateMessageContent(
+            SPOTLIGHT_SECRET_PAIR_GATE_MESSAGE(playerName),
+          );
         }
 
         const setOpenRequest = pendingSpotlightSetOpen;
         if (setOpenRequest) {
           const playerName = getPlayerDisplayName(state, setOpenRequest.playerId);
-          return SPOTLIGHT_SET_OPEN_GATE_MESSAGE(playerName);
+          return createHandOffGateMessageContent(
+            SPOTLIGHT_SET_OPEN_GATE_MESSAGE(playerName),
+          );
         }
         return createPhaseGateMessage(state, 'スポットライトフェーズ');
       },
@@ -6733,7 +6799,11 @@ const ROUTES: RouteDescriptor[] = [
     phase: 'backstage',
     gate: createHandOffGateConfig({
       confirmLabel: BACKSTAGE_GATE_CONFIRM_LABEL,
-      resolveMessage: () => BACKSTAGE_GATE_MESSAGE,
+      resolveMessage: () =>
+        createModalMarkdownBody({
+          fileName: 'backstage/gate.md',
+          fallbackText: BACKSTAGE_GATE_MESSAGE,
+        }),
       resolveSubtitle: (state) => createBackstageGateSubtitle(state),
       resolveActions: ({ router }) => [
         {
@@ -6781,7 +6851,7 @@ const ROUTES: RouteDescriptor[] = [
     gate: createHandOffGateConfig({
       confirmLabel: INTERMISSION_GATE_CONFIRM_LABEL,
       resolveMessage: (state) =>
-        createIntermissionTurnGateMessage(state, INTERMISSION_GATE_CONFIRM_LABEL),
+        createIntermissionGateModalMessage(state, INTERMISSION_GATE_CONFIRM_LABEL),
       resolveSubtitle: (state) => createIntermissionGateSubtitle(state),
       resolveModalNotes: (state) => {
         const notes = createIntermissionBackstageNotes(state);
@@ -6819,7 +6889,11 @@ const ROUTES: RouteDescriptor[] = [
     phase: 'curtaincall',
     gate: createHandOffGateConfig({
       confirmLabel: CURTAINCALL_GATE_CONFIRM_LABEL,
-      message: CURTAINCALL_GATE_MESSAGE,
+      resolveMessage: () =>
+        createModalMarkdownBody({
+          fileName: 'curtaincall/gate.md',
+          fallbackText: CURTAINCALL_GATE_MESSAGE,
+        }),
       modalTitle: CURTAINCALL_GATE_MODAL_TITLE,
     }),
   },
@@ -6843,7 +6917,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           const resolvedMessage =
             route.gate?.resolveMessage?.(state) ??
             route.gate?.message ??
-            createTurnGateMessage(state, confirmLabel);
+            createHandOffGateMessage(state, confirmLabel);
           const resolvedSubtitle = route.gate?.resolveSubtitle?.(state) ?? route.subtitle;
           const resolvedActions = route.gate?.resolveActions?.({ state, router: contextRouter }) ?? [];
           const resolvedContent =
@@ -7530,9 +7604,14 @@ const initializeApp = (): void => {
       navigationBlockToastId = null;
     }
 
+    const body = createModalMarkdownBody({
+      fileName: 'navigation/block.md',
+      fallbackText: NAVIGATION_BLOCK_MESSAGE,
+    });
+
     modal.open({
       title: NAVIGATION_BLOCK_TITLE,
-      body: NAVIGATION_BLOCK_MESSAGE,
+      body,
       dismissible: false,
       actions: [
         {
