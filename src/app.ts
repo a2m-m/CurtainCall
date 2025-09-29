@@ -95,8 +95,16 @@ import type {
   ScoutRecentTakenCardViewModel,
 } from './views/scout.js';
 import { createStandbyView } from './views/standby.js';
+import {
+  applyPlayerNamesToState,
+  getSettings,
+  setSettings,
+  subscribeSettings,
+  type AppSettings,
+} from './settings.js';
 import * as messages from './messages.js';
 import { TurnIndicator, type TurnIndicatorState } from './ui/turn-indicator.js';
+import { SettingsForm } from './ui/settings-form.js';
 import { openHelpTopic } from './help.js';
 
 interface GateActionDescriptor {
@@ -369,7 +377,8 @@ const {
   SCOUT_PICK_RESULT_PREVIEW_CAPTION,
   SCOUT_PICK_RESULT_ACTION_NOTICE,
   HOME_SETTINGS_TITLE,
-  HOME_SETTINGS_MESSAGE,
+  HOME_SETTINGS_SAVE_LABEL,
+  HOME_SETTINGS_CANCEL_LABEL,
   HOME_HELP_BUTTON_LABEL,
   HOME_HELP_ARIA_LABEL,
   HISTORY_DIALOG_TITLE,
@@ -1011,7 +1020,7 @@ const createInitialDealState = (
   deal: InitialDealResult,
   timestamp: number,
 ): GameState => {
-  const template = createInitialState();
+  const template = createInitialStateWithSettings(currentSettings);
   const firstPlayer = current.firstPlayer ?? current.activePlayer ?? 'lumina';
   return {
     ...template,
@@ -1112,6 +1121,37 @@ const PLAYER_ROLES: Record<PlayerId, string> = {
   lumina: 'プレイヤーA',
   nox: 'プレイヤーB',
 };
+
+let currentSettings: AppSettings = getSettings();
+
+const applyPlayerNamesToGameState = (state: GameState, settings: AppSettings): GameState =>
+  applyPlayerNamesToState(state, settings) as GameState;
+
+const createInitialStateWithSettings = (settings: AppSettings): GameState =>
+  applyPlayerNamesToGameState(createInitialState(), settings);
+
+const applyPlayerSettingsToGameStore = (settings: AppSettings, options: { force?: boolean } = {}): void => {
+  const { force = false } = options;
+  gameStore.setState((current) => {
+    if (!force && current.phase !== 'home') {
+      return current;
+    }
+    const next = applyPlayerNamesToGameState(current, settings);
+    if (next === current) {
+      return current;
+    }
+    return {
+      ...next,
+      updatedAt: Date.now(),
+      revision: current.revision + 1,
+    };
+  });
+};
+
+subscribeSettings((settings) => {
+  currentSettings = settings;
+  applyPlayerSettingsToGameStore(settings);
+});
 
 const getPlayerDisplayName = (state: GameState, playerId: PlayerId): string => {
   const player = state.players[playerId];
@@ -1460,7 +1500,7 @@ const openResumeDiscardDialog = (router: Router): void => {
           preventRapid: true,
           onSelect: () => {
             clearGame();
-            const initialState = createInitialState();
+            const initialState = createInitialStateWithSettings(currentSettings);
             gameStore.setState(initialState);
             router.go(HOME_START_PATH);
           },
@@ -1499,14 +1539,32 @@ const openSettingsDialog = (): void => {
     return;
   }
 
+  const form = new SettingsForm(currentSettings);
+
+  const handleSave = (): void => {
+    setSettings(form.getValues());
+  };
+
+  form.onSubmit(() => {
+    handleSave();
+    modal.close();
+  });
+
   modal.open({
     title: HOME_SETTINGS_TITLE,
-    body: HOME_SETTINGS_MESSAGE,
+    body: form.el,
     actions: [
       {
-        label: DEFAULT_CLOSE_LABEL,
+        label: HOME_SETTINGS_CANCEL_LABEL,
+        variant: 'ghost',
+        preventRapid: true,
+      },
+      {
+        id: 'home-settings-save',
+        label: HOME_SETTINGS_SAVE_LABEL,
         variant: 'primary',
         preventRapid: true,
+        onSelect: handleSave,
       },
     ],
   });
@@ -7558,7 +7616,7 @@ const initializeApp = (): void => {
 
   buildRouteDefinitions(router).forEach((definition) => router.register(definition));
 
-  const initialState: GameState = (() => {
+  const initialState = (() => {
     try {
       const payload = loadGame({
         allowUnsafe: true,
@@ -7570,7 +7628,7 @@ const initializeApp = (): void => {
     } catch (error) {
       console.warn('セーブデータの復元に失敗したため、新しいゲームを開始します。', error);
     }
-    return createInitialState();
+    return createInitialStateWithSettings(currentSettings);
   })();
 
   gameStore.setState(initialState);

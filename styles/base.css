@@ -637,6 +637,187 @@ p {
   display: none;
 }
 
+.settings-form {
+  display: grid;
+  gap: clamp(1rem, 2.8vh, 1.5rem);
+  width: min(640px, 100%);
+}
+
+.settings-form__section {
+  display: grid;
+  gap: 0.85rem;
+  padding: clamp(1rem, 3vh, 1.4rem);
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.settings-form__section-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-form__section-description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.settings-form__players {
+  display: grid;
+  gap: clamp(0.75rem, 2.2vh, 1rem);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.settings-form__field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.settings-form__label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.settings-form__text-input,
+.settings-form__number-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--color-text);
+  font-size: 1rem;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+}
+
+.settings-form__text-input::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.settings-form__text-input:focus,
+.settings-form__number-input:focus {
+  outline: none;
+  border-color: rgba(251, 191, 36, 0.85);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.settings-form__number-input {
+  max-width: 100px;
+  text-align: right;
+}
+
+.settings-form__number-input:disabled {
+  opacity: 0.6;
+}
+
+.settings-form__hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.settings-form__fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.settings-form__legend {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-form__radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.settings-form__radio-option input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-accent);
+}
+
+.settings-form__radio-label {
+  line-height: 1.5;
+}
+
+.settings-form__rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.25rem;
+}
+
+.settings-form__rank-table caption {
+  margin-bottom: 0.5rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.settings-form__rank-row {
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.settings-form__rank-row:first-of-type {
+  border-top: none;
+}
+
+.settings-form__rank-header {
+  padding: 0.45rem 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.settings-form__rank-cell {
+  padding: 0.35rem 0.75rem;
+}
+
+.settings-form__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.settings-form__checkbox-input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--color-accent);
+}
+
+.settings-form__checkbox-label {
+  line-height: 1.5;
+}
+
+.settings-form__note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .scout-view {
   min-height: var(--viewport-height);
   display: flex;
@@ -3408,6 +3589,18 @@ p {
     --stage-card-wrapper-padding: clamp(0.8rem, 4.5vh, 1.1rem);
     --stage-card-width: clamp(104px, 42vw, 136px);
     --stage-card-height: clamp(140px, 56vw, 188px);
+  }
+
+  .settings-form {
+    width: 100%;
+  }
+
+  .settings-form__players {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-form__number-input {
+    max-width: 100%;
   }
 
   .standby__fieldset {
