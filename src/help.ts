@@ -4,6 +4,7 @@ import {
   HELP_LOADING_MESSAGE,
   HELP_MODAL_TITLES,
 } from './messages.js';
+import { fetchMarkdown, renderMarkdownToHtml } from './markdown.js';
 
 type HelpTopic = keyof typeof HELP_MODAL_TITLES;
 
@@ -27,104 +28,6 @@ const HELP_TOPIC_CONFIGS: Record<HelpTopic, HelpTopicConfig> = {
 };
 
 const helpContentCache = new Map<HelpTopic, string>();
-
-const escapeHtml = (value: string): string =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
-const renderMarkdownToHtml = (markdown: string): string => {
-  const normalized = markdown.replace(/\r\n/g, '\n').replace(/^\uFEFF/, '');
-  const lines = normalized.split('\n');
-  const htmlParts: string[] = ['<div class="help-modal__content">'];
-
-  let openList: 'ul' | 'ol' | null = null;
-  let paragraphLines: string[] = [];
-
-  const flushParagraph = (): void => {
-    if (paragraphLines.length === 0) {
-      return;
-    }
-    const text = paragraphLines.join(' ');
-    htmlParts.push(`<p>${escapeHtml(text)}</p>`);
-    paragraphLines = [];
-  };
-
-  const closeList = (): void => {
-    if (!openList) {
-      return;
-    }
-    htmlParts.push(`</${openList}>`);
-    openList = null;
-  };
-
-  lines.forEach((rawLine) => {
-    const trimmed = rawLine.trim();
-
-    if (trimmed === '') {
-      flushParagraph();
-      closeList();
-      return;
-    }
-
-    const headingMatch = /^(#{1,6})\s+(.*)$/.exec(trimmed);
-    if (headingMatch) {
-      flushParagraph();
-      closeList();
-      const level = Math.min(headingMatch[1].length, 6);
-      const headingText = escapeHtml(headingMatch[2].trim());
-      htmlParts.push(`<h${level}>${headingText}</h${level}>`);
-      return;
-    }
-
-    const unorderedMatch = /^[-*+]\s+(.*)$/.exec(trimmed);
-    if (unorderedMatch) {
-      flushParagraph();
-      if (openList !== 'ul') {
-        closeList();
-        htmlParts.push('<ul class="help-modal__list">');
-        openList = 'ul';
-      }
-      htmlParts.push(`<li>${escapeHtml(unorderedMatch[1])}</li>`);
-      return;
-    }
-
-    const orderedMatch = /^\d+\.\s+(.*)$/.exec(trimmed);
-    if (orderedMatch) {
-      flushParagraph();
-      if (openList !== 'ol') {
-        closeList();
-        htmlParts.push('<ol class="help-modal__list help-modal__list--ordered">');
-        openList = 'ol';
-      }
-      htmlParts.push(`<li>${escapeHtml(orderedMatch[1])}</li>`);
-      return;
-    }
-
-    if (openList) {
-      closeList();
-    }
-
-    paragraphLines.push(trimmed);
-  });
-
-  flushParagraph();
-  closeList();
-  htmlParts.push('</div>');
-
-  return htmlParts.join('');
-};
-
-const fetchMarkdown = async (url: URL): Promise<string> => {
-  const response = await fetch(url.toString(), { cache: 'no-cache' });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch help markdown: ${response.status}`);
-  }
-  return response.text();
-};
 
 export const openHelpTopic = async (topic: HelpTopic): Promise<void> => {
   if (typeof window === 'undefined') {
@@ -168,7 +71,11 @@ export const openHelpTopic = async (topic: HelpTopic): Promise<void> => {
 
   try {
     const markdown = await fetchMarkdown(config.url);
-    const html = renderMarkdownToHtml(markdown);
+    const html = renderMarkdownToHtml(markdown, {
+      rootClassName: 'help-modal__content',
+      unorderedListClassName: 'help-modal__list',
+      orderedListClassName: 'help-modal__list help-modal__list--ordered',
+    });
     helpContentCache.set(topic, html);
     body.innerHTML = html;
   } catch (error) {
