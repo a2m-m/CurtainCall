@@ -7616,19 +7616,19 @@ const initializeApp = (): void => {
 
   buildRouteDefinitions(router).forEach((definition) => router.register(definition));
 
-  const { state: initialState } = (() => {
+  const initialState = (() => {
     try {
       const payload = loadGame({
         allowUnsafe: true,
         currentPath: typeof window !== 'undefined' ? window.location.hash ?? null : null,
       });
       if (payload?.state) {
-        return { state: payload.state, loadedFromSave: true as const };
+        return payload.state;
       }
     } catch (error) {
       console.warn('セーブデータの復元に失敗したため、新しいゲームを開始します。', error);
     }
-    return { state: createInitialStateWithSettings(currentSettings), loadedFromSave: false as const };
+    return createInitialStateWithSettings(currentSettings);
   })();
 
   gameStore.setState(initialState);

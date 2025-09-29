@@ -25,7 +25,7 @@ export interface SoundSettings {
   effects: boolean;
 }
 
-export interface AppSettings {
+export interface AppSettings extends Record<string, unknown> {
   players: PlayerNameSettings;
   rank: RankSettings;
   sound: SoundSettings;
