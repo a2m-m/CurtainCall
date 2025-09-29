@@ -26,8 +26,7 @@ const DEFAULT_FALLBACK_CLASS = 'markdown-modal__fallback';
 const DEFAULT_UNORDERED_LIST_CLASS = 'markdown-modal__list';
 const DEFAULT_ORDERED_LIST_CLASS = 'markdown-modal__list markdown-modal__list--ordered';
 
-const createModalAssetUrl = (fileName: string): URL =>
-  new URL(`./help/modals/${fileName}`, import.meta.url);
+const createModalAssetPath = (fileName: string): string => `help/modals/${fileName}`;
 
 const modalMarkdownCache = new Map<string, string>();
 
@@ -70,8 +69,7 @@ const loadMarkdownInto = async (
   }
 
   try {
-    const url = createModalAssetUrl(options.fileName);
-    const markdown = await fetchMarkdown(url);
+    const markdown = await fetchMarkdown(createModalAssetPath(options.fileName));
     const html = renderMarkdownToHtml(markdown, {
       rootClassName: options.contentClassName ?? DEFAULT_CONTENT_CLASS,
       unorderedListClassName: options.unorderedListClassName ?? DEFAULT_UNORDERED_LIST_CLASS,

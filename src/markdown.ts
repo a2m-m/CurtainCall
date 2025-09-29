@@ -107,8 +107,43 @@ export const renderMarkdownToHtml = (markdown: string, options: MarkdownRenderOp
   return htmlParts.join('');
 };
 
-export const fetchMarkdown = async (url: URL): Promise<string> => {
-  const response = await fetch(url.toString(), { cache: 'no-cache' });
+export type MarkdownResource = string | URL;
+
+type MaybeNodeProcess = { versions?: { node?: unknown } };
+
+export const fetchMarkdown = async (resource: MarkdownResource): Promise<string> => {
+  const nodeProcess = (globalThis as { process?: MaybeNodeProcess }).process;
+  const isNodeEnvironment = typeof nodeProcess?.versions?.node === 'string';
+
+  if (typeof resource === 'string') {
+    if (isNodeEnvironment) {
+      const [{ readFile }, { resolve }] = await Promise.all([
+        import('node:fs/promises'),
+        import('node:path'),
+      ]);
+      const filePath = resolve(process.cwd(), resource);
+      const buffer = await readFile(filePath);
+      return buffer.toString('utf-8');
+    }
+
+    const response = await fetch(resource, { cache: 'no-cache' });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch markdown: ${response.status}`);
+    }
+    return response.text();
+  }
+
+  if (resource.protocol === 'file:') {
+    const [{ readFile }, { fileURLToPath }] = await Promise.all([
+      import('node:fs/promises'),
+      import('node:url'),
+    ]);
+    const filePath = fileURLToPath(resource);
+    const buffer = await readFile(filePath);
+    return buffer.toString('utf-8');
+  }
+
+  const response = await fetch(resource.toString(), { cache: 'no-cache' });
   if (!response.ok) {
     throw new Error(`Failed to fetch markdown: ${response.status}`);
   }

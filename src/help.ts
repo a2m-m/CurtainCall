@@ -9,22 +9,21 @@ import { fetchMarkdown, renderMarkdownToHtml } from './markdown.js';
 type HelpTopic = keyof typeof HELP_MODAL_TITLES;
 
 interface HelpTopicConfig {
-  readonly url: URL;
+  readonly path: string;
 }
 
-const createHelpAssetUrl = (fileName: string): URL =>
-  new URL(`./help/${fileName}`, import.meta.url);
+const createHelpAssetPath = (fileName: string): string => `help/${fileName}`;
 
 const HELP_TOPIC_CONFIGS: Record<HelpTopic, HelpTopicConfig> = {
-  home: { url: createHelpAssetUrl('home.md') },
-  standby: { url: createHelpAssetUrl('standby.md') },
-  scout: { url: createHelpAssetUrl('scout.md') },
-  action: { url: createHelpAssetUrl('action.md') },
-  watch: { url: createHelpAssetUrl('watch.md') },
-  spotlight: { url: createHelpAssetUrl('spotlight.md') },
-  backstage: { url: createHelpAssetUrl('backstage.md') },
-  intermission: { url: createHelpAssetUrl('intermission.md') },
-  curtaincall: { url: createHelpAssetUrl('curtaincall.md') },
+  home: { path: createHelpAssetPath('home.md') },
+  standby: { path: createHelpAssetPath('standby.md') },
+  scout: { path: createHelpAssetPath('scout.md') },
+  action: { path: createHelpAssetPath('action.md') },
+  watch: { path: createHelpAssetPath('watch.md') },
+  spotlight: { path: createHelpAssetPath('spotlight.md') },
+  backstage: { path: createHelpAssetPath('backstage.md') },
+  intermission: { path: createHelpAssetPath('intermission.md') },
+  curtaincall: { path: createHelpAssetPath('curtaincall.md') },
 };
 
 const helpContentCache = new Map<HelpTopic, string>();
@@ -70,7 +69,7 @@ export const openHelpTopic = async (topic: HelpTopic): Promise<void> => {
   }
 
   try {
-    const markdown = await fetchMarkdown(config.url);
+    const markdown = await fetchMarkdown(config.path);
     const html = renderMarkdownToHtml(markdown, {
       rootClassName: 'help-modal__content',
       unorderedListClassName: 'help-modal__list',
