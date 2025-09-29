@@ -2,6 +2,7 @@ import { UIButton, ButtonVariant } from '../ui/button.js';
 
 export interface HomeButtonOptions {
   label?: string;
+  ariaLabel?: string;
   variant?: ButtonVariant;
   disabled?: boolean;
   hidden?: boolean;
@@ -56,6 +57,11 @@ const createAction = (
   });
 
   button.el.classList.add('home__button');
+
+  if (options?.ariaLabel) {
+    button.el.setAttribute('aria-label', options.ariaLabel);
+    button.el.title = options.ariaLabel;
+  }
 
   if (options?.onSelect) {
     button.onClick(() => {

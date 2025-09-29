@@ -97,6 +97,7 @@ import type {
 import { createStandbyView } from './views/standby.js';
 import * as messages from './messages.js';
 import { TurnIndicator, type TurnIndicatorState } from './ui/turn-indicator.js';
+import { openHelpTopic } from './help.js';
 
 interface GateActionDescriptor {
   label: string;
@@ -211,6 +212,8 @@ const {
   INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX,
   INTERMISSION_VIEW_SUMMARY_TITLE,
   INTERMISSION_VIEW_NOTES_TITLE,
+  INTERMISSION_HELP_BUTTON_LABEL,
+  INTERMISSION_HELP_ARIA_LABEL,
   INTERMISSION_TASK_NEXT_PLAYER,
   INTERMISSION_TASK_REVIEW,
   INTERMISSION_TASK_RESUME,
@@ -219,8 +222,12 @@ const {
   BACKSTAGE_GATE_CONFIRM_LABEL,
   BACKSTAGE_GATE_MESSAGE,
   BACKSTAGE_GATE_SUBTITLE,
+  BACKSTAGE_HELP_BUTTON_LABEL,
+  BACKSTAGE_HELP_ARIA_LABEL,
   STANDBY_DEAL_ERROR_MESSAGE,
   STANDBY_FIRST_PLAYER_ERROR_MESSAGE,
+  STANDBY_HELP_BUTTON_LABEL,
+  STANDBY_HELP_ARIA_LABEL,
   SCOUT_PICK_CONFIRM_TITLE,
   SCOUT_PICK_CONFIRM_MESSAGE,
   SCOUT_PICK_CONFIRM_OK_LABEL,
@@ -236,6 +243,8 @@ const {
   SCOUT_HELP_ARIA_LABEL,
   ACTION_CONFIRM_BUTTON_LABEL,
   ACTION_BOARD_CHECK_LABEL,
+  ACTION_HELP_BUTTON_LABEL,
+  ACTION_HELP_ARIA_LABEL,
   ACTION_CONFIRM_MODAL_TITLE,
   ACTION_CONFIRM_MODAL_MESSAGE,
   ACTION_CONFIRM_MODAL_OK_LABEL,
@@ -325,6 +334,8 @@ const {
   CURTAINCALL_GATE_MESSAGE,
   CURTAINCALL_GATE_CONFIRM_LABEL,
   CURTAINCALL_BOARD_CHECK_LABEL,
+  CURTAINCALL_HELP_BUTTON_LABEL,
+  CURTAINCALL_HELP_ARIA_LABEL,
   CURTAINCALL_HOME_BUTTON_LABEL,
   CURTAINCALL_NEW_GAME_BUTTON_LABEL,
   CURTAINCALL_SAVE_BUTTON_LABEL,
@@ -359,8 +370,8 @@ const {
   SCOUT_PICK_RESULT_ACTION_NOTICE,
   HOME_SETTINGS_TITLE,
   HOME_SETTINGS_MESSAGE,
-  HELP_POPUP_BLOCKED_TOAST_MESSAGE,
-  HELP_POPUP_BLOCKED_CONSOLE_MESSAGE,
+  HOME_HELP_BUTTON_LABEL,
+  HOME_HELP_ARIA_LABEL,
   HISTORY_DIALOG_TITLE,
   HISTORY_DIALOG_DESCRIPTION,
   HISTORY_EMPTY_MESSAGE,
@@ -1095,8 +1106,6 @@ const handleStandbyGatePass = (router: Router): void => {
 
 const HOME_START_PATH = '#/standby';
 const HOME_RESUME_GATE_PATH = '#/resume/gate';
-const RULEBOOK_PATH = './rulebook.md';
-
 const PLAYER_LABELS: Readonly<Record<PlayerId, string>> = DEFAULT_PLAYER_NAMES;
 
 const PLAYER_ROLES: Record<PlayerId, string> = {
@@ -1503,25 +1512,8 @@ const openSettingsDialog = (): void => {
   });
 };
 
-const openRulebookHelp = (): void => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const helpUrl = new URL(RULEBOOK_PATH, window.location.href);
-  const opened = window.open(helpUrl.toString(), '_blank', 'noopener,noreferrer');
-
-  if (!opened) {
-    const toast = window.curtainCall?.toast;
-    if (toast) {
-      toast.show({
-        message: HELP_POPUP_BLOCKED_TOAST_MESSAGE,
-        variant: 'warning',
-      });
-    } else {
-      console.warn(HELP_POPUP_BLOCKED_CONSOLE_MESSAGE);
-    }
-  }
+const openHelp = (topic: Parameters<typeof openHelpTopic>[0]): void => {
+  void openHelpTopic(topic);
 };
 
 const openMyHandDialog = (): void => {
@@ -6933,7 +6925,10 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               onSelect: openSettingsDialog,
             },
             help: {
-              onSelect: openRulebookHelp,
+              label: HOME_HELP_BUTTON_LABEL,
+              ariaLabel: HOME_HELP_ARIA_LABEL,
+              preventRapid: true,
+              onSelect: () => openHelp('home'),
             },
           });
         },
@@ -6977,6 +6972,9 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             title: route.heading,
             subtitle: route.subtitle,
             players,
+            helpLabel: STANDBY_HELP_BUTTON_LABEL,
+            helpAriaLabel: STANDBY_HELP_ARIA_LABEL,
+            onOpenHelp: () => openHelp('standby'),
             firstPlayer: state.firstPlayer,
             nextPhaseLabel: PHASE_LABELS.scout,
             seedLockEnabled: Boolean(state.meta.seed),
@@ -7115,7 +7113,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             onConfirmSelection: () => openScoutPickConfirmDialog(),
             onOpenBoardCheck: () => showBoardCheck(),
             onOpenMyHand: () => openMyHandDialog(),
-            onOpenHelp: () => openRulebookHelp(),
+            onOpenHelp: () => openHelp('scout'),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
@@ -7151,6 +7149,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             actorCardId: state.action.actorCardId,
             kurokoCardId: state.action.kurokoCardId,
             boardCheckLabel: ACTION_BOARD_CHECK_LABEL,
+            helpLabel: ACTION_HELP_BUTTON_LABEL,
+            helpAriaLabel: ACTION_HELP_ARIA_LABEL,
             confirmLabel: ACTION_CONFIRM_BUTTON_LABEL,
             confirmDisabled: !canConfirmActionPlacement(state),
             onSelectHandCard: (cardId) => {
@@ -7170,6 +7170,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
               toggleActionKurokoCard(cardId);
             },
             onOpenBoardCheck: () => showBoardCheck(),
+            onOpenHelp: () => openHelp('action'),
             onConfirm: () => openActionConfirmDialog(),
           });
 
@@ -7236,7 +7237,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             onBoo: () => requestWatchDeclaration('boo'),
             onOpenBoardCheck: () => showBoardCheck(),
             onOpenMyHand: () => openMyHandDialog(),
-            onOpenHelp: () => openRulebookHelp(),
+            onOpenHelp: () => openHelp('watch'),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
@@ -7286,7 +7287,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             revealCaption: mapSpotlightRevealCaption(state) ?? undefined,
             onReveal: () => openSpotlightRevealConfirmDialog(),
             onOpenBoardCheck: () => showBoardCheck(),
-            onOpenHelp: () => openRulebookHelp(),
+            onOpenHelp: () => openHelp('spotlight'),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
@@ -7335,6 +7336,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             notesTitle: INTERMISSION_VIEW_NOTES_TITLE,
             notes: createIntermissionBackstageNotes(state),
             boardCheckLabel: INTERMISSION_BOARD_CHECK_LABEL,
+            helpLabel: INTERMISSION_HELP_BUTTON_LABEL,
+            helpAriaLabel: INTERMISSION_HELP_ARIA_LABEL,
             summaryLabel: INTERMISSION_SUMMARY_LABEL,
             resumeLabel: INTERMISSION_VIEW_RESUME_LABEL,
             resumeTitle: INTERMISSION_VIEW_RESUME_TITLE,
@@ -7345,6 +7348,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             onOpenSummary: () => openIntermissionSummaryDialog(),
             onOpenResume: () => contextRouter.go('#/resume/gate'),
             onOpenGate: () => contextRouter.go('#/phase/intermission/gate'),
+            onOpenHelp: () => openHelp('intermission'),
           });
 
           view.setGateDisabled(shouldEnterBackstagePhase(state));
@@ -7397,6 +7401,8 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             skipLabel: INTERMISSION_BACKSTAGE_SKIP_LABEL,
             revealLabel: INTERMISSION_BACKSTAGE_REVEAL_LABEL,
             boardCheckLabel: INTERMISSION_BOARD_CHECK_LABEL,
+            helpLabel: BACKSTAGE_HELP_BUTTON_LABEL,
+            helpAriaLabel: BACKSTAGE_HELP_ARIA_LABEL,
             summaryLabel: INTERMISSION_SUMMARY_LABEL,
             myHandLabel: INTERMISSION_MY_HAND_LABEL,
             onConfirmSelection: (itemIds) => startBackstageRevealFlow(itemIds),
@@ -7404,6 +7410,7 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             onOpenBoardCheck: () => showBoardCheck(),
             onOpenSummary: () => openIntermissionSummaryDialog(),
             onOpenMyHand: () => openMyHandDialog(),
+            onOpenHelp: () => openHelp('backstage'),
           });
 
           const unsubscribe = gameStore.subscribe((nextState) => {
@@ -7443,11 +7450,14 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
             result: mapCurtainCallResult(state),
             players: mapCurtainCallPlayers(state),
             boardCheckLabel: CURTAINCALL_BOARD_CHECK_LABEL,
+            helpLabel: CURTAINCALL_HELP_BUTTON_LABEL,
+            helpAriaLabel: CURTAINCALL_HELP_ARIA_LABEL,
             homeLabel: CURTAINCALL_HOME_BUTTON_LABEL,
             newGameLabel: CURTAINCALL_NEW_GAME_BUTTON_LABEL,
             saveLabel: CURTAINCALL_SAVE_BUTTON_LABEL,
             saveDisabled: Boolean(state.curtainCall?.savedHistoryEntryId),
             onOpenBoardCheck: () => showBoardCheck(),
+            onOpenHelp: () => openHelp('curtaincall'),
             onGoHome: () => handleCurtainCallGoHome(contextRouter),
             onStartNewGame: () => handleCurtainCallStartNewGame(contextRouter),
             onSaveResult: () => handleCurtainCallSaveRequest(),

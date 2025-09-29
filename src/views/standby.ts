@@ -13,6 +13,9 @@ export interface StandbyViewOptions {
   title: string;
   subtitle?: string;
   players: StandbyPlayerConfig[];
+  helpLabel?: string;
+  helpAriaLabel?: string;
+  onOpenHelp?: () => void;
   firstPlayer?: PlayerId | null;
   nextPhaseLabel?: string;
   seedLockEnabled?: boolean;
@@ -52,6 +55,25 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   }
 
   main.setAttribute('aria-labelledby', titleId);
+
+  if (options.onOpenHelp) {
+    const headerActions = document.createElement('div');
+    headerActions.className = 'standby__header-actions';
+
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? 'ヘルプ',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    helpButton.el.classList.add('standby__header-button');
+    const helpAriaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', helpAriaLabel);
+    helpButton.el.title = helpAriaLabel;
+    helpButton.onClick(() => options.onOpenHelp?.());
+    headerActions.append(helpButton.el);
+
+    main.append(headerActions);
+  }
 
   const content = document.createElement('div');
   content.className = 'standby__content';

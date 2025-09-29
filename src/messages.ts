@@ -9,6 +9,21 @@ export const NAVIGATION_BLOCK_MESSAGE =
   'ゲーム進行中はブラウザの戻る操作を利用できません。画面内のボタンから操作してください。';
 export const NAVIGATION_BLOCK_CONFIRM_LABEL = 'OK';
 
+export const HELP_LOADING_MESSAGE = 'ヘルプを読み込んでいます…';
+export const HELP_LOAD_ERROR_MESSAGE =
+  'ヘルプの読み込みに失敗しました。時間をおいて再度お試しください。';
+export const HELP_MODAL_TITLES = Object.freeze({
+  home: 'HOMEのヘルプ',
+  standby: 'スタンバイのヘルプ',
+  scout: 'スカウトフェーズのヘルプ',
+  action: 'アクションフェーズのヘルプ',
+  watch: 'ウォッチフェーズのヘルプ',
+  spotlight: 'スポットライトフェーズのヘルプ',
+  backstage: 'バックステージフェーズのヘルプ',
+  intermission: 'インターミッションのヘルプ',
+  curtaincall: 'カーテンコールのヘルプ',
+} as const);
+
 export const HANDOFF_GATE_HINTS = Object.freeze([
   '端末を次のプレイヤーに渡したら「準備完了」を押してください。',
   'ゲートを通過した後に秘匿情報が画面へ描画されます。',
@@ -79,6 +94,8 @@ export const INTERMISSION_VIEW_RESUME_EMPTY = 'セーブデータはまだ保存
 export const INTERMISSION_VIEW_RESUME_SAVED_AT_PREFIX = '保存日時：';
 export const INTERMISSION_VIEW_SUMMARY_TITLE = '公開情報のハイライト';
 export const INTERMISSION_VIEW_NOTES_TITLE = '直前のバックステージ結果';
+export const INTERMISSION_HELP_BUTTON_LABEL = 'ヘルプ';
+export const INTERMISSION_HELP_ARIA_LABEL = 'ヘルプ';
 export const INTERMISSION_TASK_NEXT_PLAYER = (playerName: string): string =>
   `次は${playerName}の番です。端末を渡す準備を整えましょう。`;
 export const INTERMISSION_TASK_REVIEW =
@@ -125,10 +142,14 @@ export const BACKSTAGE_GATE_CONFIRM_LABEL = 'バックステージへ';
 export const BACKSTAGE_GATE_MESSAGE =
   'バックステージアクションを完了するとインターミッションへ移動します。公開またはスキップの処理を行ってください。';
 export const BACKSTAGE_GATE_SUBTITLE = 'バックステージアクション担当のプレイヤーを呼び出してください。';
+export const BACKSTAGE_HELP_BUTTON_LABEL = 'ヘルプ';
+export const BACKSTAGE_HELP_ARIA_LABEL = 'ヘルプ';
 
 export const STANDBY_DEAL_ERROR_MESSAGE =
   'スタンバイの初期化に失敗しました。もう一度お試しください。';
 export const STANDBY_FIRST_PLAYER_ERROR_MESSAGE = '先手が未決定です。スタンバイに戻ります。';
+export const STANDBY_HELP_BUTTON_LABEL = 'ヘルプ';
+export const STANDBY_HELP_ARIA_LABEL = 'ヘルプ';
 
 export const BOARD_CHECK_MODAL_TITLE = 'ボードチェック';
 
@@ -150,6 +171,8 @@ export const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
 
 export const ACTION_CONFIRM_BUTTON_LABEL = '配置を確定';
 export const ACTION_BOARD_CHECK_LABEL = 'ボードチェック';
+export const ACTION_HELP_BUTTON_LABEL = 'ヘルプ';
+export const ACTION_HELP_ARIA_LABEL = 'ヘルプ';
 export const ACTION_CONFIRM_MODAL_TITLE = '配置を確定';
 export const ACTION_CONFIRM_MODAL_MESSAGE =
   '以下のカードをステージに配置します。確定すると元に戻せません。';
@@ -289,6 +312,8 @@ export const CURTAINCALL_GATE_MODAL_TITLE = 'カーテンコール（結果発�
 export const CURTAINCALL_GATE_MESSAGE = 'この結果は両者で確認できます。';
 export const CURTAINCALL_GATE_CONFIRM_LABEL = 'OK（結果を見る）';
 export const CURTAINCALL_BOARD_CHECK_LABEL = 'ボードチェック';
+export const CURTAINCALL_HELP_BUTTON_LABEL = 'ヘルプ';
+export const CURTAINCALL_HELP_ARIA_LABEL = 'ヘルプ';
 export const CURTAINCALL_HOME_BUTTON_LABEL = 'HOME';
 export const CURTAINCALL_NEW_GAME_BUTTON_LABEL = '新しいゲーム';
 export const CURTAINCALL_SAVE_BUTTON_LABEL = '結果の保存';
@@ -329,10 +354,8 @@ export const SCOUT_PICK_RESULT_ACTION_NOTICE = (
 
 export const HOME_SETTINGS_TITLE = '設定';
 export const HOME_SETTINGS_MESSAGE = '設定メニューは現在準備中です。';
-export const HELP_POPUP_BLOCKED_TOAST_MESSAGE =
-  'ヘルプを開けませんでした。ブラウザのポップアップ設定をご確認ください。';
-export const HELP_POPUP_BLOCKED_CONSOLE_MESSAGE =
-  'ヘルプ画面を開けませんでした。ポップアップブロックを解除してください。';
+export const HOME_HELP_BUTTON_LABEL = 'ヘルプ';
+export const HOME_HELP_ARIA_LABEL = 'ヘルプ';
 
 export const HISTORY_DIALOG_TITLE = 'リザルト履歴';
 export const HISTORY_DIALOG_DESCRIPTION =

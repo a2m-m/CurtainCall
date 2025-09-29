@@ -16,6 +16,8 @@ export interface IntermissionViewOptions {
   notesTitle: string;
   notes: string[];
   boardCheckLabel: string;
+  helpLabel?: string;
+  helpAriaLabel?: string;
   summaryLabel: string;
   resumeLabel: string;
   resumeTitle: string;
@@ -26,6 +28,7 @@ export interface IntermissionViewOptions {
   onOpenSummary?: () => void;
   onOpenResume?: () => void;
   onOpenGate?: () => void;
+  onOpenHelp?: () => void;
 }
 
 export interface IntermissionViewElement extends HTMLElement {
@@ -90,6 +93,25 @@ export const createIntermissionView = (options: IntermissionViewOptions): Interm
   subtitle.className = 'intermission__subtitle';
   subtitle.textContent = options.subtitle;
   header.append(subtitle);
+
+  if (options.onOpenHelp) {
+    const headerActions = document.createElement('div');
+    headerActions.className = 'intermission__header-actions';
+
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? 'ヘルプ',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    helpButton.el.classList.add('intermission__header-button');
+    const ariaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', ariaLabel);
+    helpButton.el.title = ariaLabel;
+    helpButton.onClick(() => options.onOpenHelp?.());
+    headerActions.append(helpButton.el);
+
+    header.append(headerActions);
+  }
 
   main.setAttribute('aria-labelledby', headingId);
 

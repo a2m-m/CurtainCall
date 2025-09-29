@@ -161,7 +161,7 @@ export const createSpotlightView = (options: SpotlightViewOptions): SpotlightVie
     const helpButton = new UIButton({
       label: options.helpLabel ?? 'ヘルプ',
       variant: 'ghost',
-      preventRapid: false,
+      preventRapid: true,
     });
     helpButton.el.classList.add('spotlight__header-button', 'spotlight__header-button--help');
     const ariaLabel = options.helpAriaLabel ?? 'ヘルプ';
