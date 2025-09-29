@@ -24,13 +24,13 @@ export const HELP_MODAL_TITLES = Object.freeze({
   curtaincall: 'カーテンコールのヘルプ',
 } as const);
 
+export const MODAL_MARKDOWN_LOADING_MESSAGE = '内容を読み込んでいます…';
+export const MODAL_MARKDOWN_ERROR_MESSAGE =
+  '内容の読み込みに失敗しました。時間をおいて再度お試しください。';
+
 export const HANDOFF_GATE_HINTS = Object.freeze([
   '端末を次のプレイヤーに渡したら「準備完了」を押してください。',
   'ゲートを通過した後に秘匿情報が画面へ描画されます。',
-]);
-
-export const HANDOFF_GATE_MODAL_NOTES = Object.freeze([
-  'ゲート通過前は秘匿情報を DOM に出力しません。',
 ]);
 
 export const INTERMISSION_GATE_TITLE = '手番交代';
@@ -107,29 +107,18 @@ export const INTERMISSION_TASK_GATE =
 
 export const RESUME_GATE_MODAL_TITLE = '続きから';
 export const RESUME_GATE_CONFIRM_LABEL = '再開する';
-export const RESUME_GATE_MESSAGE =
-  'セーブデータを読み込みます。端末を受け取ったプレイヤーは周囲の視線を遮り、準備が整ったら「再開する」を押してください。';
 export const RESUME_GATE_HINTS = Object.freeze([
   'ゲートを通過するまで秘匿情報は表示されません。',
   '再開後は保存時点の手番とフェーズからゲームが進行します。',
 ] as const);
-export const RESUME_GATE_MODAL_NOTES = Object.freeze([
-  '秘匿情報はゲート通過後に描画されます。',
-] as const);
 export const RESUME_GATE_HOME_LABEL = 'HOMEに戻る';
 export const RESUME_GATE_DISCARD_LABEL = '破棄して新規';
 export const RESUME_GATE_DISCARD_CONFIRM_TITLE = 'セーブデータを破棄しますか？';
-export const RESUME_GATE_DISCARD_CONFIRM_MESSAGE =
-  '保存中のゲームを破棄して新しいゲームを始めます。よろしいですか？';
 export const RESUME_GATE_DISCARD_CONFIRM_OK_LABEL = '破棄に進む';
 export const RESUME_GATE_DISCARD_FINAL_TITLE = '最終確認';
-export const RESUME_GATE_DISCARD_FINAL_MESSAGE =
-  'この操作は取り消せません。本当にセーブデータを破棄して新しく開始しますか？';
 export const RESUME_GATE_DISCARD_FINAL_OK_LABEL = '破棄して新規開始';
 export const RESUME_GATE_CANCEL_LABEL = 'やめる';
 export const RESUME_GATE_ERROR_TITLE = '復元に失敗しました';
-export const RESUME_GATE_ERROR_MESSAGE =
-  'セーブデータの復元に失敗しました。HOMEに戻るか、もう一度お試しください。';
 export const RESUME_GATE_ERROR_HOME_LABEL = 'HOMEに戻る';
 export const RESUME_GATE_ERROR_RETRY_LABEL = 'もう一度表示';
 export const RESUME_GATE_EMPTY_TITLE = 'セーブデータが見つかりません';

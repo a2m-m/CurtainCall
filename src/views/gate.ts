@@ -1,6 +1,7 @@
 import { UIButton, ButtonVariant } from '../ui/button.js';
 import { showGate, GateOptions } from '../ui/gate.js';
 import { DEFAULT_GATE_MESSAGE } from '../messages.js';
+import type { ModalContentKey } from '../modal-content.js';
 
 export interface GateViewAction {
   label: string;
@@ -18,6 +19,8 @@ export interface GateViewOptions {
   hints?: string[];
   modalNotes?: string[];
   modalTitle?: string;
+  modalMarkdownKey?: ModalContentKey;
+  modalMarkdownReplacements?: Record<string, string>;
   preventRapid?: boolean;
   lockDuration?: number;
   onGatePass?: () => void;
@@ -111,10 +114,24 @@ export const createGateView = (options: GateViewOptions): HTMLElement => {
 
   if (typeof window !== 'undefined') {
     queueMicrotask(() => {
+      let markdownReplacements = options.modalMarkdownReplacements;
+      let messageForModal: string | HTMLElement | undefined = options.message ?? DEFAULT_GATE_MESSAGE;
+
+      if (options.modalMarkdownKey && typeof messageForModal === 'string') {
+        const base = markdownReplacements ? { ...markdownReplacements } : {};
+        if (base.message === undefined) {
+          base.message = messageForModal;
+        }
+        markdownReplacements = base;
+        messageForModal = undefined;
+      }
+
       const gateOptions: GateOptions = {
         title: options.modalTitle ?? options.title,
-        text: options.message ?? DEFAULT_GATE_MESSAGE,
+        text: messageForModal,
         notes: options.modalNotes,
+        markdownKey: options.modalMarkdownKey,
+        markdownReplacements,
         confirmLabel: options.confirmLabel,
         preventRapid: options.preventRapid,
         lockDuration: options.lockDuration,

@@ -2048,6 +2048,71 @@ p {
   color: var(--color-muted);
 }
 
+.modal-markdown {
+  display: grid;
+  gap: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--color-text);
+}
+
+.modal-markdown__status,
+.modal-markdown__error {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.modal-markdown__status {
+  color: var(--color-muted);
+}
+
+.modal-markdown__error {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.modal-markdown__content {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.modal-markdown__content h1,
+.modal-markdown__content h2,
+.modal-markdown__content h3 {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.modal-markdown__content h1 {
+  font-size: 1.35rem;
+}
+
+.modal-markdown__content h2 {
+  font-size: 1.15rem;
+}
+
+.modal-markdown__content h3 {
+  font-size: 1.05rem;
+}
+
+.modal-markdown__content p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.modal-markdown__list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+  color: var(--color-muted);
+}
+
+.modal-markdown__list--ordered {
+  list-style-type: decimal;
+}
+
 .help-modal__list--ordered {
   list-style: decimal;
 }

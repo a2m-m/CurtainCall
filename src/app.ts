@@ -106,6 +106,7 @@ import * as messages from './messages.js';
 import { TurnIndicator, type TurnIndicatorState } from './ui/turn-indicator.js';
 import { SettingsForm } from './ui/settings-form.js';
 import { openHelpTopic } from './help.js';
+import { createModalContentElement, type ModalContentKey } from './modal-content.js';
 
 interface GateActionDescriptor {
   label: string;
@@ -123,6 +124,9 @@ interface GateDescriptor {
   modalNotes?: string[];
   resolveModalNotes?: (state: GameState) => string[] | undefined;
   modalTitle?: string;
+  modalMarkdownKey?: ModalContentKey;
+  modalMarkdownReplacements?: Record<string, string>;
+  resolveModalMarkdownReplacements?: (state: GameState) => Record<string, string> | undefined;
   preventRapid?: boolean;
   lockDuration?: number;
   nextPath?: string | null;
@@ -170,7 +174,6 @@ const {
   NAVIGATION_BLOCK_MESSAGE,
   NAVIGATION_BLOCK_CONFIRM_LABEL,
   HANDOFF_GATE_HINTS,
-  HANDOFF_GATE_MODAL_NOTES,
   INTERMISSION_GATE_TITLE,
   INTERMISSION_GATE_CONFIRM_LABEL,
   INTERMISSION_BOARD_CHECK_LABEL,
@@ -395,7 +398,7 @@ const {
 
 const createHandOffGateConfig = (overrides: Partial<GateDescriptor> = {}): GateDescriptor => ({
   hints: [...HANDOFF_GATE_HINTS],
-  modalNotes: [...HANDOFF_GATE_MODAL_NOTES],
+  modalMarkdownKey: 'handoffDefault',
   ...overrides,
 });
 
@@ -1444,7 +1447,7 @@ function showResumeLoadError(router: Router): void {
   }
   modal.open({
     title: messages.RESUME_GATE_ERROR_TITLE,
-    body: messages.RESUME_GATE_ERROR_MESSAGE,
+    body: createModalContentElement('resumeGateError'),
     actions: [
       {
         label: messages.RESUME_GATE_ERROR_HOME_LABEL,
@@ -1463,11 +1466,9 @@ function showResumeLoadError(router: Router): void {
 }
 
 function openResumeGateModal(router: Router): void {
-  const notes = Array.from(messages.RESUME_GATE_MODAL_NOTES ?? []);
   showGate({
     title: messages.RESUME_GATE_MODAL_TITLE,
-    text: messages.RESUME_GATE_MESSAGE,
-    notes,
+    markdownKey: 'resumeGate',
     confirmLabel: messages.RESUME_GATE_CONFIRM_LABEL,
     onOk: () => handleResumeGatePass(router),
   });
@@ -1486,7 +1487,7 @@ const openResumeDiscardDialog = (router: Router): void => {
   const openFinalConfirm = (): void => {
     modal.open({
       title: messages.RESUME_GATE_DISCARD_FINAL_TITLE,
-      body: messages.RESUME_GATE_DISCARD_FINAL_MESSAGE,
+      body: createModalContentElement('resumeGateDiscardFinal'),
       dismissible: false,
       actions: [
         {
@@ -1511,7 +1512,7 @@ const openResumeDiscardDialog = (router: Router): void => {
 
   modal.open({
     title: messages.RESUME_GATE_DISCARD_CONFIRM_TITLE,
-    body: messages.RESUME_GATE_DISCARD_CONFIRM_MESSAGE,
+    body: createModalContentElement('resumeGateDiscardConfirm'),
     dismissible: false,
     actions: [
       {
@@ -6793,6 +6794,7 @@ const ROUTES: RouteDescriptor[] = [
       confirmLabel: BACKSTAGE_GATE_CONFIRM_LABEL,
       resolveMessage: () => BACKSTAGE_GATE_MESSAGE,
       resolveSubtitle: (state) => createBackstageGateSubtitle(state),
+      modalMarkdownKey: 'backstageGate',
       resolveActions: ({ router }) => [
         {
           label: INTERMISSION_BACKSTAGE_ACTION_LABEL,
@@ -6879,6 +6881,7 @@ const ROUTES: RouteDescriptor[] = [
       confirmLabel: CURTAINCALL_GATE_CONFIRM_LABEL,
       message: CURTAINCALL_GATE_MESSAGE,
       modalTitle: CURTAINCALL_GATE_MODAL_TITLE,
+      modalMarkdownKey: 'curtaincallGate',
     }),
   },
 ];
@@ -6913,14 +6916,40 @@ const buildRouteDefinitions = (router: Router): RouteDefinition[] =>
           );
           const resolvedModalNotes = combinedNotes.length > 0 ? Array.from(new Set(combinedNotes)) : undefined;
 
+          const resolvedModalMarkdownKey = route.gate?.modalMarkdownKey;
+          const staticMarkdownReplacements = route.gate?.modalMarkdownReplacements ?? {};
+          const dynamicMarkdownReplacements =
+            route.gate?.resolveModalMarkdownReplacements?.(state) ?? {};
+          let mergedMarkdownReplacements: Record<string, string> | undefined;
+
+          if (resolvedModalMarkdownKey) {
+            const combined = { ...staticMarkdownReplacements, ...dynamicMarkdownReplacements };
+            if (typeof resolvedMessage === 'string' && combined.message === undefined) {
+              combined.message = resolvedMessage;
+            }
+            mergedMarkdownReplacements =
+              Object.keys(combined).length > 0 ? combined : undefined;
+          } else {
+            const combined = { ...staticMarkdownReplacements, ...dynamicMarkdownReplacements };
+            mergedMarkdownReplacements =
+              Object.keys(combined).length > 0 ? combined : undefined;
+          }
+
+          const messageForGate =
+            resolvedModalMarkdownKey && typeof resolvedMessage === 'string'
+              ? undefined
+              : resolvedMessage;
+
           return createGateView({
             title: route.heading,
             subtitle: resolvedSubtitle,
-            message: resolvedMessage,
+            message: messageForGate,
             confirmLabel: route.gate?.confirmLabel,
             hints: route.gate?.hints,
             modalNotes: resolvedModalNotes,
             modalTitle: route.gate?.modalTitle ?? route.title,
+            modalMarkdownKey: resolvedModalMarkdownKey,
+            modalMarkdownReplacements: mergedMarkdownReplacements,
             preventRapid: route.gate?.preventRapid,
             lockDuration: route.gate?.lockDuration,
             actions: resolvedActions.map((action) => ({
@@ -7590,7 +7619,7 @@ const initializeApp = (): void => {
 
     modal.open({
       title: NAVIGATION_BLOCK_TITLE,
-      body: NAVIGATION_BLOCK_MESSAGE,
+      body: createModalContentElement('navigationBlock'),
       dismissible: false,
       actions: [
         {
