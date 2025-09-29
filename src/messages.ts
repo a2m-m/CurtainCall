@@ -356,7 +356,29 @@ export const SCOUT_PICK_RESULT_ACTION_NOTICE = (
   `${playerName}は${opponentName}に画面が見えないことを確認し、「${SCOUT_PICK_RESULT_OK_LABEL}」を押してアクションフェーズへ進みましょう。`;
 
 export const HOME_SETTINGS_TITLE = '設定';
-export const HOME_SETTINGS_MESSAGE = '設定メニューは現在準備中です。';
+export const HOME_SETTINGS_SAVE_LABEL = '保存';
+export const HOME_SETTINGS_CANCEL_LABEL = '閉じる';
+export const HOME_SETTINGS_PLAYER_SECTION_TITLE = 'プレイヤー名';
+export const HOME_SETTINGS_PLAYER_SECTION_DESCRIPTION =
+  'ホーム画面や盤面に表示されるプレイヤー名を設定できます。空欄の場合は既定の名前が使われます。';
+export const HOME_SETTINGS_PLAYER_NAME_LABEL_LUMINA = 'プレイヤーA（先手）';
+export const HOME_SETTINGS_PLAYER_NAME_LABEL_NOX = 'プレイヤーB（後手）';
+export const HOME_SETTINGS_PLAYER_NAME_HINT = '最大24文字まで入力できます。';
+export const HOME_SETTINGS_RANK_SECTION_TITLE = 'ランク値（スコア換算）';
+export const HOME_SETTINGS_RANK_SECTION_DESCRIPTION =
+  '役者札と黒子札の組み合わせ判定や得点計算に使用する数値を調整します。';
+export const HOME_SETTINGS_RANK_RULE_LEGEND = 'ルール選択';
+export const HOME_SETTINGS_RANK_RULE_DEFAULT_LABEL = 'ルールブック準拠（A=1〜K=13／JOKER=0）';
+export const HOME_SETTINGS_RANK_RULE_CUSTOM_LABEL = 'カスタム設定を使用する';
+export const HOME_SETTINGS_RANK_RULE_CUSTOM_DESCRIPTION =
+  'カスタム設定を選ぶと各ランクの数値を編集できます（0〜99）。';
+export const HOME_SETTINGS_RANK_TABLE_CAPTION = '各ランクの数値（0〜99）';
+export const HOME_SETTINGS_SOUND_SECTION_TITLE = '効果音';
+export const HOME_SETTINGS_SOUND_SECTION_DESCRIPTION =
+  '演出用の効果音を再生するかどうかを切り替えます。';
+export const HOME_SETTINGS_SOUND_EFFECTS_LABEL = '効果音を再生する';
+export const HOME_SETTINGS_APPLY_NOTE =
+  '設定の変更は新しく開始する対局に適用されます。進行中の対局には影響しません。';
 export const HOME_HELP_BUTTON_LABEL = 'ヘルプ';
 export const HOME_HELP_ARIA_LABEL = 'ヘルプ';
 
