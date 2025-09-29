@@ -235,13 +235,6 @@
     flex: 1 1 160px;
   }
 
-  .scout__header-button--help,
-  .watch__header-button--help,
-  .spotlight__header-button--help {
-    flex: 0 0 auto;
-    width: min(2.75rem, max(2.2rem, calc(4vw + 1rem)));
-  }
-
   .watch-actions {
     grid-template-columns: 1fr;
   }
@@ -669,11 +662,7 @@ p {
 }
 
 .scout__header-button--help {
-  width: min(2.75rem, max(2.2rem, calc(4vw + 1rem)));
-  aspect-ratio: 1;
-  padding: 0;
   font-weight: 600;
-  border-radius: 999px;
 }
 
 .scout__title {
@@ -1272,10 +1261,7 @@ p {
 }
 
 .watch__header-button--help {
-  width: min(2.75rem, max(2.2rem, calc(4vw + 1rem)));
-  aspect-ratio: 1;
-  padding: 0;
-  justify-content: center;
+  font-weight: 600;
 }
 
 .watch-status {
@@ -2497,10 +2483,7 @@ p {
 }
 
 .spotlight__header-button--help {
-  width: min(2.75rem, max(2.2rem, calc(4vw + 1rem)));
-  aspect-ratio: 1;
-  padding: 0;
-  justify-content: center;
+  font-weight: 600;
 }
 
 .spotlight-stage {
@@ -3332,10 +3315,10 @@ p {
     gap: 0.25rem;
   }
 
-  .scout__header-actions .button:not(.scout__header-button--help),
+  .scout__header-actions .button,
   .action__actions .button,
-  .watch__header-actions .button:not(.watch__header-button--help),
-  .spotlight__header-actions .button:not(.spotlight__header-button--help),
+  .watch__header-actions .button,
+  .spotlight__header-actions .button,
   .curtaincall__header .button {
     flex-basis: 100%;
   }
@@ -3413,13 +3396,6 @@ p {
   .spotlight__header-actions,
   .curtaincall__header {
     gap: 0.6rem;
-  }
-
-  .scout__header-button--help,
-  .watch__header-button--help,
-  .spotlight__header-button--help {
-    width: max(2.2rem, calc(1rem + var(--button-padding-y) * 2));
-    font-size: 0.95rem;
   }
 
   .action-hand__card {

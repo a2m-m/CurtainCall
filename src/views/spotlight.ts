@@ -159,7 +159,7 @@ export const createSpotlightView = (options: SpotlightViewOptions): SpotlightVie
 
   if (options.onOpenHelp) {
     const helpButton = new UIButton({
-      label: options.helpLabel ?? '？',
+      label: options.helpLabel ?? 'ヘルプ',
       variant: 'ghost',
       preventRapid: false,
     });
