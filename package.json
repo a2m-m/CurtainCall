@@ -4,7 +4,7 @@
   "description": "Curtain Call browser game scaffolding",
   "private": true,
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc --project tsconfig.json && node scripts/copy-help.mjs",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"styles/**/*.css\" index.html",
