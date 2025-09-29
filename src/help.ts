@@ -12,7 +12,7 @@ interface HelpTopicConfig {
 }
 
 const createHelpAssetUrl = (fileName: string): URL =>
-  new URL(`../help/${fileName}`, import.meta.url);
+  new URL(`./help/${fileName}`, import.meta.url);
 
 const HELP_TOPIC_CONFIGS: Record<HelpTopic, HelpTopicConfig> = {
   home: { url: createHelpAssetUrl('home.md') },
