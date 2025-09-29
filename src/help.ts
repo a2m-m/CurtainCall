@@ -7,9 +7,9 @@ import {
 
 type HelpTopic = keyof typeof HELP_MODAL_TITLES;
 
-type HelpTopicConfig = {
+interface HelpTopicConfig {
   readonly path: string;
-};
+}
 
 const HELP_TOPIC_PATHS: Record<HelpTopic, HelpTopicConfig> = {
   home: { path: './help/home.md' },
