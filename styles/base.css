@@ -428,6 +428,18 @@ p {
   font-size: 1rem;
 }
 
+.standby__header-actions {
+  margin-top: clamp(0.85rem, 2vh, 1.25rem);
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.standby__header-button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
 .standby__content {
   display: grid;
   gap: clamp(1.25rem, min(2.5vw, 4vh), 2rem);
@@ -1023,6 +1035,11 @@ p {
   display: flex;
   align-items: center;
   gap: clamp(0.5rem, 2vw, 0.85rem);
+}
+
+.action__help-button {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .action-confirm__list {
@@ -1789,6 +1806,71 @@ p {
   line-height: 1.6;
 }
 
+.help-modal {
+  display: grid;
+  gap: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--color-text);
+}
+
+.help-modal__status,
+.help-modal__error {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.help-modal__status {
+  color: var(--color-muted);
+}
+
+.help-modal__error {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.help-modal__content {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.help-modal__content h1,
+.help-modal__content h2,
+.help-modal__content h3 {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.help-modal__content h1 {
+  font-size: 1.35rem;
+}
+
+.help-modal__content h2 {
+  font-size: 1.15rem;
+}
+
+.help-modal__content h3 {
+  font-size: 1.05rem;
+}
+
+.help-modal__content p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.help-modal__list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+  color: var(--color-muted);
+}
+
+.help-modal__list--ordered {
+  list-style: decimal;
+}
+
 .modal__footer {
   margin-top: 1.75rem;
   display: flex;
@@ -2062,6 +2144,17 @@ p {
   margin: 0;
   font-size: 1.05rem;
   color: var(--color-muted);
+}
+
+.intermission__header-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.intermission__header-button {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .intermission__body {
@@ -3073,6 +3166,18 @@ p {
   font-size: clamp(1.75rem, 2.4vw + 0.9rem, 2.45rem);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.curtaincall__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.curtaincall__header-button {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .curtaincall__boardcheck-button {

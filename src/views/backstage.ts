@@ -25,6 +25,8 @@ export interface BackstageViewOptions {
   skipLabel: string;
   revealLabel: string;
   boardCheckLabel?: string;
+  helpLabel?: string;
+  helpAriaLabel?: string;
   summaryLabel?: string;
   myHandLabel?: string;
   onConfirmSelection?: (itemIds: string[]) => void;
@@ -32,6 +34,7 @@ export interface BackstageViewOptions {
   onOpenBoardCheck?: () => void;
   onOpenSummary?: () => void;
   onOpenMyHand?: () => void;
+  onOpenHelp?: () => void;
 }
 
 export interface BackstageViewElement extends HTMLElement {
@@ -129,6 +132,20 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
     summaryButton.el.classList.add('backstage__header-button');
     summaryButton.onClick(() => options.onOpenSummary?.());
     headerActions.append(summaryButton.el);
+  }
+
+  if (options.onOpenHelp) {
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? 'ヘルプ',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    helpButton.el.classList.add('backstage__header-button', 'backstage__header-button--help');
+    const helpAriaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', helpAriaLabel);
+    helpButton.el.title = helpAriaLabel;
+    helpButton.onClick(() => options.onOpenHelp?.());
+    headerActions.append(helpButton.el);
   }
 
   if (headerActions.childElementCount > 0) {

@@ -25,10 +25,13 @@ export interface ActionViewOptions {
   actorCardId?: string | null;
   kurokoCardId?: string | null;
   boardCheckLabel?: string;
+  helpLabel?: string;
+  helpAriaLabel?: string;
   confirmLabel?: string;
   confirmDisabled?: boolean;
   onSelectHandCard?: (cardId: string) => void;
   onOpenBoardCheck?: () => void;
+  onOpenHelp?: () => void;
   onConfirm?: () => void;
 }
 
@@ -78,6 +81,22 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
       options.onOpenBoardCheck?.();
     });
     actions.append(boardCheckButton.el);
+  }
+
+  if (options.onOpenHelp) {
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? 'ヘルプ',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    helpButton.el.classList.add('action__help-button');
+    const helpAriaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', helpAriaLabel);
+    helpButton.el.title = helpAriaLabel;
+    helpButton.onClick(() => {
+      options.onOpenHelp?.();
+    });
+    actions.append(helpButton.el);
   }
 
   const confirmButton = new UIButton({

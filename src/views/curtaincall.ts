@@ -54,11 +54,14 @@ export interface CurtainCallViewOptions {
   result: CurtainCallResultViewModel;
   players: CurtainCallPlayerSummaryViewModel[];
   boardCheckLabel?: string;
+  helpLabel?: string;
+  helpAriaLabel?: string;
   homeLabel?: string;
   newGameLabel?: string;
   saveLabel?: string;
   saveDisabled?: boolean;
   onOpenBoardCheck?: () => void;
+  onOpenHelp?: () => void;
   onGoHome?: () => void;
   onStartNewGame?: () => void;
   onSaveResult?: () => void;
@@ -214,15 +217,39 @@ export const createCurtainCallView = (options: CurtainCallViewOptions): CurtainC
   header.append(heading);
   main.setAttribute('aria-labelledby', heading.id);
 
+  const headerActions = document.createElement('div');
+  headerActions.className = 'curtaincall__header-actions';
+
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({
       label: options.boardCheckLabel ?? DEFAULT_BOARD_CHECK_LABEL,
       variant: 'ghost',
       preventRapid: false,
     });
-    boardCheckButton.el.classList.add('curtaincall__boardcheck-button');
+    boardCheckButton.el.classList.add(
+      'curtaincall__header-button',
+      'curtaincall__boardcheck-button',
+    );
     boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
-    header.append(boardCheckButton.el);
+    headerActions.append(boardCheckButton.el);
+  }
+
+  if (options.onOpenHelp) {
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? 'ヘルプ',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    helpButton.el.classList.add('curtaincall__header-button', 'curtaincall__help-button');
+    const helpAriaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', helpAriaLabel);
+    helpButton.el.title = helpAriaLabel;
+    helpButton.onClick(() => options.onOpenHelp?.());
+    headerActions.append(helpButton.el);
+  }
+
+  if (headerActions.childElementCount > 0) {
+    header.append(headerActions);
   }
 
   const result = document.createElement('div');
