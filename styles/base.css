@@ -1806,7 +1806,8 @@ p {
   line-height: 1.6;
 }
 
-.help-modal {
+.help-modal,
+.markdown-modal {
   display: grid;
   gap: 1rem;
   font-size: 0.95rem;
@@ -1815,51 +1816,64 @@ p {
 }
 
 .help-modal__status,
-.help-modal__error {
+.help-modal__error,
+.markdown-modal__status,
+.markdown-modal__error {
   margin: 0;
   font-size: 0.95rem;
 }
 
-.help-modal__status {
+.help-modal__status,
+.markdown-modal__status {
   color: var(--color-muted);
 }
 
-.help-modal__error {
+.help-modal__error,
+.markdown-modal__error {
   color: var(--color-danger);
   font-weight: 600;
 }
 
-.help-modal__content {
+.help-modal__content,
+.markdown-modal__content {
   display: grid;
   gap: 0.85rem;
 }
 
 .help-modal__content h1,
 .help-modal__content h2,
-.help-modal__content h3 {
+.help-modal__content h3,
+.markdown-modal__content h1,
+.markdown-modal__content h2,
+.markdown-modal__content h3 {
   margin: 0;
   font-weight: 700;
   color: var(--color-text);
 }
 
-.help-modal__content h1 {
+.help-modal__content h1,
+.markdown-modal__content h1 {
   font-size: 1.35rem;
 }
 
-.help-modal__content h2 {
+.help-modal__content h2,
+.markdown-modal__content h2 {
   font-size: 1.15rem;
 }
 
-.help-modal__content h3 {
+.help-modal__content h3,
+.markdown-modal__content h3 {
   font-size: 1.05rem;
 }
 
-.help-modal__content p {
+.help-modal__content p,
+.markdown-modal__content p {
   margin: 0;
   color: var(--color-muted);
 }
 
-.help-modal__list {
+.help-modal__list,
+.markdown-modal__list {
   margin: 0;
   padding-left: 1.25rem;
   display: grid;
@@ -1867,8 +1881,14 @@ p {
   color: var(--color-muted);
 }
 
-.help-modal__list--ordered {
+.help-modal__list--ordered,
+.markdown-modal__list--ordered {
   list-style: decimal;
+}
+
+.markdown-modal__fallback {
+  margin: 0;
+  color: var(--color-muted);
 }
 
 .modal__footer {
@@ -1889,6 +1909,17 @@ p {
   font-size: 1.05rem;
   line-height: 1.7;
   color: var(--color-text);
+}
+
+.gate-modal__handoff {
+  display: grid;
+  gap: 1rem;
+  text-align: left;
+}
+
+.gate-modal__handoff-intro {
+  margin: 0;
+  font-weight: 600;
 }
 
 .gate-modal__notes {
