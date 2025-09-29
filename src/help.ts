@@ -8,19 +8,22 @@ import {
 type HelpTopic = keyof typeof HELP_MODAL_TITLES;
 
 interface HelpTopicConfig {
-  readonly path: string;
+  readonly url: URL;
 }
 
-const HELP_TOPIC_PATHS: Record<HelpTopic, HelpTopicConfig> = {
-  home: { path: './help/home.md' },
-  standby: { path: './help/standby.md' },
-  scout: { path: './help/scout.md' },
-  action: { path: './help/action.md' },
-  watch: { path: './help/watch.md' },
-  spotlight: { path: './help/spotlight.md' },
-  backstage: { path: './help/backstage.md' },
-  intermission: { path: './help/intermission.md' },
-  curtaincall: { path: './help/curtaincall.md' },
+const createHelpAssetUrl = (fileName: string): URL =>
+  new URL(`../help/${fileName}`, import.meta.url);
+
+const HELP_TOPIC_CONFIGS: Record<HelpTopic, HelpTopicConfig> = {
+  home: { url: createHelpAssetUrl('home.md') },
+  standby: { url: createHelpAssetUrl('standby.md') },
+  scout: { url: createHelpAssetUrl('scout.md') },
+  action: { url: createHelpAssetUrl('action.md') },
+  watch: { url: createHelpAssetUrl('watch.md') },
+  spotlight: { url: createHelpAssetUrl('spotlight.md') },
+  backstage: { url: createHelpAssetUrl('backstage.md') },
+  intermission: { url: createHelpAssetUrl('intermission.md') },
+  curtaincall: { url: createHelpAssetUrl('curtaincall.md') },
 };
 
 const helpContentCache = new Map<HelpTopic, string>();
@@ -115,8 +118,8 @@ const renderMarkdownToHtml = (markdown: string): string => {
   return htmlParts.join('');
 };
 
-const fetchMarkdown = async (path: string): Promise<string> => {
-  const response = await fetch(path, { cache: 'no-cache' });
+const fetchMarkdown = async (url: URL): Promise<string> => {
+  const response = await fetch(url.toString(), { cache: 'no-cache' });
   if (!response.ok) {
     throw new Error(`Failed to fetch help markdown: ${response.status}`);
   }
@@ -134,7 +137,7 @@ export const openHelpTopic = async (topic: HelpTopic): Promise<void> => {
     return;
   }
 
-  const config = HELP_TOPIC_PATHS[topic];
+  const config = HELP_TOPIC_CONFIGS[topic];
   const title = HELP_MODAL_TITLES[topic] ?? 'ヘルプ';
 
   const body = document.createElement('div');
@@ -164,7 +167,7 @@ export const openHelpTopic = async (topic: HelpTopic): Promise<void> => {
   }
 
   try {
-    const markdown = await fetchMarkdown(config.path);
+    const markdown = await fetchMarkdown(config.url);
     const html = renderMarkdownToHtml(markdown);
     helpContentCache.set(topic, html);
     body.innerHTML = html;
