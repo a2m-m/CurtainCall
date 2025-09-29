@@ -1,11 +1,12 @@
 import { ModalController } from './modal.js';
 import { DEFAULT_GATE_CONFIRM_LABEL, DEFAULT_GATE_TITLE } from '../messages.js';
+import { createModalContentElement, type ModalContentKey } from '../modal-content.js';
 
 export interface GateOptions {
   /**
    * ゲート内で表示するメインメッセージ。
    */
-  text: string | HTMLElement;
+  text?: string | HTMLElement;
   /**
    * モーダル見出し。省略時はフェーズ名などに依存しない共通タイトルを利用します。
    */
@@ -14,6 +15,14 @@ export interface GateOptions {
    * 補足説明。箇条書きで表示されます。
    */
   notes?: string[];
+  /**
+   * Markdown で記述された説明コンテンツのキー。
+   */
+  markdownKey?: ModalContentKey;
+  /**
+   * Markdown 内の {{key}} プレースホルダーを置換するための値。
+   */
+  markdownReplacements?: Record<string, string>;
   /**
    * 決定ボタンのラベル。
    */
@@ -77,6 +86,16 @@ const createMessageElement = (text: string | HTMLElement): HTMLElement => {
   return wrapper;
 };
 
+const createMarkdownElement = (
+  key: ModalContentKey | undefined,
+  replacements: Record<string, string> | undefined,
+): HTMLElement | null => {
+  if (!key) {
+    return null;
+  }
+  return createModalContentElement(key, { replacements });
+};
+
 const createNotesElement = (notes: string[] | undefined): HTMLElement | null => {
   if (!notes || notes.length === 0) {
     return null;
@@ -94,7 +113,13 @@ const createNotesElement = (notes: string[] | undefined): HTMLElement | null => 
 const composeGateBody = (options: GateOptions): HTMLElement => {
   const container = document.createElement('div');
   container.className = 'gate-modal';
-  container.append(createMessageElement(options.text));
+  if (options.text) {
+    container.append(createMessageElement(options.text));
+  }
+  const markdown = createMarkdownElement(options.markdownKey, options.markdownReplacements);
+  if (markdown) {
+    container.append(markdown);
+  }
   const notes = createNotesElement(options.notes);
   if (notes) {
     container.append(notes);
