@@ -145,7 +145,7 @@ export const MY_HAND_EMPTY_MESSAGE = '手札はありません。';
 export const MY_HAND_RECENT_EMPTY_MESSAGE = 'なし';
 export const MY_HAND_RECENT_BADGE_LABEL = '直前に引いたカード';
 
-export const SCOUT_HELP_BUTTON_LABEL = '？';
+export const SCOUT_HELP_BUTTON_LABEL = 'ヘルプ';
 export const SCOUT_HELP_ARIA_LABEL = 'ヘルプ';
 
 export const ACTION_CONFIRM_BUTTON_LABEL = '配置を確定';
@@ -163,7 +163,7 @@ export const ACTION_RESULT_OK_LABEL = 'ウォッチへ';
 
 export const WATCH_BOARD_CHECK_LABEL = 'ボードチェック';
 export const WATCH_MY_HAND_LABEL = MY_HAND_LABEL;
-export const WATCH_HELP_BUTTON_LABEL = '？';
+export const WATCH_HELP_BUTTON_LABEL = 'ヘルプ';
 export const WATCH_HELP_ARIA_LABEL = 'ヘルプ';
 export const WATCH_CLAP_BUTTON_LABEL = 'クラップ（同数）';
 export const WATCH_BOO_BUTTON_LABEL = 'ブーイング（異なる）';
@@ -212,7 +212,7 @@ export const SPOTLIGHT_SET_OPEN_GUARD_REDIRECTING_SUBTITLE =
   'セット公開の準備のためゲートへ移動します…';
 
 export const SPOTLIGHT_BOARD_CHECK_LABEL = 'ボードチェック';
-export const SPOTLIGHT_HELP_BUTTON_LABEL = '？';
+export const SPOTLIGHT_HELP_BUTTON_LABEL = 'ヘルプ';
 export const SPOTLIGHT_HELP_ARIA_LABEL = 'ヘルプ';
 export const SPOTLIGHT_REVEAL_BUTTON_LABEL = '黒子を公開する';
 export const SPOTLIGHT_REVEAL_CAPTION = '黒子を公開すると判定が確定します。元に戻せません。';
