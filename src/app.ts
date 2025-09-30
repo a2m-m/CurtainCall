@@ -5,6 +5,7 @@ import {
   dealInitialSetup,
   shuffleCards,
   sortCardsByDescendingValue,
+  type ShuffleOptions,
 } from './cards.js';
 import type { InitialDealResult } from './cards.js';
 import {
@@ -1017,6 +1018,39 @@ const createBackstageItemsForInitialDeal = (
     holder: null,
     isPublic: false,
   }));
+
+const shuffleBackstageRevealableItems = (
+  items: readonly BackstageItemState[],
+  options?: ShuffleOptions,
+): BackstageItemState[] => {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const hiddenItems = shuffleCards(
+    items.filter((item) => item.status === 'backstage'),
+    options,
+  );
+
+  if (hiddenItems.length === 0) {
+    return items.slice();
+  }
+
+  let hiddenIndex = 0;
+
+  return items.map((item, index) => {
+    if (item.status !== 'backstage') {
+      if (item.position === index) {
+        return item;
+      }
+      return { ...item, position: index };
+    }
+
+    const nextItem = hiddenItems[hiddenIndex] ?? item;
+    hiddenIndex += 1;
+    return { ...nextItem, position: index };
+  });
+};
 
 const createInitialDealState = (
   current: GameState,
@@ -2574,13 +2608,16 @@ const createBackstageGateSubtitle = (state: GameState): string => {
 };
 
 const mapBackstageRevealItems = (state: GameState): BackstageRevealItemViewModel[] => {
-  return getBackstageRevealableItems(state).map((item, index) => ({
-    id: item.id,
-    order: index + 1,
-    rank: item.card.rank,
-    suit: item.card.suit,
-    annotation: item.card.annotation ?? null,
-  }));
+  return getBackstageRevealableItems(state)
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((item, index) => ({
+      id: item.id,
+      order: index + 1,
+      rank: item.card.rank,
+      suit: item.card.suit,
+      annotation: item.card.annotation ?? null,
+    }));
 };
 
 const mapBackstageViewContent = (state: GameState): BackstageViewContent => {
@@ -3971,6 +4008,7 @@ const openSpotlightSetCard = (setCardId: string): SetReveal | null => {
     const openerId = current.activePlayer;
     const nextBackstage: BackstageState = {
       ...previousBackstage,
+      items: shuffleBackstageRevealableItems(previousBackstage.items),
       lastSpotlightPairFormed: false,
       canActPlayer: getOpponentId(openerId),
       actedThisIntermission: false,
