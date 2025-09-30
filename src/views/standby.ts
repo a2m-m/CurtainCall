@@ -1,5 +1,6 @@
 import { PlayerId } from '../state.js';
 import { UIButton } from '../ui/button.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface StandbyPlayerConfig {
   id: PlayerId;
@@ -273,7 +274,12 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   const actions = document.createElement('div');
   actions.className = 'standby__actions';
 
-  let helpButtonElement: HTMLElement | null = null;
+  const supportMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  supportMenu.el.classList.add('standby__menu', 'hamburger-menu--fill');
+
   if (options.onOpenHelp) {
     const helpButton = new UIButton({
       label: options.helpLabel ?? 'ヘルプ',
@@ -284,7 +290,7 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
     helpButton.el.setAttribute('aria-label', helpAriaLabel);
     helpButton.el.title = helpAriaLabel;
     helpButton.onClick(() => options.onOpenHelp?.());
-    helpButtonElement = helpButton.el;
+    supportMenu.addItem(helpButton.el);
   }
 
   const startButton = new UIButton({
@@ -419,8 +425,8 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   updateStartButtonState();
 
   actions.append(homeButton.el);
-  if (helpButtonElement) {
-    actions.append(helpButtonElement);
+  if (supportMenu.itemCount > 0) {
+    actions.append(supportMenu.el);
   }
   actions.append(startButton.el);
   main.append(actions);

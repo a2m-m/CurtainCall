@@ -1,4 +1,5 @@
 import { UIButton } from '../ui/button.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface IntermissionResumeInfo {
   available: boolean;
@@ -94,10 +95,16 @@ export const createIntermissionView = (options: IntermissionViewOptions): Interm
   subtitle.textContent = options.subtitle;
   header.append(subtitle);
 
-  if (options.onOpenHelp) {
-    const headerActions = document.createElement('div');
-    headerActions.className = 'intermission__header-actions';
+  const headerActions = document.createElement('div');
+  headerActions.className = 'intermission__header-actions';
 
+  const headerMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  headerMenu.el.classList.add('intermission__menu');
+
+  if (options.onOpenHelp) {
     const helpButton = new UIButton({
       label: options.helpLabel ?? 'ヘルプ',
       variant: 'ghost',
@@ -108,8 +115,14 @@ export const createIntermissionView = (options: IntermissionViewOptions): Interm
     helpButton.el.setAttribute('aria-label', ariaLabel);
     helpButton.el.title = ariaLabel;
     helpButton.onClick(() => options.onOpenHelp?.());
-    headerActions.append(helpButton.el);
+    headerMenu.addItem(helpButton.el);
+  }
 
+  if (headerMenu.itemCount > 0) {
+    headerActions.append(headerMenu.el);
+  }
+
+  if (headerActions.childElementCount > 0) {
     header.append(headerActions);
   }
 
@@ -135,6 +148,12 @@ export const createIntermissionView = (options: IntermissionViewOptions): Interm
   actions.className = 'intermission__actions';
   body.append(actions);
 
+  const actionsMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  actionsMenu.el.classList.add('intermission__menu', 'hamburger-menu--fill');
+
   const boardCheckButton = new UIButton({
     label: options.boardCheckLabel,
     variant: 'ghost',
@@ -142,7 +161,11 @@ export const createIntermissionView = (options: IntermissionViewOptions): Interm
   });
   boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
   boardCheckButton.el.classList.add('intermission__action-button');
-  actions.append(boardCheckButton.el);
+  actionsMenu.addItem(boardCheckButton.el);
+
+  if (actionsMenu.itemCount > 0) {
+    actions.append(actionsMenu.el);
+  }
 
   const summaryButton = new UIButton({
     label: options.summaryLabel,

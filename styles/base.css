@@ -181,6 +181,52 @@
     --button-padding-x: 1rem;
   }
 
+  .hamburger-menu__toggle {
+    display: inline-flex;
+  }
+
+  .hamburger-menu__panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    min-width: min(240px, 80vw);
+    padding: 0.85rem 0.85rem 0.9rem;
+    border-radius: 16px;
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.98)),
+      rgba(15, 23, 42, 0.96);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.45);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    display: none;
+    z-index: 30;
+  }
+
+  .hamburger-menu__panel .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hamburger-menu.is-open .hamburger-menu__panel {
+    display: flex;
+  }
+
+  .hamburger-menu--fill .hamburger-menu__panel {
+    left: 0;
+    right: 0;
+    min-width: unset;
+  }
+
+  .hamburger-menu--fill .hamburger-menu__toggle {
+    width: 100%;
+  }
+
+  .hamburger-menu--fill {
+    width: 100%;
+  }
+
   .home,
   .standby,
   .scout,
@@ -1919,6 +1965,44 @@ p {
   border: 2px solid rgba(15, 23, 42, 0.25);
   border-top-color: currentColor;
   animation: button-spinner 600ms linear infinite;
+}
+
+.hamburger-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.85rem);
+}
+
+.hamburger-menu__toggle {
+  display: none;
+  gap: 0.45rem;
+}
+
+.hamburger-menu__toggle::before {
+  content: '';
+  display: inline-block;
+  width: 1.2rem;
+  height: 0.12rem;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow:
+    0 -0.35rem 0 currentColor,
+    0 0.35rem 0 currentColor;
+  transition:
+    transform 160ms var(--motion-ease-out),
+    box-shadow 160ms var(--motion-ease-out);
+}
+
+.hamburger-menu.is-open .hamburger-menu__toggle::before {
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 currentColor;
+}
+
+.hamburger-menu__panel {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.85rem);
 }
 
 .button--ghost {

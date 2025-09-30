@@ -1,5 +1,6 @@
 import { UIButton } from '../ui/button.js';
 import { CardComponent, type CardSuit } from '../ui/card.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface BackstageRevealItemViewModel {
   id: string;
@@ -101,6 +102,12 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
   const headerActions = document.createElement('div');
   headerActions.className = 'backstage__header-actions';
 
+  const headerMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  headerMenu.el.classList.add('backstage__menu');
+
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({
       label: options.boardCheckLabel ?? 'ボードチェック',
@@ -109,7 +116,7 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
     });
     boardCheckButton.el.classList.add('backstage__header-button');
     boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
-    headerActions.append(boardCheckButton.el);
+    headerMenu.addItem(boardCheckButton.el);
   }
 
   if (options.onOpenMyHand) {
@@ -120,18 +127,7 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
     });
     myHandButton.el.classList.add('backstage__header-button');
     myHandButton.onClick(() => options.onOpenMyHand?.());
-    headerActions.append(myHandButton.el);
-  }
-
-  if (options.onOpenSummary) {
-    const summaryButton = new UIButton({
-      label: options.summaryLabel ?? '前ラウンド要約',
-      variant: 'ghost',
-      preventRapid: true,
-    });
-    summaryButton.el.classList.add('backstage__header-button');
-    summaryButton.onClick(() => options.onOpenSummary?.());
-    headerActions.append(summaryButton.el);
+    headerMenu.addItem(myHandButton.el);
   }
 
   if (options.onOpenHelp) {
@@ -145,7 +141,22 @@ export const createBackstageView = (options: BackstageViewOptions): BackstageVie
     helpButton.el.setAttribute('aria-label', helpAriaLabel);
     helpButton.el.title = helpAriaLabel;
     helpButton.onClick(() => options.onOpenHelp?.());
-    headerActions.append(helpButton.el);
+    headerMenu.addItem(helpButton.el);
+  }
+
+  if (headerMenu.itemCount > 0) {
+    headerActions.append(headerMenu.el);
+  }
+
+  if (options.onOpenSummary) {
+    const summaryButton = new UIButton({
+      label: options.summaryLabel ?? '前ラウンド要約',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    summaryButton.el.classList.add('backstage__header-button');
+    summaryButton.onClick(() => options.onOpenSummary?.());
+    headerActions.append(summaryButton.el);
   }
 
   if (headerActions.childElementCount > 0) {

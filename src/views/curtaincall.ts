@@ -1,6 +1,7 @@
 import { UIButton } from '../ui/button.js';
 import { CardComponent } from '../ui/card.js';
 import type { CardSuit } from '../ui/card.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface CurtainCallCardViewModel {
   id: string;
@@ -220,6 +221,12 @@ export const createCurtainCallView = (options: CurtainCallViewOptions): CurtainC
   const headerActions = document.createElement('div');
   headerActions.className = 'curtaincall__header-actions';
 
+  const headerMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  headerMenu.el.classList.add('curtaincall__menu');
+
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({
       label: options.boardCheckLabel ?? DEFAULT_BOARD_CHECK_LABEL,
@@ -231,7 +238,7 @@ export const createCurtainCallView = (options: CurtainCallViewOptions): CurtainC
       'curtaincall__boardcheck-button',
     );
     boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
-    headerActions.append(boardCheckButton.el);
+    headerMenu.addItem(boardCheckButton.el);
   }
 
   if (options.onOpenHelp) {
@@ -245,7 +252,11 @@ export const createCurtainCallView = (options: CurtainCallViewOptions): CurtainC
     helpButton.el.setAttribute('aria-label', helpAriaLabel);
     helpButton.el.title = helpAriaLabel;
     helpButton.onClick(() => options.onOpenHelp?.());
-    headerActions.append(helpButton.el);
+    headerMenu.addItem(helpButton.el);
+  }
+
+  if (headerMenu.itemCount > 0) {
+    headerActions.append(headerMenu.el);
   }
 
   if (headerActions.childElementCount > 0) {
