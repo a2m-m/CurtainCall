@@ -50,14 +50,23 @@ export class CardComponent extends UIComponent<HTMLDivElement> {
   private renderFace(): void {
     if (this.faceDown) {
       this.element.classList.add('card--face-down');
-      this.element.textContent = '';
+      this.element.replaceChildren();
       this.element.setAttribute('aria-label', '伏せ札');
       return;
     }
 
     this.element.classList.remove('card--face-down');
     const symbol = SUIT_SYMBOL[this.suit];
-    this.element.textContent = `${this.rank}${symbol}`;
+
+    const rankElement = document.createElement('span');
+    rankElement.className = 'card__rank';
+    rankElement.textContent = this.rank;
+
+    const suitElement = document.createElement('span');
+    suitElement.className = 'card__suit';
+    suitElement.textContent = symbol;
+
+    this.element.replaceChildren(rankElement, suitElement);
     this.element.setAttribute('aria-label', `${this.suit} の ${this.rank}`);
   }
 }
