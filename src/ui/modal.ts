@@ -116,9 +116,9 @@ class ModalView extends UIComponent<HTMLDivElement> {
   }
 
   private ensureHeading(): HTMLHeadingElement {
-    let heading = this.element.querySelector<HTMLHeadingElement>('h2');
+    let heading = this.element.querySelector<HTMLHeadingElement>('.modal__title');
     if (!heading) {
-      heading = document.createElement('h2');
+      heading = document.createElement('h1');
       heading.className = 'modal__title';
       heading.id = this.headingId;
       this.element.prepend(heading);
