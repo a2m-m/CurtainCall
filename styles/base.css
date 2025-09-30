@@ -428,18 +428,6 @@ p {
   font-size: 1rem;
 }
 
-.standby__header-actions {
-  margin-top: clamp(0.85rem, 2vh, 1.25rem);
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.standby__header-button {
-  min-width: 0;
-  white-space: nowrap;
-}
-
 .standby__content {
   display: grid;
   gap: clamp(1.25rem, min(2.5vw, 4vh), 2rem);

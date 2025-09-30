@@ -56,25 +56,6 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
 
   main.setAttribute('aria-labelledby', titleId);
 
-  if (options.onOpenHelp) {
-    const headerActions = document.createElement('div');
-    headerActions.className = 'standby__header-actions';
-
-    const helpButton = new UIButton({
-      label: options.helpLabel ?? 'ヘルプ',
-      variant: 'ghost',
-      preventRapid: true,
-    });
-    helpButton.el.classList.add('standby__header-button');
-    const helpAriaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
-    helpButton.el.setAttribute('aria-label', helpAriaLabel);
-    helpButton.el.title = helpAriaLabel;
-    helpButton.onClick(() => options.onOpenHelp?.());
-    headerActions.append(helpButton.el);
-
-    main.append(headerActions);
-  }
-
   const content = document.createElement('div');
   content.className = 'standby__content';
 
@@ -270,14 +251,28 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
 
   main.append(content);
 
-  const actions = document.createElement('div');
-  actions.className = 'standby__actions';
-
   const homeButton = new UIButton({ label: 'HOMEに戻る', variant: 'ghost' });
   if (options.onReturnHome) {
     homeButton.onClick(() => {
       options.onReturnHome?.();
     });
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'standby__actions';
+
+  let helpButtonElement: HTMLElement | null = null;
+  if (options.onOpenHelp) {
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? 'ヘルプ',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    const helpAriaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', helpAriaLabel);
+    helpButton.el.title = helpAriaLabel;
+    helpButton.onClick(() => options.onOpenHelp?.());
+    helpButtonElement = helpButton.el;
   }
 
   const startButton = new UIButton({
@@ -410,7 +405,11 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   updateFirstPlayerButtons();
   updateStartButtonState();
 
-  actions.append(homeButton.el, startButton.el);
+  actions.append(homeButton.el);
+  if (helpButtonElement) {
+    actions.append(helpButtonElement);
+  }
+  actions.append(startButton.el);
   main.append(actions);
 
   section.append(main, overlay);
