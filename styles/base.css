@@ -273,9 +273,14 @@
   box-sizing: border-box;
 }
 
+html {
+  height: var(--viewport-height);
+}
+
 body {
   margin: 0;
-  min-height: var(--viewport-height);
+  min-height: 100%;
+  height: var(--viewport-height);
   font-family: var(--font-sans);
   color: var(--color-text);
   background:
@@ -321,6 +326,7 @@ p {
 
 .app-shell {
   min-height: var(--viewport-height);
+  height: var(--viewport-height);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -329,6 +335,7 @@ p {
 
 .view {
   min-height: var(--viewport-height);
+  height: var(--viewport-height);
   padding: var(--view-padding-block) var(--view-padding-inline);
   animation: view-fade-in var(--motion-duration-medium) var(--motion-ease-out) both;
 }

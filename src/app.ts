@@ -106,6 +106,7 @@ import {
 import * as messages from './messages.js';
 import { TurnIndicator, type TurnIndicatorState } from './ui/turn-indicator.js';
 import { SettingsForm } from './ui/settings-form.js';
+import { initializeViewportHeightObserver } from './ui/viewport.js';
 import { openHelpTopic } from './help.js';
 import { createModalContentElement, type ModalContentKey } from './modal-content.js';
 
@@ -157,6 +158,8 @@ declare global {
     };
   }
 }
+
+initializeViewportHeightObserver();
 
 const NAVIGATION_BLOCKED_PHASES = new Set<PhaseKey>([
   'standby',
