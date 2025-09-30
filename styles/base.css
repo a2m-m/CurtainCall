@@ -456,6 +456,46 @@ p {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.standby__details {
+  padding: 0;
+  overflow: hidden;
+}
+.standby__details-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: clamp(1.1rem, 3.5vh, 1.5rem);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+}
+.standby__details-summary::marker,
+.standby__details-summary::-webkit-details-marker {
+  display: none;
+}
+.standby__details-summary::after {
+  content: '';
+  width: 0.65rem;
+  height: 0.65rem;
+  border-right: 2px solid rgba(148, 163, 184, 0.85);
+  border-bottom: 2px solid rgba(148, 163, 184, 0.85);
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+.standby__details[open] .standby__details-summary::after {
+  transform: rotate(-135deg);
+}
+.standby__details-body {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 clamp(1.1rem, 3.5vh, 1.5rem) clamp(1.1rem, 3.5vh, 1.5rem);
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
 
 .standby__players {
   display: grid;
@@ -529,7 +569,7 @@ p {
 }
 
 .standby__initial-status {
-  margin: 0 0 0.75rem;
+  margin: 0;
   color: var(--color-muted);
   font-size: 0.95rem;
 }
@@ -3663,15 +3703,32 @@ p {
     max-width: 100%;
   }
 
-  .standby__fieldset {
-    padding: clamp(0.9rem, 4.5vh, 1.25rem);
-  }
+    .standby__fieldset {
+      padding: clamp(0.9rem, 4.5vh, 1.25rem);
+    }
+    .standby__details-summary {
+      padding: clamp(0.9rem, 4.5vh, 1.25rem);
+    }
+    .standby__details-body {
+      padding: 0 clamp(0.9rem, 4.5vh, 1.25rem) clamp(0.9rem, 4.5vh, 1.25rem);
+    }
 
-  .standby-player__label {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
+    .standby-player__label {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+    .standby__actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .standby__actions .button {
+      min-width: 0;
+      width: 100%;
+    }
+    .standby__start-button {
+      order: -1;
+    }
 
   .scout__header-actions .button,
   .action__actions .button,

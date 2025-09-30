@@ -89,7 +89,7 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
     labelName.textContent = player.label;
     label.append(labelName);
 
-    if (player.role) {
+    if (player.role && player.role !== player.label) {
       const role = document.createElement('span');
       role.className = 'standby-player__role';
       role.textContent = player.role;
@@ -191,18 +191,22 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   firstPlayerFieldset.append(firstPlayerOptions);
   content.append(firstPlayerFieldset);
 
-  const initializationFieldset = document.createElement('fieldset');
-  initializationFieldset.className = 'standby__fieldset standby__fieldset--initialization';
+  const initializationDetails = document.createElement('details');
+  initializationDetails.className =
+    'standby__fieldset standby__fieldset--initialization standby__details';
 
-  const initializationLegend = document.createElement('legend');
-  initializationLegend.className = 'standby__legend';
-  initializationLegend.textContent = '初期化';
-  initializationFieldset.append(initializationLegend);
+  const initializationSummary = document.createElement('summary');
+  initializationSummary.className = 'standby__legend standby__details-summary';
+  initializationSummary.textContent = '初期化';
+  initializationDetails.append(initializationSummary);
+
+  const initializationBody = document.createElement('div');
+  initializationBody.className = 'standby__details-body';
 
   const initializationStatus = document.createElement('p');
   initializationStatus.className = 'standby__initial-status';
   initializationStatus.textContent = 'セットとバックステージのシャッフル準備OK';
-  initializationFieldset.append(initializationStatus);
+  initializationBody.append(initializationStatus);
 
   const seedToggle = document.createElement('label');
   seedToggle.className = 'standby-seed-toggle';
@@ -211,6 +215,10 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   seedCheckbox.type = 'checkbox';
   seedCheckbox.className = 'standby-seed-toggle__input';
   seedCheckbox.checked = Boolean(options.seedLockEnabled);
+
+  if (seedCheckbox.checked) {
+    initializationDetails.open = true;
+  }
 
   const seedLabel = document.createElement('span');
   seedLabel.className = 'standby-seed-toggle__label';
@@ -239,6 +247,9 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
     if (!seedCheckbox.checked) {
       currentSeedValue = null;
     }
+    if (seedCheckbox.checked) {
+      initializationDetails.open = true;
+    }
     updateSeedStatus();
     options.onSeedLockChange?.(seedCheckbox.checked);
   });
@@ -246,8 +257,9 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   updateSeedStatus();
 
   seedToggle.append(seedCheckbox, seedLabel, seedStatus);
-  initializationFieldset.append(seedToggle);
-  content.append(initializationFieldset);
+  initializationBody.append(seedToggle);
+  initializationDetails.append(initializationBody);
+  content.append(initializationDetails);
 
   main.append(content);
 
@@ -280,6 +292,7 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
     variant: 'primary',
     disabled: !currentFirstPlayer,
   });
+  startButton.el.classList.add('standby__start-button');
 
   const updateStartButtonState = () => {
     startButton.setDisabled(!currentFirstPlayer);
