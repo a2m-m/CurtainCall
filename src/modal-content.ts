@@ -1,7 +1,13 @@
 import { MODAL_MARKDOWN_ERROR_MESSAGE, MODAL_MARKDOWN_LOADING_MESSAGE } from './messages.js';
 import { fetchMarkdown, renderMarkdownToHtml } from './markdown.js';
 
-const createModalAssetUrl = (fileName: string): URL => new URL(`../modal/${fileName}`, import.meta.url);
+const moduleUrl = import.meta.url;
+const modulePath = new URL(moduleUrl).pathname;
+const modalAssetBaseUrl = modulePath.includes('/dist/')
+  ? new URL('./modal/', moduleUrl)
+  : new URL('../modal/', moduleUrl);
+
+const createModalAssetUrl = (fileName: string): URL => new URL(fileName, modalAssetBaseUrl);
 
 const MODAL_CONTENT_CONFIGS = {
   handoffDefault: { url: createModalAssetUrl('handoff-default.md') },
