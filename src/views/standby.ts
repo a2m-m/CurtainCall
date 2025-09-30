@@ -46,16 +46,67 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   heading.className = 'standby__title';
   heading.id = titleId;
   heading.textContent = options.title;
-  main.append(heading);
+
+  const header = document.createElement('div');
+  header.className = 'standby__header';
+
+  const titleGroup = document.createElement('div');
+  titleGroup.className = 'standby__title-group';
+  titleGroup.append(heading);
 
   if (options.subtitle) {
     const subtitle = document.createElement('p');
     subtitle.className = 'standby__subtitle';
     subtitle.textContent = options.subtitle;
-    main.append(subtitle);
+    titleGroup.append(subtitle);
   }
 
+  header.append(titleGroup);
+
   main.setAttribute('aria-labelledby', titleId);
+
+  const headerActions = document.createElement('div');
+  headerActions.className = 'standby__header-actions';
+
+  if (options.onOpenHelp) {
+    const helpLabel = options.helpLabel ?? 'ヘルプ';
+    const helpAriaLabel = options.helpAriaLabel ?? helpLabel;
+
+    const helpButton = new UIButton({
+      label: helpLabel,
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    helpButton.el.classList.add('standby__help-button');
+    helpButton.el.setAttribute('aria-label', helpAriaLabel);
+    helpButton.el.title = helpAriaLabel;
+    helpButton.onClick(() => options.onOpenHelp?.());
+    headerActions.append(helpButton.el);
+
+    const supportMenu = new HamburgerMenu({
+      label: 'メニュー',
+      ariaLabel: '補助メニュー',
+    });
+    supportMenu.el.classList.add('standby__menu');
+
+    const menuHelpButton = new UIButton({
+      label: helpLabel,
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    menuHelpButton.el.setAttribute('aria-label', helpAriaLabel);
+    menuHelpButton.el.title = helpAriaLabel;
+    menuHelpButton.onClick(() => options.onOpenHelp?.());
+    supportMenu.addItem(menuHelpButton.el);
+
+    headerActions.append(supportMenu.el);
+  }
+
+  if (headerActions.childElementCount > 0) {
+    header.append(headerActions);
+  }
+
+  main.append(header);
 
   const content = document.createElement('div');
   content.className = 'standby__content';
@@ -274,25 +325,6 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   const actions = document.createElement('div');
   actions.className = 'standby__actions';
 
-  const supportMenu = new HamburgerMenu({
-    label: 'メニュー',
-    ariaLabel: '補助メニュー',
-  });
-  supportMenu.el.classList.add('standby__menu', 'hamburger-menu--fill');
-
-  if (options.onOpenHelp) {
-    const helpButton = new UIButton({
-      label: options.helpLabel ?? 'ヘルプ',
-      variant: 'ghost',
-      preventRapid: true,
-    });
-    const helpAriaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
-    helpButton.el.setAttribute('aria-label', helpAriaLabel);
-    helpButton.el.title = helpAriaLabel;
-    helpButton.onClick(() => options.onOpenHelp?.());
-    supportMenu.addItem(helpButton.el);
-  }
-
   const startButton = new UIButton({
     label: 'はじめる',
     variant: 'primary',
@@ -425,9 +457,6 @@ export const createStandbyView = (options: StandbyViewOptions): HTMLElement => {
   updateStartButtonState();
 
   actions.append(homeButton.el);
-  if (supportMenu.itemCount > 0) {
-    actions.append(supportMenu.el);
-  }
   actions.append(startButton.el);
   main.append(actions);
 
