@@ -161,9 +161,13 @@
     border-radius: 28px;
   }
 
+  .action-hand__list {
+    --action-hand-card-padding-block: 0.65rem;
+  }
+
   .action-hand__card {
     min-width: clamp(72px, 15vw, 100px);
-    padding: 0.65rem;
+    padding: var(--action-hand-card-padding-block);
   }
 }
 
@@ -1269,21 +1273,25 @@ p {
 }
 
 .action-hand__list {
+  --action-hand-gap: clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem);
+  --action-hand-card-height: 92px;
+  --action-hand-card-padding-block: 0.75rem;
+  --action-hand-label-height: 1.35rem;
   list-style: none;
   margin: 0;
-  padding: 0 clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem) 0.25rem;
+  padding: 0 var(--action-hand-gap) 0.25rem;
   display: grid;
   grid-template-rows: repeat(2, auto);
   grid-auto-flow: column;
   grid-auto-columns: minmax(clamp(104px, 15vw, 140px), 1fr);
-  gap: clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem);
+  gap: var(--action-hand-gap);
   justify-content: start;
   justify-items: center;
   align-items: start;
   align-content: start;
   overflow-x: auto;
   scroll-snap-type: x proximity;
-  scroll-padding-inline: clamp(0.65rem, min(1.5vw, 2.5vh), 1.1rem);
+  scroll-padding-inline: var(--action-hand-gap);
 }
 
 .action-hand__list::-webkit-scrollbar {
@@ -1314,7 +1322,7 @@ p {
   display: grid;
   place-items: center;
   min-width: clamp(84px, 16vw, 112px);
-  padding: 0.75rem;
+  padding: var(--action-hand-card-padding-block);
   border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(15, 23, 42, 0.55);
@@ -3694,9 +3702,13 @@ p {
     padding: 0.65rem;
   }
 
+  .action-hand__list {
+    --action-hand-card-padding-block: 0.65rem;
+  }
+
   .action-hand__card {
     min-width: clamp(72px, 22vw, 96px);
-    padding: 0.65rem;
+    padding: var(--action-hand-card-padding-block);
   }
 
   .watch-stage,
@@ -3720,6 +3732,45 @@ p {
   .curtaincall__action-button {
     flex-basis: 100%;
     max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .action {
+    align-content: start;
+  }
+
+  .action-hand {
+    padding: clamp(1.1rem, 3.5vh, 1.6rem) clamp(1rem, 5vw, 1.6rem);
+  }
+
+  .action-hand__list {
+    --action-hand-visible-top-padding: calc(var(--action-hand-card-padding-block) + 0.2rem);
+    --action-hand-visible-bottom-padding: calc(var(--action-hand-gap) + 0.35rem);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-auto-columns: initial;
+    grid-auto-rows: max-content;
+    max-height: calc(
+      3 * (var(--action-hand-card-height) + (2 * var(--action-hand-card-padding-block))) +
+        2 * var(--action-hand-gap) +
+        var(--action-hand-label-height) +
+        var(--action-hand-visible-top-padding) +
+        var(--action-hand-visible-bottom-padding)
+    );
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: var(--action-hand-visible-top-padding) var(--action-hand-gap)
+      var(--action-hand-visible-bottom-padding);
+    scroll-snap-type: y proximity;
+    scroll-padding-inline: 0;
+    scroll-padding-block: var(--action-hand-gap);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .action-hand__item {
+    width: 100%;
   }
 }
 
@@ -3756,9 +3807,13 @@ p {
     gap: 0.6rem;
   }
 
+  .action-hand__list {
+    --action-hand-card-padding-block: 0.6rem;
+  }
+
   .action-hand__card {
     min-width: clamp(68px, 28vw, 92px);
-    padding: 0.6rem;
+    padding: var(--action-hand-card-padding-block);
   }
 
   .action-hand__badge {
