@@ -1993,7 +1993,6 @@ p {
 }
 
 .hamburger-menu__toggle {
-  display: none;
   gap: 0.45rem;
 }
 
@@ -2017,10 +2016,16 @@ p {
   box-shadow: 0 0 0 currentColor;
 }
 
-.hamburger-menu__panel {
-  display: flex;
-  align-items: center;
-  gap: clamp(0.5rem, 2vw, 0.85rem);
+@media (min-width: 721px) {
+  .hamburger-menu__toggle {
+    display: none;
+  }
+
+  .hamburger-menu__panel {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.5rem, 2vw, 0.85rem);
+  }
 }
 
 .button--ghost {
