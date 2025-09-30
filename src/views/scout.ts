@@ -1,6 +1,7 @@
 import { UIButton } from '../ui/button.js';
 import { CardComponent } from '../ui/card.js';
 import type { CardSuit } from '../ui/card.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface ScoutOpponentHandCardViewModel {
   id: string;
@@ -67,6 +68,12 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   const headerActions = document.createElement('div');
   headerActions.className = 'scout__header-actions';
 
+  const headerMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  headerMenu.el.classList.add('scout__menu');
+
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({
       label: options.boardCheckLabel ?? 'ボードチェック',
@@ -77,7 +84,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     boardCheckButton.onClick(() => {
       options.onOpenBoardCheck?.();
     });
-    headerActions.append(boardCheckButton.el);
+    headerMenu.addItem(boardCheckButton.el);
   }
 
   if (options.onOpenMyHand) {
@@ -90,7 +97,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     myHandButton.onClick(() => {
       options.onOpenMyHand?.();
     });
-    headerActions.append(myHandButton.el);
+    headerMenu.addItem(myHandButton.el);
   }
 
   if (options.onOpenHelp) {
@@ -106,7 +113,11 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
     helpButton.onClick(() => {
       options.onOpenHelp?.();
     });
-    headerActions.append(helpButton.el);
+    headerMenu.addItem(helpButton.el);
+  }
+
+  if (headerMenu.itemCount > 0) {
+    headerActions.append(headerMenu.el);
   }
 
   if (headerActions.childElementCount > 0) {

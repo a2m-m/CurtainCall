@@ -1,6 +1,7 @@
 import { UIButton } from '../ui/button.js';
 import { CardComponent } from '../ui/card.js';
 import type { CardSuit } from '../ui/card.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface SpotlightStageCardViewModel {
   rank: string;
@@ -146,6 +147,12 @@ export const createSpotlightView = (options: SpotlightViewOptions): SpotlightVie
   const headerActions = document.createElement('div');
   headerActions.className = 'spotlight__header-actions';
 
+  const headerMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  headerMenu.el.classList.add('spotlight__menu');
+
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({
       label: options.boardCheckLabel ?? 'ボードチェック',
@@ -154,7 +161,7 @@ export const createSpotlightView = (options: SpotlightViewOptions): SpotlightVie
     });
     boardCheckButton.el.classList.add('spotlight__header-button');
     boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
-    headerActions.append(boardCheckButton.el);
+    headerMenu.addItem(boardCheckButton.el);
   }
 
   if (options.onOpenHelp) {
@@ -168,7 +175,11 @@ export const createSpotlightView = (options: SpotlightViewOptions): SpotlightVie
     helpButton.el.setAttribute('aria-label', ariaLabel);
     helpButton.el.title = ariaLabel;
     helpButton.onClick(() => options.onOpenHelp?.());
-    headerActions.append(helpButton.el);
+    headerMenu.addItem(helpButton.el);
+  }
+
+  if (headerMenu.itemCount > 0) {
+    headerActions.append(headerMenu.el);
   }
 
   if (headerActions.childElementCount > 0) {

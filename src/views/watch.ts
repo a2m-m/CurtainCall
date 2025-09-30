@@ -1,6 +1,7 @@
 import { UIButton } from '../ui/button.js';
 import { CardComponent } from '../ui/card.js';
 import type { CardSuit } from '../ui/card.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface WatchStageCardViewModel {
   rank: string;
@@ -159,6 +160,12 @@ export const createWatchView = (options: WatchViewOptions): WatchViewElement => 
   const headerActions = document.createElement('div');
   headerActions.className = 'watch__header-actions';
 
+  const headerMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  headerMenu.el.classList.add('watch__menu');
+
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({
       label: options.boardCheckLabel ?? 'ボードチェック',
@@ -167,7 +174,7 @@ export const createWatchView = (options: WatchViewOptions): WatchViewElement => 
     });
     boardCheckButton.el.classList.add('watch__header-button');
     boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
-    headerActions.append(boardCheckButton.el);
+    headerMenu.addItem(boardCheckButton.el);
   }
 
   if (options.onOpenMyHand) {
@@ -178,7 +185,7 @@ export const createWatchView = (options: WatchViewOptions): WatchViewElement => 
     });
     myHandButton.el.classList.add('watch__header-button');
     myHandButton.onClick(() => options.onOpenMyHand?.());
-    headerActions.append(myHandButton.el);
+    headerMenu.addItem(myHandButton.el);
   }
 
   if (options.onOpenHelp) {
@@ -192,7 +199,11 @@ export const createWatchView = (options: WatchViewOptions): WatchViewElement => 
     helpButton.el.setAttribute('aria-label', helpAriaLabel);
     helpButton.el.title = helpAriaLabel;
     helpButton.onClick(() => options.onOpenHelp?.());
-    headerActions.append(helpButton.el);
+    headerMenu.addItem(helpButton.el);
+  }
+
+  if (headerMenu.itemCount > 0) {
+    headerActions.append(headerMenu.el);
   }
 
   if (headerActions.childElementCount > 0) {

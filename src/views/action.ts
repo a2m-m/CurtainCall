@@ -1,6 +1,7 @@
 import { UIButton } from '../ui/button.js';
 import { CardComponent } from '../ui/card.js';
 import type { CardSuit } from '../ui/card.js';
+import { HamburgerMenu } from '../ui/hamburger-menu.js';
 
 export interface ActionHandCardViewModel {
   id: string;
@@ -71,6 +72,12 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
   const actions = document.createElement('div');
   actions.className = 'action__actions';
 
+  const supportMenu = new HamburgerMenu({
+    label: 'メニュー',
+    ariaLabel: '補助メニュー',
+  });
+  supportMenu.el.classList.add('action__menu');
+
   if (options.onOpenBoardCheck) {
     const boardCheckButton = new UIButton({
       label: options.boardCheckLabel ?? 'ボードチェック',
@@ -80,7 +87,7 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
     boardCheckButton.onClick(() => {
       options.onOpenBoardCheck?.();
     });
-    actions.append(boardCheckButton.el);
+    supportMenu.addItem(boardCheckButton.el);
   }
 
   if (options.onOpenHelp) {
@@ -96,7 +103,11 @@ export const createActionView = (options: ActionViewOptions): ActionViewElement 
     helpButton.onClick(() => {
       options.onOpenHelp?.();
     });
-    actions.append(helpButton.el);
+    supportMenu.addItem(helpButton.el);
+  }
+
+  if (supportMenu.itemCount > 0) {
+    actions.append(supportMenu.el);
   }
 
   const confirmButton = new UIButton({
