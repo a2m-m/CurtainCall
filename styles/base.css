@@ -3728,7 +3728,7 @@ p {
     }
     .standby__actions {
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
       width: 100%;
     }
     .standby__actions .button {
