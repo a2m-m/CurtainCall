@@ -144,7 +144,7 @@ export const createScoutView = (options: ScoutViewOptions): ScoutViewElement => 
   const recentSection = document.createElement('section');
   recentSection.className = 'scout-recent';
 
-  const recentTitleText = options.recentTakenTitle ?? '最近あなたから取られたカード';
+  const recentTitleText = options.recentTakenTitle ?? '最近相手に取られたカード';
   const recentTitle = document.createElement('h2');
   recentTitle.className = 'scout-recent__title';
   recentTitle.textContent = recentTitleText;

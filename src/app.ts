@@ -1667,12 +1667,12 @@ const openMyHandDialog = (): void => {
 
   const recentHeading = document.createElement('h3');
   recentHeading.className = 'myhand__heading';
-  recentHeading.textContent = `最近${playerName}から取られたカード`;
+  recentHeading.textContent = `${playerName}が最近相手に取られたカード`;
   recentSection.append(recentHeading);
 
   const recentList = document.createElement('ul');
   recentList.className = 'scout-recent__list myhand__recent-list';
-  recentList.setAttribute('aria-label', `最近${playerName}から取られたカード`);
+  recentList.setAttribute('aria-label', `${playerName}が最近相手に取られたカード`);
 
   if (player.takenByOpponent.length === 0) {
     const emptyRecent = document.createElement('li');
