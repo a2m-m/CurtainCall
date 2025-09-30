@@ -945,10 +945,11 @@ p {
 }
 
 .scout-hand__card-button {
+  --scout-card-button-padding: clamp(0.5rem, 1.4vw, 0.75rem);
   width: 100%;
   display: grid;
   place-items: center;
-  padding: 0.75rem;
+  padding: var(--scout-card-button-padding);
   border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(15, 23, 42, 0.55);
@@ -985,6 +986,13 @@ p {
 }
 
 .scout-hand__card {
+  width: clamp(
+    48px,
+    calc(100% - (2 * var(--scout-card-button-padding, 0.75rem))),
+    64px
+  );
+  aspect-ratio: 64 / 92;
+  height: auto;
   transition:
     box-shadow 120ms ease,
     border-color 120ms ease;
@@ -1372,6 +1380,16 @@ p {
     border-color 140ms ease,
     box-shadow 140ms ease,
     background 140ms ease;
+}
+
+.action-hand__card .card {
+  width: clamp(
+    48px,
+    calc(100% - (2 * var(--action-hand-card-padding-block))),
+    64px
+  );
+  aspect-ratio: 64 / 92;
+  height: auto;
 }
 
 .action-hand__card:hover:not(:disabled) {
@@ -3053,11 +3071,12 @@ p {
 }
 
 .intermission-backstage__button {
+  --intermission-backstage-button-padding: clamp(0.6rem, min(1.2vw, 2.4vh), 0.75rem);
   width: 100%;
   display: grid;
   place-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: var(--intermission-backstage-button-padding);
   border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(15, 23, 42, 0.55);
@@ -3100,8 +3119,17 @@ p {
 }
 
 .intermission-backstage__card {
-  width: clamp(72px, 15vw, 100px);
-  height: clamp(104px, 21vw, 140px);
+  --intermission-backstage-card-width: clamp(72px, 15vw, 100px);
+  width: clamp(
+    56px,
+    min(
+      var(--intermission-backstage-card-width),
+      calc(100% - (2 * var(--intermission-backstage-button-padding)))
+    ),
+    var(--intermission-backstage-card-width)
+  );
+  aspect-ratio: 64 / 92;
+  height: auto;
   font-size: clamp(1.1rem, 2vw, 1.5rem);
   transition:
     box-shadow 120ms ease,
@@ -3283,11 +3311,12 @@ p {
 }
 
 .spotlight-set-picker__button {
+  --spotlight-set-picker-button-padding: clamp(0.6rem, min(1.2vw, 2.4vh), 0.75rem);
   width: 100%;
   display: grid;
   place-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: var(--spotlight-set-picker-button-padding);
   border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(15, 23, 42, 0.55);
@@ -3319,8 +3348,17 @@ p {
 }
 
 .spotlight-set-picker__card {
-  width: clamp(72px, 15vw, 100px);
-  height: clamp(104px, 21vw, 140px);
+  --spotlight-set-picker-card-width: clamp(72px, 15vw, 100px);
+  width: clamp(
+    56px,
+    min(
+      var(--spotlight-set-picker-card-width),
+      calc(100% - (2 * var(--spotlight-set-picker-button-padding)))
+    ),
+    var(--spotlight-set-picker-card-width)
+  );
+  aspect-ratio: 64 / 92;
+  height: auto;
   font-size: clamp(1.1rem, 2vw, 1.5rem);
   transition:
     box-shadow 120ms ease,
@@ -3753,10 +3791,16 @@ p {
     grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
   }
 
-  .scout-hand__card-button,
-  .spotlight-set-picker__button,
+  .scout-hand__card-button {
+    --scout-card-button-padding: 0.65rem;
+  }
+
+  .spotlight-set-picker__button {
+    --spotlight-set-picker-button-padding: 0.65rem;
+  }
+
   .intermission-backstage__button {
-    padding: 0.65rem;
+    --intermission-backstage-button-padding: 0.65rem;
   }
 
   .action-hand__list {
