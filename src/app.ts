@@ -3581,6 +3581,7 @@ const openBackstageRevealResultDialog = (
 ): void => {
   const container = document.createElement('div');
   container.className = 'intermission-backstage';
+  container.classList.add('intermission-backstage--result');
 
   const message = document.createElement('p');
   message.className = 'intermission-backstage__message';
@@ -3650,6 +3651,7 @@ const openBackstageDrawResultDialog = (
 ): void => {
   const container = document.createElement('div');
   container.className = 'intermission-backstage';
+  container.classList.add('intermission-backstage--result');
 
   const displayCard = cloneCardSnapshot(result.card);
   displayCard.face = 'up';
