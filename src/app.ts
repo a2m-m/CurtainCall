@@ -280,7 +280,6 @@ const {
   WATCH_WARNING_BADGE_LABEL,
   WATCH_CLAP_WARNING_MESSAGE,
   WATCH_STAGE_EMPTY_MESSAGE,
-  WATCH_KUROKO_DEFAULT_DESCRIPTION,
   WATCH_DECISION_CONFIRM_TITLES,
   WATCH_DECISION_CONFIRM_MESSAGES,
   WATCH_DECISION_CONFIRM_OK_LABEL,
@@ -442,7 +441,6 @@ const CURTAINCALL_REASON_DESCRIPTIONS: Record<CurtainCallReason, string> = {
   handDepleted: '終了条件：手札枯渇',
 };
 const SPOTLIGHT_STAGE_EMPTY_MESSAGE = WATCH_STAGE_EMPTY_MESSAGE;
-const SPOTLIGHT_KUROKO_HIDDEN_DESCRIPTION = WATCH_KUROKO_DEFAULT_DESCRIPTION;
 
 const createWatchDecisionConfirmMessage = (decision: WatchDecision, playerName: string): string => {
   const base = WATCH_DECISION_CONFIRM_MESSAGES[decision];
@@ -2442,7 +2440,8 @@ const mapWatchStage = (state: GameState): WatchStageViewModel => {
           suit: kurokoCard.suit,
           faceDown: true,
           annotation: kurokoCard.annotation,
-          description: WATCH_KUROKO_DEFAULT_DESCRIPTION,
+          description:
+            kurokoCard.face === 'up' ? formatCardLabel(kurokoCard) : undefined,
         }
       : null,
     kurokoEmptyMessage: WATCH_STAGE_EMPTY_MESSAGE,
@@ -2502,9 +2501,7 @@ const mapSpotlightStage = (state: GameState): SpotlightStageViewModel => {
           faceDown: kurokoCard.face === 'down',
           annotation: kurokoCard.annotation,
           description:
-            kurokoCard.face === 'up'
-              ? formatCardLabel(kurokoCard)
-              : SPOTLIGHT_KUROKO_HIDDEN_DESCRIPTION,
+            kurokoCard.face === 'up' ? formatCardLabel(kurokoCard) : undefined,
         }
       : null,
     kurokoEmptyMessage: SPOTLIGHT_STAGE_EMPTY_MESSAGE,
