@@ -185,7 +185,6 @@ export const WATCH_REMAINING_PLACEHOLDER = '—';
 export const WATCH_WARNING_BADGE_LABEL = 'ブーイング不足注意';
 export const WATCH_CLAP_WARNING_MESSAGE = '残り機会的にブーイングが必要です';
 export const WATCH_STAGE_EMPTY_MESSAGE = 'ステージにカードが配置されていません。';
-export const WATCH_KUROKO_DEFAULT_DESCRIPTION = '黒子のカードはまだ公開されていません。';
 export const WATCH_REDIRECTING_SUBTITLE = '宣言結果に応じた画面へ移動しています…';
 export const WATCH_GUARD_REDIRECTING_SUBTITLE =
   '秘匿情報を再表示するにはウォッチゲートを通過してください。';
