@@ -95,37 +95,6 @@ export const createIntermissionView = (options: IntermissionViewOptions): Interm
   subtitle.textContent = options.subtitle;
   header.append(subtitle);
 
-  const headerActions = document.createElement('div');
-  headerActions.className = 'intermission__header-actions';
-
-  const headerMenu = new HamburgerMenu({
-    label: 'メニュー',
-    ariaLabel: '補助メニュー',
-  });
-  headerMenu.el.classList.add('intermission__menu');
-
-  if (options.onOpenHelp) {
-    const helpButton = new UIButton({
-      label: options.helpLabel ?? 'ヘルプ',
-      variant: 'ghost',
-      preventRapid: true,
-    });
-    helpButton.el.classList.add('intermission__header-button');
-    const ariaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
-    helpButton.el.setAttribute('aria-label', ariaLabel);
-    helpButton.el.title = ariaLabel;
-    helpButton.onClick(() => options.onOpenHelp?.());
-    headerMenu.addItem(helpButton.el);
-  }
-
-  if (headerMenu.itemCount > 0) {
-    headerActions.append(headerMenu.el);
-  }
-
-  if (headerActions.childElementCount > 0) {
-    header.append(headerActions);
-  }
-
   main.setAttribute('aria-labelledby', headingId);
 
   const body = document.createElement('section');
@@ -162,6 +131,20 @@ export const createIntermissionView = (options: IntermissionViewOptions): Interm
   boardCheckButton.onClick(() => options.onOpenBoardCheck?.());
   boardCheckButton.el.classList.add('intermission__action-button');
   actionsMenu.addItem(boardCheckButton.el);
+
+  if (options.onOpenHelp) {
+    const helpButton = new UIButton({
+      label: options.helpLabel ?? 'ヘルプ',
+      variant: 'ghost',
+      preventRapid: true,
+    });
+    helpButton.el.classList.add('intermission__action-button');
+    const ariaLabel = options.helpAriaLabel ?? options.helpLabel ?? 'ヘルプ';
+    helpButton.el.setAttribute('aria-label', ariaLabel);
+    helpButton.el.title = ariaLabel;
+    helpButton.onClick(() => options.onOpenHelp?.());
+    actionsMenu.addItem(helpButton.el);
+  }
 
   if (actionsMenu.itemCount > 0) {
     actions.append(actionsMenu.el);

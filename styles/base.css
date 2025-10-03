@@ -2613,11 +2613,6 @@ p {
   gap: 0.75rem;
 }
 
-.intermission__header-button {
-  min-width: 0;
-  white-space: nowrap;
-}
-
 .intermission__body {
   display: grid;
   gap: clamp(1.5rem, 3vh, 2.25rem);
