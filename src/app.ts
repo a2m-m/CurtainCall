@@ -4135,10 +4135,6 @@ const showSpotlightRevealResultDialog = (
   const actions = canOpenSet
     ? [
         {
-          ...skipAction,
-          variant: 'ghost' as const,
-        },
-        {
           label: SPOTLIGHT_SET_OPEN_BUTTON_LABEL,
           variant: 'primary' as const,
           preventRapid: true,
@@ -4147,6 +4143,10 @@ const showSpotlightRevealResultDialog = (
             modal.close();
             requestSpotlightSetOpen(openPlayerId);
           },
+        },
+        {
+          ...skipAction,
+          variant: 'ghost' as const,
         },
       ]
     : [
