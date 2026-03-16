@@ -1,0 +1,183 @@
+.backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.open {
+  display: flex;
+}
+
+.panel {
+  width: min(360px, 100%);
+  height: 100dvh;
+  background: var(--surface, #16213e);
+  border-left: 1px solid var(--border, #1e2d50);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.backdropArea {
+  flex: 1;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border, #1e2d50);
+  position: sticky;
+  top: 0;
+  background: var(--surface, #16213e);
+  z-index: 1;
+}
+
+.header h3 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--border, #1e2d50);
+  border: none;
+  color: var(--text, #e0e6f0);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border, #1e2d50);
+}
+
+.sectionTitle {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted, #7a8aaa);
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
+.scoreCompare {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scoreDivider {
+  width: 1px;
+  background: var(--border, #1e2d50);
+}
+
+.scoreCol {
+  flex: 1;
+  text-align: center;
+}
+
+.sName {
+  font-size: 11px;
+  color: var(--muted, #7a8aaa);
+}
+
+.sTotal {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--gold, #f0c060);
+}
+
+.sRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted, #7a8aaa);
+  margin-top: 3px;
+}
+
+.sRow span:last-child {
+  color: var(--text, #e0e6f0);
+}
+
+.booPlayer {
+  margin-bottom: 8px;
+}
+
+.booPlayerName {
+  font-size: 11px;
+  color: var(--muted, #7a8aaa);
+  margin-bottom: 4px;
+}
+
+.booBar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.booDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border, #1e2d50);
+}
+
+.booDotFilled {
+  background: var(--accent, #e63946);
+}
+
+.booCount {
+  font-size: 11px;
+  color: var(--muted, #7a8aaa);
+  margin-left: 4px;
+}
+
+.setRemaining {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.setRemainingLabel {
+  font-size: 13px;
+  color: var(--muted, #7a8aaa);
+}
+
+.setCount {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--gold, #f0c060);
+}
+
+.knownCardsList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.knownCardRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 5px 8px;
+  background: var(--bg, #0f172a);
+  border-radius: 6px;
+}
+
+.knownCardLoc {
+  color: var(--muted, #7a8aaa);
+  font-size: 10px;
+}
