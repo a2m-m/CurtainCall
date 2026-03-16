@@ -1,0 +1,86 @@
+.card {
+  width: var(--card-w, 52px);
+  height: var(--card-h, 76px);
+  border-radius: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex-shrink: 0;
+  position: relative;
+  user-select: none;
+  cursor: default;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:active {
+  opacity: 0.75;
+}
+
+/* 表向き */
+.face {
+  background: #fff;
+  color: #222;
+  border: 1.5px solid #ccc;
+}
+
+.suit {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.rank {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.red .suit {
+  color: #e74c3c;
+}
+
+.red .rank {
+  color: #e74c3c;
+}
+
+/* 裏向き */
+.back {
+  background: linear-gradient(135deg, #1a2a4a 0%, #0f3460 50%, #1a2a4a 100%);
+  border: 1.5px solid #0f3460;
+}
+
+.back::after {
+  content: '◈';
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.15);
+}
+
+/* ジョーカー */
+.joker {
+  background: linear-gradient(135deg, #f39c12, #e74c3c);
+  border: 1.5px solid #f39c12;
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.jokerLabel {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+/* 選択状態 */
+.selected {
+  box-shadow: 0 0 0 2.5px #e94560;
+  transform: translateY(-6px);
+}
+
+.selectedShimo {
+  box-shadow: 0 0 0 2.5px #7b52e8;
+  transform: translateY(-6px);
+}
