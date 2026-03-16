@@ -1,0 +1,76 @@
+/* ─── PlayerStage ──────────────────────────────────────────── */
+
+.playerStage {
+  background: var(--surface, #16213e);
+  border: 1px solid var(--border, #1e2d50);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playerStage.active {
+  border-color: var(--accent, #e94560);
+  box-shadow: 0 0 0 1px var(--accent, #e94560);
+}
+
+.playerName {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--muted, #7a8aaa);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.playerStage.active .playerName {
+  color: var(--accent, #e94560);
+}
+
+.stageSlots {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.cardSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.slotLabel {
+  font-size: 10px;
+  color: var(--muted, #7a8aaa);
+  letter-spacing: 1px;
+}
+
+/* ─── Placeholder ──────────────────────────────────────────── */
+
+.cardPlaceholder {
+  width: var(--card-w, 52px);
+  height: var(--card-h, 76px);
+  border-radius: 7px;
+  border: 1.5px dashed var(--border, #1e2d50);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+/* ─── MainStage ────────────────────────────────────────────── */
+
+.mainStage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-start;
+}
+
+/* ─── BackstageArea ────────────────────────────────────────── */
+
+.backstageArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-start;
+}
