@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>カーテンコール</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d1a;
+      --surface:  #16213e;
+      --border:   #1e2d50;
+      --accent:   #e94560;
+      --gold:     #f0a500;
+      --green:    #27ae60;
+      --text:     #eee;
+      --muted:    #7a8aaa;
+      --card-w:   52px;
+      --card-h:   76px;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===========================
+       SCREENS
+    =========================== */
+    .screen {
+      display: none;
+      flex-direction: column;
+      height: 100dvh;
+      position: relative;
+      overflow: hidden;
+    }
+    .screen.active { display: flex; }
+
+    /* Phase header (shared) */
+    .phase-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .phase-header h2   { font-size: 15px; font-weight: bold; }
+    .phase-header .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .info-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--border);
+      border: none;
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Scrollable body */
+    .screen-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Footer actions */
+    .screen-footer {
+      padding: 12px 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    /* ===========================
+       BUTTONS
+    =========================== */
+    .btn {
+      padding: 12px 20px;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: bold;
+      cursor: pointer; transition: opacity .15s;
+      flex: 1;
+    }
+    .btn:active { opacity: .75; }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-green     { background: var(--green);  color: #fff; }
+    .btn-ghost     { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-surface   { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 8px 16px; font-size: 12px; }
+
+    /* ===========================
+       CARDS
+    =========================== */
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: 7px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      flex-shrink: 0;
+      position: relative;
+      user-select: none;
+    }
+    .card-face {
+      background: #fff;
+      color: #222;
+      border: 1.5px solid #ccc;
+    }
+    .card-face .c-suit { font-size: 20px; line-height: 1; }
+    .card-face .c-num  { font-size: 13px; font-weight: bold; }
+    .card-face.red .c-suit { color: #e74c3c; }
+    .card-face.red .c-num  { color: #e74c3c; }
+
+    .card-back {
+      background: linear-gradient(135deg, #1a2a4a 0%, #0f3460 50%, #1a2a4a 100%);
+      border: 1.5px solid #0f3460;
+    }
+    .card-back::after { content: '◈'; font-size: 22px; color: rgba(255,255,255,.15); }
+
+    .card-empty {
+      border: 1.5px dashed var(--border);
+      background: transparent;
+      color: var(--border);
+      font-size: 20px;
+    }
+    .card-joker {
+      background: linear-gradient(135deg, #f39c12, #e74c3c);
+      border: 1.5px solid #f39c12;
+      color: #fff; font-size: 11px; font-weight: bold; text-align: center;
+    }
+
+    .card.selected {
+      box-shadow: 0 0 0 2.5px var(--accent);
+      transform: translateY(-6px);
+    }
+    .card.selected-shimo {
+      box-shadow: 0 0 0 2.5px #7b52e8;
+      transform: translateY(-6px);
+    }
+    .card.current {
+      box-shadow: 0 0 0 2px var(--gold);
+    }
+
+    /* Large card (spotlight) */
+    .card-lg {
+      --card-w: 72px;
+      --card-h: 104px;
+      width: 72px; height: 104px;
+    }
+    .card-lg .c-suit { font-size: 30px !important; }
+    .card-lg .c-num  { font-size: 18px !important; }
+
+    /* ===========================
+       COMMON PARTS
+    =========================== */
+    .section-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .card-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .badge-accent { background: rgba(233,69,96,.15); color: var(--accent); border: 1px solid var(--accent); }
+    .badge-gold   { background: rgba(240,165,0,.15);  color: var(--gold);   border: 1px solid var(--gold); }
+    .badge-green  { background: rgba(39,174,96,.15);  color: var(--green);  border: 1px solid var(--green); }
+    .badge-muted  { background: var(--border); color: var(--muted); }
+
+    /* ===========================
+       1. TITLE SCREEN
+    =========================== */
+    #s-title {
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+      background: radial-gradient(ellipse at 50% 40%, #1a2a50 0%, var(--bg) 70%);
+    }
+    .title-logo h1 {
+      font-size: 42px;
+      letter-spacing: 10px;
+      color: var(--accent);
+      text-shadow: 0 0 40px rgba(233,69,96,.4);
+      text-align: center;
+    }
+    .title-logo p {
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .title-form {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .field label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px; }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    /* ===========================
+       2. STANDBY SCREEN
+    =========================== */
+    #s-standby {
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      background: radial-gradient(ellipse at 50% 50%, #1a2a50 0%, var(--bg) 70%);
+    }
+    .deal-animation {
+      display: flex;
+      gap: -10px;
+      position: relative;
+      width: 120px;
+      height: 104px;
+    }
+    .deal-card {
+      position: absolute;
+      animation: dealFloat 2s ease-in-out infinite;
+    }
+    .deal-card:nth-child(1) { left: 0;  top: 10px; animation-delay: 0s; }
+    .deal-card:nth-child(2) { left: 20px; top: 5px;  animation-delay: .15s; }
+    .deal-card:nth-child(3) { left: 40px; top: 0;   animation-delay: .3s; }
+    @keyframes dealFloat {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    .standby-text { text-align: center; }
+    .standby-text h2 { font-size: 18px; margin-bottom: 6px; }
+    .standby-text p  { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .deal-summary {
+      display: flex;
+      gap: 20px;
+    }
+    .deal-item { text-align: center; }
+    .deal-item .num { font-size: 24px; font-weight: bold; color: var(--gold); }
+    .deal-item .lbl { font-size: 10px; color: var(--muted); }
+
+    /* ===========================
+       3. PASS SCREEN
+    =========================== */
+    #s-pass {
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      background: var(--bg);
+      text-align: center;
+      padding: 32px;
+    }
+    .pass-player { font-size: 26px; font-weight: bold; color: var(--gold); }
+    .pass-title  { font-size: 20px; font-weight: bold; }
+    .pass-sub    { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .pass-icon   { font-size: 56px; }
+
+    /* Hold button */
+    .hold-wrap { width: 100%; max-width: 280px; }
+    .hold-btn {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hold-btn .hold-fill {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 100%;
+      width: 0;
+      background: rgba(233,69,96,.25);
+      transition: none;
+      z-index: 0;
+    }
+    .hold-btn .hold-text { position: relative; z-index: 1; }
+    .hold-btn.holding .hold-fill {
+      width: 100%;
+      transition: width 2s linear;
+    }
+
+    /* ===========================
+       4. SCOUT SCREEN
+    =========================== */
+    .scout-instruction {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      border: 1px solid var(--border);
+    }
+    .scout-instruction strong { color: var(--text); }
+    .scout-cards-grid {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .scout-card-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .scout-card-wrap .label { font-size: 9px; color: var(--border); }
+    .scout-card-wrap:hover .card-back { border-color: var(--accent); }
+    .scout-drawn {
+      text-align: center;
+      padding: 16px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ===========================
+       5. ACTION SCREEN
+    =========================== */
+    .action-selected-preview {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      padding: 12px 0;
+    }
+    .preview-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .preview-slot label {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ===========================
+       6. WATCH SCREEN
+    =========================== */
+    #s-watch .watch-stage {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      padding: 12px 0;
+    }
+    .watch-card-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .watch-card-wrap label { font-size: 11px; color: var(--muted); }
+    .watch-question {
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      padding: 8px;
+    }
+    .watch-question strong { color: var(--text); font-size: 18px; }
+
+    /* ===========================
+       7. SPOTLIGHT REVEAL
+    =========================== */
+    .spotlight-reveal {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 16px 0;
+    }
+    .spotlight-pair {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .spotlight-vs { font-size: 18px; color: var(--muted); }
+    .result-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .result-badge.match    { background: rgba(39,174,96,.15);  border: 1px solid var(--green);  }
+    .result-badge.nomatch  { background: rgba(233,69,96,.15);  border: 1px solid var(--accent); }
+    .result-badge .r-icon  { font-size: 28px; }
+    .result-badge .r-title { font-size: 15px; font-weight: bold; }
+    .result-badge .r-sub   { font-size: 11px; color: var(--muted); }
+
+    /* ===========================
+       8. SPOTLIGHT BONUS
+    =========================== */
+    .bonus-header {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .bonus-header .winner { font-size: 16px; font-weight: bold; color: var(--gold); }
+    .bonus-header .desc   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .set-open-grid {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .set-card-wrap {
+      cursor: pointer;
+    }
+    .set-card-wrap:hover .card-back { border-color: var(--gold); }
+
+    /* ===========================
+       9. BACKSTAGE SCREEN
+    =========================== */
+    .backstage-instruction {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .backstage-instruction strong { color: var(--text); }
+    .backstage-count {
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .known-info {
+      background: rgba(240,165,0,.07);
+      border: 1px solid rgba(240,165,0,.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .known-info strong { color: var(--gold); }
+
+    /* ===========================
+       10. INTERMISSION SCREEN
+    =========================== */
+    #s-intermission {
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: radial-gradient(ellipse at 50% 40%, #1a2a50 0%, var(--bg) 70%);
+      padding: 24px;
+      text-align: center;
+    }
+    .intermission-title { font-size: 22px; font-weight: bold; color: var(--accent); letter-spacing: 4px; }
+    .intermission-swap  { font-size: 14px; color: var(--muted); line-height: 1.7; }
+    .swap-arrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+    .swap-arrow .arrow { font-size: 20px; color: var(--muted); }
+    .swap-name { font-weight: bold; color: var(--gold); }
+    .score-mini-table {
+      width: 100%;
+      max-width: 280px;
+      border-collapse: collapse;
+    }
+    .score-mini-table td {
+      padding: 6px 10px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .score-mini-table td:first-child { color: var(--muted); }
+    .score-mini-table td:last-child   { text-align: right; color: var(--gold); font-weight: bold; }
+
+    /* ===========================
+       11. RESULT SCREEN
+    =========================== */
+    #s-result {
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: radial-gradient(ellipse at 50% 40%, #1a2a50 0%, var(--bg) 70%);
+      padding: 24px;
+      text-align: center;
+    }
+    .result-title {
+      font-size: 28px;
+      letter-spacing: 8px;
+      color: var(--accent);
+      text-shadow: 0 0 30px rgba(233,69,96,.4);
+    }
+    .result-winner { font-size: 18px; font-weight: bold; color: var(--gold); }
+    .result-table {
+      width: 100%;
+      max-width: 320px;
+      border-collapse: collapse;
+    }
+    .result-table th { font-size: 11px; color: var(--muted); font-weight: normal; padding: 6px 10px; }
+    .result-table td { font-size: 13px; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+    .result-table tr.total td { color: var(--gold); font-weight: bold; font-size: 16px; border-top: 1px solid var(--border); }
+    .result-table tr.penalty td { color: var(--accent); }
+
+    /* ===========================
+       INFO OVERLAY
+    =========================== */
+    #overlay-info {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 200;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+    #overlay-info.open { display: flex; }
+    .info-panel {
+      width: min(360px, 100%);
+      height: 100dvh;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .info-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+    .info-panel-header h3 { font-size: 15px; }
+    .info-close {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--border);
+      border: none;
+      color: var(--text);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .info-section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .info-section h4 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .score-compare {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .score-col { flex: 1; text-align: center; }
+    .score-col .s-name { font-size: 11px; color: var(--muted); }
+    .score-col .s-total { font-size: 28px; font-weight: bold; color: var(--gold); }
+    .score-col .s-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .score-col .s-row span:last-child { color: var(--text); }
+    .boo-bar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .boo-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .boo-dot.filled { background: var(--accent); }
+    .set-remaining {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .set-remaining .count { font-size: 22px; font-weight: bold; color: var(--gold); }
+    .known-cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .known-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      padding: 5px 8px;
+      background: var(--bg);
+      border-radius: 6px;
+    }
+    .known-card-row .loc { color: var(--muted); font-size: 10px; }
+
+    /* ===========================
+       MOCK NAV
+    =========================== */
+    #mock-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #000;
+      padding: 6px 10px;
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      z-index: 150;
+      border-top: 1px solid #222;
+    }
+    #mock-nav span { font-size: 10px; color: #444; align-self: center; }
+    #mock-nav button {
+      padding: 5px 9px;
+      font-size: 10px;
+      border-radius: 4px;
+      border: 1px solid #333;
+      background: #111;
+      color: #777;
+      cursor: pointer;
+    }
+    #mock-nav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    body.no-nav #mock-nav { display: none; }
+    body.no-nav .screen { height: 100dvh; }
+  </style>
+</head>
+<body>
+
+<!-- ===========================
+     1. TITLE
+=========================== -->
+<div id="s-title" class="screen active">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;background:radial-gradient(ellipse at 50% 40%,#1a2a50 0%,var(--bg) 70%)">
+    <div class="title-logo">
+      <h1>CURTAIN CALL</h1>
+      <p>カーテンコール</p>
+    </div>
+    <div class="title-form">
+      <div class="field">
+        <label>プレイヤーA（先攻）</label>
+        <input type="text" id="name-a" value="アリス">
+      </div>
+      <div class="field">
+        <label>プレイヤーB（後攻）</label>
+        <input type="text" id="name-b" value="ボブ">
+      </div>
+      <button class="btn btn-primary" onclick="goTo('s-standby')">ゲームスタート</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===========================
+     2. STANDBY
+=========================== -->
+<div id="s-standby" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:radial-gradient(ellipse at 50% 50%,#1a2a50 0%,var(--bg) 70%);">
+    <div class="deal-animation">
+      <div class="deal-card card card-back" style="width:52px;height:76px;"></div>
+      <div class="deal-card card card-back" style="width:52px;height:76px;"></div>
+      <div class="deal-card card card-back" style="width:52px;height:76px;"></div>
+    </div>
+    <div class="standby-text">
+      <h2>スタンバイフェーズ</h2>
+      <p style="margin-top:8px;">カードを配置しています</p>
+    </div>
+    <div class="deal-summary">
+      <div class="deal-item"><div class="num">15</div><div class="lbl">アリス 手札</div></div>
+      <div class="deal-item"><div class="num">15</div><div class="lbl">ボブ 手札</div></div>
+      <div class="deal-item"><div class="num">13</div><div class="lbl">セット</div></div>
+      <div class="deal-item"><div class="num">10</div><div class="lbl">バックステージ</div></div>
+    </div>
+    <button class="btn btn-primary" style="width:200px;" onclick="goTo('s-pass',{player:'アリス',phase:'スカウトフェーズ',desc:'ボブの手札から1枚引いてください。',next:'s-scout'})">
+      準備完了
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     3. PASS DEVICE
+=========================== -->
+<div id="s-pass" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px;text-align:center;">
+    <div class="pass-icon">📱</div>
+    <div class="pass-player" id="pass-player">アリス</div>
+    <div class="pass-title">さんに渡してください</div>
+    <div class="pass-sub" id="pass-sub">スカウトフェーズです。<br>準備ができたら長押しで進んでください。</div>
+    <div class="hold-wrap">
+      <button class="hold-btn" id="hold-btn" onmousedown="startHold()" onmouseup="cancelHold()" onmouseleave="cancelHold()" ontouchstart="startHold(event)" ontouchend="cancelHold(event)">
+        <div class="hold-fill" id="hold-fill"></div>
+        <span class="hold-text">長押しで進む</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===========================
+     4. SCOUT
+=========================== -->
+<div id="s-scout" class="screen">
+  <div class="phase-header">
+    <div>
+      <h2>スカウトフェーズ</h2>
+      <div class="sub">アリス の番 — ボブの手札から1枚引く</div>
+    </div>
+    <button class="info-btn" onclick="openInfo()">📊</button>
+  </div>
+  <div class="screen-body">
+    <div class="scout-instruction">
+      <strong>ボブの手札（15枚）</strong>から1枚を選んで引いてください。<br>
+      カードは裏向きのため、数字は見えません。
+    </div>
+    <div>
+      <div class="section-label">ボブの手札（裏向き）</div>
+      <div class="scout-cards-grid" id="scout-grid">
+      </div>
+    </div>
+    <div id="scout-drawn-msg" style="display:none" class="scout-drawn">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">引いたカード</div>
+      <div class="card card-face red" style="margin:0 auto;"><span class="c-suit">♦</span><span class="c-num">8</span></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">♦8 を手札に加えました</div>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn btn-primary" id="scout-next-btn" disabled onclick="goTo('s-action')">次へ：アクションフェーズ →</button>
+  </div>
+</div>
+
+<!-- ===========================
+     5. ACTION
+=========================== -->
+<div id="s-action" class="screen">
+  <div class="phase-header">
+    <div>
+      <h2>アクションフェーズ</h2>
+      <div class="sub">アリス — 役者札と黒子札を1枚ずつ選ぶ</div>
+    </div>
+    <button class="info-btn" onclick="openInfo()">📊</button>
+  </div>
+  <div class="screen-body">
+    <div class="panel">
+      <div class="section-label">選択中</div>
+      <div class="action-selected-preview">
+        <div class="preview-slot">
+          <label>役者札（カミ・表向き）</label>
+          <div id="preview-yakusha" class="card card-empty">＋</div>
+        </div>
+        <div class="preview-slot">
+          <label>黒子札（シモ・裏向き）</label>
+          <div id="preview-kuroko" class="card card-empty">＋</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">手札（16枚）</div>
+      <div class="card-row" id="action-hand">
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♦','8','red')"><span class="c-suit">♦</span><span class="c-num">8</span></div>
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♥','8','red')"><span class="c-suit">♥</span><span class="c-num">8</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♠','3','')"><span class="c-suit">♠</span><span class="c-num">3</span></div>
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♦','Q','red')"><span class="c-suit">♦</span><span class="c-num">Q</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♣','Q','')"><span class="c-suit">♣</span><span class="c-num">Q</span></div>
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♥','K','red')"><span class="c-suit">♥</span><span class="c-num">K</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♠','5','')"><span class="c-suit">♠</span><span class="c-num">5</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♣','6','')"><span class="c-suit">♣</span><span class="c-num">6</span></div>
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♥','J','red')"><span class="c-suit">♥</span><span class="c-num">J</span></div>
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♦','4','red')"><span class="c-suit">♦</span><span class="c-num">4</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♠','9','')"><span class="c-suit">♠</span><span class="c-num">9</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♣','10','')"><span class="c-suit">♣</span><span class="c-num">10</span></div>
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♥','2','red')"><span class="c-suit">♥</span><span class="c-num">2</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♠','7','')"><span class="c-suit">♠</span><span class="c-num">7</span></div>
+        <div class="card card-face"        onclick="selectAction(this,'yakusha','♣','A','')"><span class="c-suit">♣</span><span class="c-num">A</span></div>
+        <div class="card card-face red"    onclick="selectAction(this,'yakusha','♦','6','red')"><span class="c-suit">♦</span><span class="c-num">6</span></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;">
+        1回目タップ→役者札、2回目タップ→黒子札
+      </div>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn btn-ghost btn-sm" style="flex:0 0 auto;" onclick="resetAction()">リセット</button>
+    <button class="btn btn-primary" id="action-confirm-btn" disabled
+      onclick="goTo('s-pass',{player:'ボブ',phase:'ウォッチフェーズ',desc:'アリス が出したカードを確認し、\nクラップかブーイングを宣言してください。',next:'s-watch'})">
+      ステージへ出す
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     6. WATCH
+=========================== -->
+<div id="s-watch" class="screen">
+  <div class="phase-header">
+    <div>
+      <h2>ウォッチフェーズ</h2>
+      <div class="sub">ボブ — アリス のカードを見て判断する</div>
+    </div>
+    <button class="info-btn" onclick="openInfo()">📊</button>
+  </div>
+  <div class="screen-body" style="justify-content:center;">
+    <div class="panel">
+      <div class="section-label" style="text-align:center;margin-bottom:12px;">アリス が提示したカード</div>
+      <div class="watch-stage">
+        <div class="watch-card-wrap">
+          <label>役者札（カミ）</label>
+          <div class="card card-face card-lg red"><span class="c-suit">♦</span><span class="c-num">8</span></div>
+        </div>
+        <div class="watch-card-wrap">
+          <label>黒子札（シモ）</label>
+          <div class="card card-back card-lg"></div>
+        </div>
+      </div>
+    </div>
+    <div class="watch-question">
+      黒子札の数字は<br><strong>8</strong> と同じだと思いますか？
+    </div>
+  </div>
+  <div class="screen-footer" style="flex-direction:column;gap:8px;">
+    <button class="btn btn-primary"
+      onclick="goTo('s-spotlight-reveal',{result:'match'})">
+      👏 クラップ（勝負しない）
+    </button>
+    <button class="btn" style="background:var(--accent);color:#fff;"
+      onclick="goTo('s-spotlight-reveal',{result:'nomatch'})">
+      👎 ブーイング（違うと思う）
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     7. SPOTLIGHT REVEAL
+=========================== -->
+<div id="s-spotlight-reveal" class="screen">
+  <div class="phase-header">
+    <div>
+      <h2>スポットライトフェーズ</h2>
+      <div class="sub">黒子札を開示</div>
+    </div>
+    <button class="info-btn" onclick="openInfo()">📊</button>
+  </div>
+  <div class="screen-body" style="justify-content:center;align-items:center;">
+    <div class="spotlight-reveal">
+      <div class="spotlight-pair">
+        <div class="watch-card-wrap">
+          <label>役者札</label>
+          <div class="card card-face card-lg red"><span class="c-suit">♦</span><span class="c-num">8</span></div>
+        </div>
+        <div class="spotlight-vs">vs</div>
+        <div class="watch-card-wrap">
+          <label>黒子札（開示）</label>
+          <div class="card card-face card-lg red"><span class="c-suit">♥</span><span class="c-num">8</span></div>
+        </div>
+      </div>
+
+      <!-- 一致パターン -->
+      <div id="reveal-match" class="result-badge match">
+        <div class="r-icon">✅</div>
+        <div class="r-title">ペア！ブーイング不正解</div>
+        <div class="r-sub">アリス の2枚は同じ数字でした。<br>アリス のステージに残留。アリス にスポットライト権。</div>
+      </div>
+
+      <!-- 不一致パターン（切り替え用） -->
+      <div id="reveal-nomatch" class="result-badge nomatch" style="display:none;">
+        <div class="r-icon">❌</div>
+        <div class="r-title">異なる数字！ブーイング正解</div>
+        <div class="r-sub">ボブ の読み通り。アリス の2枚は ボブ のステージへ。<br>ボブ にスポットライト権。</div>
+      </div>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn btn-primary"
+      onclick="goTo('s-pass',{player:'アリス',phase:'スポットライト（ボーナス）',desc:'セットから1枚オープンできます。\n準備ができたら長押しで進んでください。',next:'s-spotlight-bonus'})">
+      スポットライトボーナスへ →
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     8. SPOTLIGHT BONUS
+=========================== -->
+<div id="s-spotlight-bonus" class="screen">
+  <div class="phase-header">
+    <div>
+      <h2>スポットライト（ボーナス）</h2>
+      <div class="sub">アリス — セットから1枚オープンできる（任意）</div>
+    </div>
+    <button class="info-btn" onclick="openInfo()">📊</button>
+  </div>
+  <div class="screen-body">
+    <div class="bonus-header">
+      <div class="winner">🎯 アリス のボーナスタイム</div>
+      <div class="desc">セットから1枚を選んで表向きにできます。<br>手札に同じ数字があれば必ずペアを成立させてください。</div>
+    </div>
+    <div>
+      <div class="section-label">セット（裏向き 9枚 ／ 残り 9枚）</div>
+      <div class="set-open-grid">
+        <div class="set-card-wrap"><div class="card card-face red"><span class="c-suit">♦</span><span class="c-num">3</span></div></div>
+        <div class="set-card-wrap"><div class="card card-face"><span class="c-suit">♠</span><span class="c-num">J</span></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+        <div class="set-card-wrap"><div class="card card-back"></div></div>
+      </div>
+    </div>
+    <div class="known-info">
+      <strong>公開情報（バックステージ）</strong>：5、9 の数字が既知
+    </div>
+  </div>
+  <div class="screen-footer" style="flex-direction:column;gap:8px;">
+    <button class="btn btn-primary" onclick="goTo('s-intermission')">オープンしてペア成立 → インターミッションへ</button>
+    <button class="btn btn-surface" onclick="goTo('s-pass',{player:'ボブ',phase:'バックステージフェーズ',desc:'バックステージから3枚を選んでください。\n準備ができたら長押しで進んでください。',next:'s-backstage'})">
+      オープンしない / ペア不成立 → バックステージへ
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     9. BACKSTAGE
+=========================== -->
+<div id="s-backstage" class="screen">
+  <div class="phase-header">
+    <div>
+      <h2>バックステージフェーズ</h2>
+      <div class="sub">ボブ — バックステージから3枚選んでオープン</div>
+    </div>
+    <button class="info-btn" onclick="openInfo()">📊</button>
+  </div>
+  <div class="screen-body">
+    <div class="backstage-instruction">
+      <strong>スポットライトでオープンされたカード：♣5</strong><br>
+      バックステージから3枚を選んでオープンしてください。<br>
+      5 と同じ数字があればペア成立です。
+    </div>
+    <div class="known-info">
+      <strong>公開情報</strong>：5・9 は既知（裏向きで残留中）
+    </div>
+    <div>
+      <div class="section-label">バックステージ（10枚）</div>
+      <div class="card-row" id="backstage-grid">
+        <div class="card card-back" style="border-color:rgba(240,165,0,.4);" title="5（既知）" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" style="border-color:rgba(240,165,0,.4);" title="9（既知）" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+        <div class="card card-back" onclick="selectBackstage(this)"></div>
+      </div>
+      <div class="backstage-count" id="backstage-count">0 / 3 枚選択中</div>
+    </div>
+  </div>
+  <div class="screen-footer" style="flex-direction:column;gap:8px;">
+    <button class="btn btn-primary" id="backstage-open-btn" disabled onclick="goTo('s-intermission')">
+      オープン → ペア成立でインターミッションへ
+    </button>
+    <button class="btn btn-surface" id="backstage-fail-btn" disabled onclick="goTo('s-intermission')">
+      ペア不成立 → バックステージから1枚手札に加えてインターミッションへ
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     10. INTERMISSION
+=========================== -->
+<div id="s-intermission" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(ellipse at 50% 40%,#1a2a50 0%,var(--bg) 70%);padding:24px;text-align:center;">
+    <div class="intermission-title">INTERMISSION</div>
+    <div class="swap-arrow">
+      <span class="swap-name">アリス</span>
+      <span class="arrow">⇄</span>
+      <span class="swap-name">ボブ</span>
+    </div>
+    <div class="intermission-swap">役割を交代します。<br>次のスカウトは <strong style="color:var(--gold);">ボブ</strong> です。</div>
+    <table class="score-mini-table">
+      <tr><td>アリス カミ合計</td><td>+24</td></tr>
+      <tr><td>アリス 手札枚数</td><td>12枚</td></tr>
+      <tr><td>ボブ カミ合計</td><td>+31</td></tr>
+      <tr><td>ボブ 手札枚数</td><td>13枚</td></tr>
+      <tr><td>セット残り</td><td>8枚</td></tr>
+    </table>
+    <button class="btn btn-primary" style="width:240px;"
+      onclick="goTo('s-pass',{player:'ボブ',phase:'スカウトフェーズ',desc:'アリス の手札から1枚引いてください。\n準備ができたら長押しで進んでください。',next:'s-scout'})">
+      次のターンへ
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     11. RESULT
+=========================== -->
+<div id="s-result" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(ellipse at 50% 40%,#1a2a50 0%,var(--bg) 70%);padding:24px;text-align:center;">
+    <div class="result-title">CURTAIN CALL</div>
+    <div class="result-winner">🏆 ボブ の勝利！</div>
+    <table class="result-table">
+      <thead>
+        <tr><th></th><th>アリス</th><th>ボブ</th></tr>
+      </thead>
+      <tbody>
+        <tr><td style="text-align:left;color:var(--muted)">カミ合計</td><td>+42</td><td>+38</td></tr>
+        <tr><td style="text-align:left;color:var(--muted)">手札合計</td><td>−15</td><td>−10</td></tr>
+        <tr class="penalty"><td style="text-align:left;">ブーイングペナルティ</td><td>−30</td><td>0</td></tr>
+        <tr class="total"><td style="text-align:left;">最終ポイント</td><td>-3</td><td>28</td></tr>
+      </tbody>
+    </table>
+    <div style="font-size:11px;color:var(--muted);">アリス：ブーイング 1回（不足 2回 × 15 = -30pt）</div>
+    <button class="btn btn-primary" style="width:200px;" onclick="goTo('s-title')">もう一度プレイ</button>
+  </div>
+</div>
+
+<!-- ===========================
+     INFO OVERLAY
+=========================== -->
+<div id="overlay-info">
+  <div style="flex:1;" onclick="closeInfo()"></div>
+  <div class="info-panel">
+    <div class="info-panel-header">
+      <h3>📊 ゲーム情報</h3>
+      <button class="info-close" onclick="closeInfo()">×</button>
+    </div>
+
+    <div class="info-section">
+      <h4>スコア（暫定）</h4>
+      <div class="score-compare">
+        <div class="score-col">
+          <div class="s-name">アリス</div>
+          <div class="s-total">24</div>
+          <div class="s-row"><span>カミ</span><span>+42</span></div>
+          <div class="s-row"><span>手札 12枚</span><span>−15</span></div>
+        </div>
+        <div style="width:1px;background:var(--border);"></div>
+        <div class="score-col">
+          <div class="s-name">ボブ</div>
+          <div class="s-total">28</div>
+          <div class="s-row"><span>カミ</span><span>+38</span></div>
+          <div class="s-row"><span>手札 13枚</span><span>−10</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h4>ブーイング回数（規定：各3回）</h4>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">アリス</div>
+          <div class="boo-bar">
+            <div class="boo-dot filled"></div>
+            <div class="boo-dot"></div>
+            <div class="boo-dot"></div>
+            <span style="font-size:11px;color:var(--muted);margin-left:4px;">1 / 3</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">ボブ</div>
+          <div class="boo-bar">
+            <div class="boo-dot filled"></div>
+            <div class="boo-dot filled"></div>
+            <div class="boo-dot"></div>
+            <span style="font-size:11px;color:var(--muted);margin-left:4px;">2 / 3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h4>セット</h4>
+      <div class="set-remaining">
+        <span style="font-size:13px;color:var(--muted);">裏向き残り</span>
+        <span class="count">9 枚</span>
+      </div>
+      <div class="section-label">開示済みカード</div>
+      <div class="card-row">
+        <div class="card card-face red" style="--card-w:40px;--card-h:58px;width:40px;height:58px;"><span class="c-suit" style="font-size:14px;">♦</span><span class="c-num" style="font-size:10px;">3</span></div>
+        <div class="card card-face" style="width:40px;height:58px;"><span class="c-suit" style="font-size:14px;">♠</span><span class="c-num" style="font-size:10px;">J</span></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h4>バックステージ（公開情報）</h4>
+      <div class="known-cards-list">
+        <div class="known-card-row">
+          <span>5</span>
+          <span class="loc">裏向きで残留（数字は既知）</span>
+        </div>
+        <div class="known-card-row">
+          <span>9</span>
+          <span class="loc">裏向きで残留（数字は既知）</span>
+        </div>
+        <div class="known-card-row" style="color:var(--muted);">
+          <span>残り 8枚</span>
+          <span class="loc">未公開</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h4>ステージ</h4>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">アリス のカミ</div>
+        <div class="card-row">
+          <div class="card card-face red" style="width:40px;height:58px;"><span class="c-suit" style="font-size:14px;">♥</span><span class="c-num" style="font-size:10px;">A</span></div>
+          <div class="card card-face red" style="width:40px;height:58px;"><span class="c-suit" style="font-size:14px;">♦</span><span class="c-num" style="font-size:10px;">8</span></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">ボブ のカミ</div>
+        <div class="card-row">
+          <div class="card card-face red" style="width:40px;height:58px;"><span class="c-suit" style="font-size:14px;">♥</span><span class="c-num" style="font-size:10px;">7</span></div>
+          <div class="card card-face" style="width:40px;height:58px;"><span class="c-suit" style="font-size:14px;">♠</span><span class="c-num" style="font-size:10px;">K</span></div>
+          <div class="card card-face" style="width:40px;height:58px;"><span class="c-suit" style="font-size:14px;">♣</span><span class="c-num" style="font-size:10px;">J</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===========================
+     MOCK NAV
+=========================== -->
+<div id="mock-nav">
+  <span>画面:</span>
+  <button onclick="goTo('s-title')"            id="n-s-title">タイトル</button>
+  <button onclick="goTo('s-standby')"          id="n-s-standby">スタンバイ</button>
+  <button onclick="goTo('s-pass',{})"          id="n-s-pass">受け渡し</button>
+  <button onclick="goTo('s-scout')"            id="n-s-scout">スカウト</button>
+  <button onclick="goTo('s-action')"           id="n-s-action">アクション</button>
+  <button onclick="goTo('s-watch')"            id="n-s-watch">ウォッチ</button>
+  <button onclick="goTo('s-spotlight-reveal')" id="n-s-spotlight-reveal">SPL開示</button>
+  <button onclick="goTo('s-spotlight-bonus')"  id="n-s-spotlight-bonus">SPLボーナス</button>
+  <button onclick="goTo('s-backstage')"        id="n-s-backstage">バックステージ</button>
+  <button onclick="goTo('s-intermission')"     id="n-s-intermission">インターミッション</button>
+  <button onclick="goTo('s-result')"           id="n-s-result">結果</button>
+</div>
+
+<script>
+  // ===========================
+  // NAVIGATION
+  // ===========================
+  let holdTimer = null;
+  let passNext  = null;
+
+  function goTo(id, ctx) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+
+    document.querySelectorAll('#mock-nav button').forEach(b => b.classList.remove('active'));
+    const nb = document.getElementById('n-' + id);
+    if (nb) nb.classList.add('active');
+
+    // Pass screen setup
+    if (id === 's-pass' && ctx) {
+      if (ctx.player) document.getElementById('pass-player').textContent = ctx.player;
+      if (ctx.desc)   document.getElementById('pass-sub').textContent = ctx.desc;
+      passNext = ctx.next || null;
+    }
+
+    // Scout: build grid
+    if (id === 's-scout') buildScoutGrid();
+    if (id === 's-backstage') resetBackstage();
+  }
+
+  function openInfo()  { document.getElementById('overlay-info').classList.add('open');  }
+  function closeInfo() { document.getElementById('overlay-info').classList.remove('open'); }
+
+  // ===========================
+  // HOLD BUTTON
+  // ===========================
+  function startHold(e) {
+    if (e) e.preventDefault();
+    const btn  = document.getElementById('hold-btn');
+    const fill = document.getElementById('hold-fill');
+    btn.classList.add('holding');
+    // Force reflow to restart transition
+    fill.style.transition = 'none';
+    fill.style.width = '0';
+    requestAnimationFrame(() => {
+      fill.style.transition = 'width 2s linear';
+      fill.style.width = '100%';
+    });
+    holdTimer = setTimeout(() => {
+      btn.classList.remove('holding');
+      fill.style.width = '0';
+      if (passNext) goTo(passNext);
+    }, 2000);
+  }
+
+  function cancelHold(e) {
+    if (e) e.preventDefault();
+    clearTimeout(holdTimer);
+    const btn  = document.getElementById('hold-btn');
+    const fill = document.getElementById('hold-fill');
+    btn.classList.remove('holding');
+    fill.style.transition = 'none';
+    fill.style.width = '0';
+  }
+
+  // ===========================
+  // SCOUT
+  // ===========================
+  function buildScoutGrid() {
+    const grid = document.getElementById('scout-grid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 15; i++) {
+      const wrap = document.createElement('div');
+      wrap.className = 'scout-card-wrap';
+      wrap.innerHTML = `<div class="card card-back" onclick="drawScout(this)"></div>`;
+      grid.appendChild(wrap);
+    }
+    document.getElementById('scout-drawn-msg').style.display = 'none';
+    document.getElementById('scout-next-btn').disabled = true;
+  }
+
+  function drawScout(el) {
+    if (!el.classList.contains('card-back')) return;
+    el.classList.remove('card-back');
+    el.classList.add('card-face', 'red');
+    el.innerHTML = '<span class="c-suit">♦</span><span class="c-num">8</span>';
+    el.style.pointerEvents = 'none';
+
+    document.querySelectorAll('#scout-grid .card-back').forEach(c => c.style.pointerEvents = 'none');
+    document.getElementById('scout-drawn-msg').style.display = 'block';
+    document.getElementById('scout-next-btn').disabled = false;
+  }
+
+  // ===========================
+  // ACTION
+  // ===========================
+  let actionState = { yakusha: null, kuroko: null };
+
+  function selectAction(el, _, suit, num, color) {
+    const allCards = document.querySelectorAll('#action-hand .card');
+
+    if (!actionState.yakusha) {
+      // 役者札選択
+      actionState.yakusha = el;
+      el.classList.add('selected');
+      const prev = document.getElementById('preview-yakusha');
+      prev.className = 'card card-face ' + color;
+      prev.innerHTML = `<span class="c-suit">${suit}</span><span class="c-num">${num}</span>`;
+    } else if (!actionState.kuroko && el !== actionState.yakusha) {
+      // 黒子札選択
+      actionState.kuroko = el;
+      el.classList.add('selected-shimo');
+      const prev = document.getElementById('preview-kuroko');
+      prev.className = 'card card-back';
+      prev.innerHTML = '';
+      document.getElementById('action-confirm-btn').disabled = false;
+    } else if (el === actionState.yakusha) {
+      // 役者札解除
+      el.classList.remove('selected');
+      actionState.yakusha = null;
+      document.getElementById('preview-yakusha').className = 'card card-empty';
+      document.getElementById('preview-yakusha').textContent = '＋';
+      // 黒子札もリセット
+      if (actionState.kuroko) {
+        actionState.kuroko.classList.remove('selected-shimo');
+        actionState.kuroko = null;
+        document.getElementById('preview-kuroko').className = 'card card-empty';
+        document.getElementById('preview-kuroko').textContent = '＋';
+      }
+      document.getElementById('action-confirm-btn').disabled = true;
+    } else if (el === actionState.kuroko) {
+      // 黒子札解除
+      el.classList.remove('selected-shimo');
+      actionState.kuroko = null;
+      document.getElementById('preview-kuroko').className = 'card card-empty';
+      document.getElementById('preview-kuroko').textContent = '＋';
+      document.getElementById('action-confirm-btn').disabled = true;
+    }
+  }
+
+  function resetAction() {
+    if (actionState.yakusha) actionState.yakusha.classList.remove('selected');
+    if (actionState.kuroko)  actionState.kuroko.classList.remove('selected-shimo');
+    actionState = { yakusha: null, kuroko: null };
+    const py = document.getElementById('preview-yakusha');
+    py.className = 'card card-empty'; py.textContent = '＋';
+    const pk = document.getElementById('preview-kuroko');
+    pk.className = 'card card-empty'; pk.textContent = '＋';
+    document.getElementById('action-confirm-btn').disabled = true;
+  }
+
+  // ===========================
+  // BACKSTAGE
+  // ===========================
+  let backstageSelected = 0;
+
+  function resetBackstage() {
+    backstageSelected = 0;
+    document.getElementById('backstage-count').textContent = '0 / 3 枚選択中';
+    document.getElementById('backstage-open-btn').disabled = true;
+    document.getElementById('backstage-fail-btn').disabled = true;
+    document.querySelectorAll('#backstage-grid .card').forEach(c => {
+      c.classList.remove('current');
+    });
+  }
+
+  function selectBackstage(el) {
+    if (el.classList.contains('current')) {
+      el.classList.remove('current');
+      backstageSelected--;
+    } else {
+      if (backstageSelected >= 3) return;
+      el.classList.add('current');
+      backstageSelected++;
+    }
+    document.getElementById('backstage-count').textContent = `${backstageSelected} / 3 枚選択中`;
+    const done = backstageSelected === 3;
+    document.getElementById('backstage-open-btn').disabled = !done;
+    document.getElementById('backstage-fail-btn').disabled = !done;
+  }
+
+  // ===========================
+  // INIT
+  // ===========================
+  goTo('s-title');
+</script>
+</body>
+</html>

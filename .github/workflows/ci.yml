@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check CI Enabled
+        id: check-ci
+        run: |
+          if [ -f "os-template.yml" ]; then
+            ENABLED=$(python3 -c '
+          import sys, re
+          for line in open("os-template.yml"):
+              m = re.match(r"^\s+ci:\s*(true|false)", line)
+              if m:
+                  print(m.group(1).lower())
+                  sys.exit(0)
+          print("true")')
+          else
+            ENABLED="true"
+          fi
+          echo "enabled=$ENABLED" >> $GITHUB_OUTPUT
+
+      - name: Install Python dependencies
+        if: steps.check-ci.outputs.enabled == 'true'
+        run: pip3 install pyyaml --break-system-packages
+
+      - name: Run Doctor
+        if: steps.check-ci.outputs.enabled == 'true'
+        run: ./os/scripts/run doctor
+
+      - name: Run CI
+        if: steps.check-ci.outputs.enabled == 'true'
+        run: ./os/scripts/run ci
