@@ -41,7 +41,7 @@ commands:
   typecheck: "npx tsc --noEmit"       # TypeScript strict mode チェック
   test: "npm run test"                # Vitest（jsdom 環境）
   build: "npm run build"              # Next.js ビルド
-  ci: ""                              # optional: 空なら run が lint → typecheck → test を順に実行
+  ci: "npm ci && npm run lint && npx tsc --noEmit && npm run test"  # 依存インストール込みのフルパイプライン
 
 # ---------------------------------------------------------------------------
 # features: 機能の ON/OFF
