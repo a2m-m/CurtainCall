@@ -37,9 +37,9 @@ runtime:
 # ---------------------------------------------------------------------------
 commands:
   format: ""                          # optional: Issue #2 で設定予定（Prettier）
-  lint: "echo 'skip'"                 # TODO: Issue #2 で ESLint を設定する
+  lint: "npx eslint ."                 # ESLint（next/core-web-vitals）
   typecheck: "npx tsc --noEmit"       # TypeScript strict mode チェック
-  test: "echo 'skip'"                 # TODO: Issue #2 で Vitest を設定する
+  test: "npx vitest run"              # Vitest（jsdom 環境）
   build: "npm run build"              # Next.js ビルド
   ci: ""                              # optional: 空なら run が lint → typecheck → test を順に実行
 
