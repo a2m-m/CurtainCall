@@ -13,5 +13,8 @@ out/
 # OS
 .DS_Store
 
+# TypeScript
+tsconfig.tsbuildinfo
+
 # editor
 .vscode/
