@@ -1,0 +1,36 @@
+.phaseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--surface, #16213e);
+  border-bottom: 1px solid var(--border, #1e2d50);
+  flex-shrink: 0;
+}
+
+.phaseName {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--muted, #7a8aaa);
+  margin-top: 2px;
+}
+
+.infoBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--border, #1e2d50);
+  border: none;
+  color: var(--text, #e0e6f0);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
