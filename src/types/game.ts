@@ -35,6 +35,8 @@ export type PublicInfo = {
   round: number;
 };
 
+export type CurtainCallReason = 'joker' | 'set-last-1' | 'hand-shortage';
+
 export type GameState = {
   phase: GamePhase;
   players: [Player, Player];
@@ -45,4 +47,5 @@ export type GameState = {
   playerABooCnt: number;
   playerBBooCnt: number;
   round: number;
+  curtainCallReason: CurtainCallReason | null;
 };
