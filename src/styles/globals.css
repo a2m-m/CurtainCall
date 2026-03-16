@@ -1,5 +1,21 @@
+:root {
+  --bg: #0f172a;
+  --surface: #16213e;
+  --border: #1e2d50;
+  --text: #e0e6f0;
+  --muted: #7a8aaa;
+  --gold: #f0c060;
+  --accent: #e63946;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
