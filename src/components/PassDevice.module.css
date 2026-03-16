@@ -1,0 +1,69 @@
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px;
+  text-align: center;
+  background: var(--bg, #0f172a);
+}
+
+.icon {
+  font-size: 56px;
+}
+
+.playerName {
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--gold, #f0c060);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--text, #e0e6f0);
+}
+
+.sub {
+  font-size: 13px;
+  color: var(--muted, #7a8aaa);
+  line-height: 1.7;
+}
+
+.holdWrap {
+  width: 100%;
+  max-width: 280px;
+}
+
+.holdBtn {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid var(--accent, #e63946);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text, #e0e6f0);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.holdFill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background: rgba(230, 57, 70, 0.25);
+  z-index: 0;
+}
+
+.holdText {
+  position: relative;
+  z-index: 1;
+}
