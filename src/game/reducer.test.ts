@@ -10,8 +10,8 @@ describe('gameReducer', () => {
       playerBName: 'Bob',
     });
 
-    it('phase が scout になる', () => {
-      expect(state.phase).toBe('scout');
+    it('phase が standby のまま（START_SCOUT 前）', () => {
+      expect(state.phase).toBe('standby');
     });
 
     it('プレイヤーAの手札が15枚になる', () => {
@@ -20,6 +20,10 @@ describe('gameReducer', () => {
 
     it('プレイヤーBの手札が15枚になる', () => {
       expect(state.players[1].hand).toHaveLength(15);
+    });
+
+    it('バックステージが10枚になる', () => {
+      expect(state.backstage).toHaveLength(10);
     });
 
     it('セット（deck）が13枚になる', () => {
@@ -44,14 +48,43 @@ describe('gameReducer', () => {
     });
   });
 
-  describe('SCOUT_CARD', () => {
-    let scoutState: GameState;
-    beforeEach(() => {
-      scoutState = gameReducer(initialState, {
+  describe('START_SCOUT', () => {
+    it('INIT_GAME 後に START_SCOUT で phase が scout になる', () => {
+      const afterInit = gameReducer(initialState, {
         type: 'INIT_GAME',
         playerAName: 'Alice',
         playerBName: 'Bob',
       });
+      const result = gameReducer(afterInit, { type: 'START_SCOUT' });
+      expect(result.phase).toBe('scout');
+    });
+
+    it('プレイヤー名が未設定の standby では START_SCOUT が無効', () => {
+      const result = gameReducer(initialState, { type: 'START_SCOUT' });
+      expect(result).toBe(initialState);
+    });
+
+    it('standby 以外のフェーズでは START_SCOUT が無効', () => {
+      const afterInit = gameReducer(initialState, {
+        type: 'INIT_GAME',
+        playerAName: 'Alice',
+        playerBName: 'Bob',
+      });
+      const scoutState = gameReducer(afterInit, { type: 'START_SCOUT' });
+      const result = gameReducer(scoutState, { type: 'START_SCOUT' });
+      expect(result).toBe(scoutState);
+    });
+  });
+
+  describe('SCOUT_CARD', () => {
+    let scoutState: GameState;
+    beforeEach(() => {
+      const afterInit = gameReducer(initialState, {
+        type: 'INIT_GAME',
+        playerAName: 'Alice',
+        playerBName: 'Bob',
+      });
+      scoutState = gameReducer(afterInit, { type: 'START_SCOUT' });
     });
 
     it('phase が action になる', () => {
@@ -83,7 +116,8 @@ describe('gameReducer', () => {
         playerAName: 'Alice',
         playerBName: 'Bob',
       });
-      const afterScout = gameReducer(afterInit, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const afterStart = gameReducer(afterInit, { type: 'START_SCOUT' });
+      const afterScout = gameReducer(afterStart, { type: 'SCOUT_CARD', cardIndex: 0 });
       const result = gameReducer(afterScout, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
       expect(result.phase).toBe('watch');
     });
@@ -94,7 +128,8 @@ describe('gameReducer', () => {
         playerAName: 'Alice',
         playerBName: 'Bob',
       });
-      const afterScout = gameReducer(afterInit, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const afterStart = gameReducer(afterInit, { type: 'START_SCOUT' });
+      const afterScout = gameReducer(afterStart, { type: 'SCOUT_CARD', cardIndex: 0 });
       const kami = afterScout.players[0].hand[0];
       const shimo = afterScout.players[0].hand[1];
       const result = gameReducer(afterScout, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
@@ -107,8 +142,9 @@ describe('gameReducer', () => {
     let watchState: GameState;
     beforeEach(() => {
       const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
-      const s2 = gameReducer(s1, { type: 'SCOUT_CARD', cardIndex: 0 });
-      watchState = gameReducer(s2, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      watchState = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
     });
 
     it('WATCH_CLAP で phase が intermission になる', () => {
@@ -132,7 +168,8 @@ describe('gameReducer', () => {
         playerAName: 'Alice',
         playerBName: 'Bob',
       });
-      const result = gameReducer(afterInit, { type: 'RESET_GAME' });
+      const afterStart = gameReducer(afterInit, { type: 'START_SCOUT' });
+      const result = gameReducer(afterStart, { type: 'RESET_GAME' });
       expect(result.phase).toBe('standby');
     });
 
@@ -142,7 +179,8 @@ describe('gameReducer', () => {
         playerAName: 'Alice',
         playerBName: 'Bob',
       });
-      const result = gameReducer(afterInit, { type: 'RESET_GAME' });
+      const afterStart = gameReducer(afterInit, { type: 'START_SCOUT' });
+      const result = gameReducer(afterStart, { type: 'RESET_GAME' });
       expect(result).toEqual(initialState);
     });
   });
