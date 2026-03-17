@@ -1,0 +1,75 @@
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 32px;
+  background: var(--bg, #0f172a);
+}
+
+.heading {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--gold, #f0c060);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--muted, #7a8aaa);
+}
+
+.input {
+  padding: 12px 14px;
+  border: 1.5px solid var(--border, #2a3a5a);
+  border-radius: 8px;
+  background: var(--surface, #1e293b);
+  color: var(--text, #e0e6f0);
+  font-size: 16px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--gold, #f0c060);
+}
+
+.error {
+  font-size: 12px;
+  color: var(--accent, #e63946);
+  margin: 0;
+}
+
+.startBtn {
+  margin-top: 8px;
+  padding: 14px;
+  border: 2px solid var(--gold, #f0c060);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--gold, #f0c060);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.startBtn:active {
+  background: rgba(240, 192, 96, 0.12);
+}
