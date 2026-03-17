@@ -11,6 +11,7 @@ const baseState: GameState = {
   ],
   stage: { kami: null, shimo: null },
   deck: [],
+  backstage: [],
   setRemainingCount: 9,
   publicInfos: [],
   playerABooCnt: 1,
