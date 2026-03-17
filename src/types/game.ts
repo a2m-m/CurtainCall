@@ -42,6 +42,7 @@ export type GameState = {
   players: [Player, Player];
   stage: Stage;
   deck: Card[];
+  backstage: Card[];
   setRemainingCount: number; // 裏向きカード数（セット残枚数）
   publicInfos: PublicInfo[];
   playerABooCnt: number;

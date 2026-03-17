@@ -3,6 +3,7 @@ import { createDeck, createDeckWithJoker, deal, shuffle } from '@/lib/deck';
 
 export type GameAction =
   | { type: 'INIT_GAME'; playerAName: string; playerBName: string }
+  | { type: 'START_SCOUT' }
   | { type: 'SCOUT_CARD'; cardIndex: number }
   | { type: 'ACTION_PLAY'; kamiIndex: number; shimoIndex: number }
   | { type: 'WATCH_CLAP' }
@@ -23,6 +24,7 @@ export const initialState: GameState = {
   ],
   stage: { kami: null, shimo: null },
   deck: [],
+  backstage: [],
   setRemainingCount: 0,
   publicInfos: [],
   playerABooCnt: 0,
@@ -43,8 +45,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const dealt = deal(shuffled52, [15, 15, 10]);
       const handA: Card[] = dealt[0];
       const handB: Card[] = dealt[1];
-      // バックステージ(backstage)は後続Issueで利用
-      // dealt[2] = backstage（10枚）は GameState に未定義のため使用しない
+      const backstage: Card[] = dealt[2];
       // 残り12枚 + Joker1枚 = 13枚をシャッフルしてセットに
       const remaining12 = shuffled52.slice(40);
       const joker = createDeckWithJoker().slice(52)[0];
@@ -56,12 +57,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       return {
         ...initialState,
-        phase: 'scout',
+        phase: 'standby',
         players,
         deck: setDeck,
+        backstage,
         setRemainingCount: setDeck.length,
         round: 1,
       };
+    }
+
+    case 'START_SCOUT': {
+      if (state.phase !== 'standby') return state;
+      if (state.players[0].name === '') return state;
+      return { ...state, phase: 'scout' };
     }
 
     case 'SCOUT_CARD': {
