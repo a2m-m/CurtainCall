@@ -192,6 +192,107 @@ describe('gameReducer', () => {
     });
   });
 
+  describe('SPOTLIGHT_ENTER_BONUS', () => {
+    let spotlightState: GameState;
+    beforeEach(() => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
+      spotlightState = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
+    });
+
+    it('spotlight → spotlight-bonus に遷移する', () => {
+      const result = gameReducer(spotlightState, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      expect(result.phase).toBe('spotlight-bonus');
+    });
+
+    it('spotlight 以外では無効', () => {
+      const result = gameReducer(initialState, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      expect(result).toBe(initialState);
+    });
+  });
+
+  describe('SPOTLIGHT_OPEN_SET', () => {
+    let bonusState: GameState;
+    beforeEach(() => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
+      const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
+      bonusState = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+    });
+
+    it('spotlight-bonus 以外では無効', () => {
+      const result = gameReducer(initialState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+      expect(result).toBe(initialState);
+    });
+
+    it('ジョーカーを開いたとき curtain-call に遷移する', () => {
+      const jokerIndex = bonusState.deck.findIndex((c) => c.isJoker);
+      if (jokerIndex === -1) return; // jokerがない場合はスキップ
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: jokerIndex });
+      expect(result.phase).toBe('curtain-call');
+      expect(result.curtainCallReason).toBe('joker');
+    });
+
+    it('setRemainingCount が減少する', () => {
+      const nonJokerIndex = bonusState.deck.findIndex((c) => !c.isJoker);
+      if (nonJokerIndex === -1) return;
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: nonJokerIndex });
+      expect(result.setRemainingCount).toBe(bonusState.setRemainingCount - 1);
+    });
+
+    it('ペア成立時に intermission へ遷移する', () => {
+      // 手札に同じrankのカードがあるsetカードを探す
+      const playerAHand = bonusState.players[0].hand;
+      const pairableSetIndex = bonusState.deck.findIndex(
+        (sc) => !sc.isJoker && playerAHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
+      );
+      if (pairableSetIndex === -1) return; // ペアなし状態ではスキップ
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: pairableSetIndex });
+      expect(result.phase).toBe('intermission');
+    });
+
+    it('ペア成立時に手札が1枚減る', () => {
+      const playerAHand = bonusState.players[0].hand;
+      const pairableSetIndex = bonusState.deck.findIndex(
+        (sc) => !sc.isJoker && playerAHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
+      );
+      if (pairableSetIndex === -1) return;
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: pairableSetIndex });
+      expect(result.players[0].hand).toHaveLength(playerAHand.length - 1);
+    });
+
+    it('ペア不成立時に backstage へ遷移する', () => {
+      // 手札にないrankのsetカードを探す
+      const playerAHand = bonusState.players[0].hand;
+      const noPairSetIndex = bonusState.deck.findIndex(
+        (sc) => !sc.isJoker && !playerAHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
+      );
+      if (noPairSetIndex === -1) return;
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      expect(result.phase).toBe('backstage');
+    });
+  });
+
+  describe('SPOTLIGHT_SKIP_SET（spotlight-bonus フェーズ）', () => {
+    it('spotlight-bonus → backstage に遷移する', () => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
+      const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
+      const bonusState = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_SKIP_SET' });
+      expect(result.phase).toBe('backstage');
+    });
+  });
+
   describe('RESET_GAME', () => {
     it('phase が standby に戻る', () => {
       const afterInit = gameReducer(initialState, {
