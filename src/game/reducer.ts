@@ -9,6 +9,7 @@ export type GameAction =
   | { type: 'WATCH_CLAP' }
   | { type: 'WATCH_BOO' }
   | { type: 'SPOTLIGHT_REVEAL' }
+  | { type: 'SPOTLIGHT_ENTER_BONUS' }
   | { type: 'SPOTLIGHT_OPEN_SET'; setCardIndex: number }
   | { type: 'SPOTLIGHT_SKIP_SET' }
   | { type: 'BACKSTAGE_OPEN' }
@@ -138,8 +139,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, stage: { ...state.stage, shimo: revealedShimo } };
     }
 
-    case 'SPOTLIGHT_OPEN_SET': {
+    case 'SPOTLIGHT_ENTER_BONUS': {
       if (state.phase !== 'spotlight') return state;
+      return { ...state, phase: 'spotlight-bonus' };
+    }
+
+    case 'SPOTLIGHT_OPEN_SET': {
+      if (state.phase !== 'spotlight-bonus') return state;
       const setCard = state.deck[action.setCardIndex];
       if (setCard === undefined) return state;
 
@@ -167,7 +173,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
-      // ペア判定などの詳細ロジックは後続Issueで実装
+      // ペア判定: 手札に同数字があるか
+      const playerAHand = state.players[0].hand;
+      const pairCardIndex = playerAHand.findIndex((c) => !c.isJoker && c.rank === openedCard.rank);
+      if (pairCardIndex !== -1) {
+        const pairCard = playerAHand[pairCardIndex];
+        const newHandA = removeCardAt(playerAHand, pairCardIndex);
+        const newPlayerA: Player = { ...state.players[0], hand: newHandA };
+        const players: [Player, Player] = [newPlayerA, state.players[1]];
+        return {
+          ...state,
+          deck: newDeck,
+          setRemainingCount: newSetRemainingCount,
+          stage: { kami: { ...openedCard }, shimo: { ...pairCard, isFaceUp: true } },
+          players,
+          phase: 'intermission',
+        };
+      }
+
       return {
         ...state,
         deck: newDeck,
@@ -177,7 +200,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'SPOTLIGHT_SKIP_SET': {
-      if (state.phase !== 'spotlight') return state;
+      if (state.phase !== 'spotlight' && state.phase !== 'spotlight-bonus') return state;
       return { ...state, phase: 'backstage' };
     }
 

@@ -43,7 +43,7 @@ export default function SpotlightRevealScreen() {
           <div className={styles.actions}>
             <button
               className={styles.openSetBtn}
-              onClick={() => dispatch({ type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 })}
+              onClick={() => dispatch({ type: 'SPOTLIGHT_ENTER_BONUS' })}
             >
               セットを開く
             </button>
@@ -64,7 +64,7 @@ export default function SpotlightRevealScreen() {
           <div className={styles.actions}>
             <button
               className={styles.openSetBtn}
-              onClick={() => dispatch({ type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 })}
+              onClick={() => dispatch({ type: 'SPOTLIGHT_ENTER_BONUS' })}
             >
               セットを開く
             </button>
