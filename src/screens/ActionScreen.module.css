@@ -1,0 +1,81 @@
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 16px;
+  background: var(--bg, #0f172a);
+}
+
+.heading {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--gold, #f0c060);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.sub {
+  font-size: 13px;
+  color: var(--muted, #7a8aaa);
+  margin: 0;
+  text-align: center;
+}
+
+.preview {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.previewSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.slotLabel {
+  font-size: 11px;
+  color: var(--muted, #7a8aaa);
+  letter-spacing: 0.05em;
+}
+
+.emptySlot {
+  width: 56px;
+  height: 80px;
+  border: 1px dashed var(--muted, #7a8aaa);
+  border-radius: 8px;
+  opacity: 0.4;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.confirmBtn {
+  padding: 14px 40px;
+  border: 2px solid var(--gold, #f0c060);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--gold, #f0c060);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.confirmBtn:disabled {
+  border-color: var(--muted, #7a8aaa);
+  color: var(--muted, #7a8aaa);
+  cursor: not-allowed;
+}
+
+.confirmBtn:not(:disabled):active {
+  background: rgba(240, 192, 96, 0.12);
+}
