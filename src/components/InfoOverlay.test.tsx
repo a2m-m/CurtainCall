@@ -18,6 +18,9 @@ const baseState: GameState = {
   playerBBooCnt: 2,
   round: 1,
   curtainCallReason: null,
+  spotlightCard: null,
+  backstageRevealedCards: [],
+  backstageResult: null,
 };
 
 describe('InfoOverlay', () => {

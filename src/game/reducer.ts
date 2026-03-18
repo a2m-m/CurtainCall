@@ -1,4 +1,4 @@
-import type { Card, CurtainCallReason, GamePhase, GameState, Player } from '@/types/game';
+import type { Card, CurtainCallReason, GamePhase, GameState, Player, PublicInfo, Stage } from '@/types/game';
 import { createDeck, createDeckWithJoker, deal, shuffle } from '@/lib/deck';
 
 export type GameAction =
@@ -12,7 +12,9 @@ export type GameAction =
   | { type: 'SPOTLIGHT_ENTER_BONUS' }
   | { type: 'SPOTLIGHT_OPEN_SET'; setCardIndex: number }
   | { type: 'SPOTLIGHT_SKIP_SET' }
-  | { type: 'BACKSTAGE_OPEN' }
+  | { type: 'BACKSTAGE_OPEN'; cardIndices: [number, number, number] }
+  | { type: 'BACKSTAGE_PROCEED' }
+  | { type: 'BACKSTAGE_TAKE_HAND'; cardIndex: number }
   | { type: 'INTERMISSION' }
   | { type: 'CURTAIN_CALL'; reason: CurtainCallReason }
   | { type: 'RESET_GAME' };
@@ -32,6 +34,9 @@ export const initialState: GameState = {
   playerBBooCnt: 0,
   round: 0,
   curtainCallReason: null,
+  spotlightCard: null,
+  backstageRevealedCards: [],
+  backstageResult: null,
 };
 
 function removeCardAt(cards: Card[], index: number): Card[] {
@@ -195,6 +200,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         deck: newDeck,
         setRemainingCount: newSetRemainingCount,
+        spotlightCard: openedCard,
         phase: 'backstage',
       };
     }
@@ -206,7 +212,82 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'BACKSTAGE_OPEN': {
       if (state.phase !== 'backstage') return state;
-      return { ...state, phase: 'intermission' };
+      const { cardIndices } = action;
+      if (new Set(cardIndices).size !== 3) return state;
+      if (cardIndices.some((i) => i < 0 || i >= state.backstage.length)) return state;
+
+      const selectedCards = cardIndices.map((i) => state.backstage[i]) as [Card, Card, Card];
+
+      const newPublicInfos: PublicInfo[] = [
+        ...state.publicInfos,
+        ...selectedCards.map((c) => ({ playerId: state.players[0].id, card: c, round: state.round })),
+      ];
+
+      const spotlightCard = state.spotlightCard;
+      const matchLocalIndex =
+        spotlightCard !== null
+          ? selectedCards.findIndex((c) => !c.isJoker && !spotlightCard.isJoker && c.rank === spotlightCard.rank)
+          : -1;
+
+      if (matchLocalIndex !== -1) {
+        const matchedBackstageIndex = cardIndices[matchLocalIndex];
+        const matchedCard = selectedCards[matchLocalIndex];
+        const newBackstage = removeCardAt(state.backstage, matchedBackstageIndex);
+        const stage: Stage = {
+          kami: { ...spotlightCard!, isFaceUp: true },
+          shimo: { ...matchedCard, isFaceUp: true },
+        };
+        return {
+          ...state,
+          backstage: newBackstage,
+          publicInfos: newPublicInfos,
+          stage,
+          backstageRevealedCards: selectedCards,
+          backstageResult: 'match',
+          phase: 'backstage-result',
+        };
+      }
+
+      return {
+        ...state,
+        publicInfos: newPublicInfos,
+        backstageRevealedCards: selectedCards,
+        backstageResult: 'no-match',
+        phase: 'backstage-result',
+      };
+    }
+
+    case 'BACKSTAGE_PROCEED': {
+      if (state.phase !== 'backstage-result' && state.phase !== 'backstage') return state;
+      return {
+        ...state,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        phase: 'intermission',
+      };
+    }
+
+    case 'BACKSTAGE_TAKE_HAND': {
+      if (state.phase !== 'backstage-result') return state;
+      if (state.backstageResult !== 'no-match') return state;
+      const card = state.backstage[action.cardIndex];
+      if (card === undefined) return state;
+      const newBackstage = removeCardAt(state.backstage, action.cardIndex);
+      const newPlayerA: Player = {
+        ...state.players[0],
+        hand: [...state.players[0].hand, card],
+      };
+      const players: [Player, Player] = [newPlayerA, state.players[1]];
+      return {
+        ...state,
+        backstage: newBackstage,
+        players,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        phase: 'intermission',
+      };
     }
 
     case 'INTERMISSION': {

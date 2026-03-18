@@ -1,0 +1,109 @@
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 40px 16px;
+  background: var(--bg, #0f172a);
+}
+
+.heading {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--accent, #60a5fa);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--muted, #7a8aaa);
+  margin: 0;
+  text-align: center;
+}
+
+.instruction {
+  font-size: 14px;
+  color: var(--muted, #7a8aaa);
+  margin: 0;
+}
+
+.spotlightCardArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 360px;
+}
+
+.cardRow {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.revealed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.resultMatch {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--gold, #f0c060);
+  margin: 0;
+}
+
+.resultNoMatch {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--danger, #f87171);
+  margin: 0;
+}
+
+.judgeBtn {
+  padding: 12px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  background: var(--accent, #60a5fa);
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.judgeBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.judgeBtn:active:not(:disabled) {
+  opacity: 0.8;
+}
+
+.proceedBtn {
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  border: 2px solid var(--accent, #60a5fa);
+  background: transparent;
+  color: var(--accent, #60a5fa);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.proceedBtn:active {
+  background: rgba(96, 165, 250, 0.12);
+}

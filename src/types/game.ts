@@ -26,6 +26,7 @@ export type GamePhase =
   | 'spotlight'
   | 'spotlight-bonus'
   | 'backstage'
+  | 'backstage-result'
   | 'intermission'
   | 'curtain-call'
   | 'result';
@@ -37,6 +38,8 @@ export type PublicInfo = {
 };
 
 export type CurtainCallReason = 'joker' | 'set-last-1' | 'hand-shortage';
+
+export type BackstageResult = 'match' | 'no-match';
 
 export type GameState = {
   phase: GamePhase;
@@ -50,4 +53,7 @@ export type GameState = {
   playerBBooCnt: number;
   round: number;
   curtainCallReason: CurtainCallReason | null;
+  spotlightCard: Card | null;
+  backstageRevealedCards: Card[];
+  backstageResult: BackstageResult | null;
 };
