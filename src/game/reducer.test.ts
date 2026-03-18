@@ -161,6 +161,37 @@ describe('gameReducer', () => {
     });
   });
 
+  describe('SPOTLIGHT_REVEAL', () => {
+    let spotlightState: GameState;
+    beforeEach(() => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      spotlightState = gameReducer(s4, { type: 'WATCH_BOO' });
+    });
+
+    it('shimo が表向きになる', () => {
+      const result = gameReducer(spotlightState, { type: 'SPOTLIGHT_REVEAL' });
+      expect(result.stage.shimo?.isFaceUp).toBe(true);
+    });
+
+    it('phase が spotlight のまま', () => {
+      const result = gameReducer(spotlightState, { type: 'SPOTLIGHT_REVEAL' });
+      expect(result.phase).toBe('spotlight');
+    });
+
+    it('kami は変化しない', () => {
+      const result = gameReducer(spotlightState, { type: 'SPOTLIGHT_REVEAL' });
+      expect(result.stage.kami).toEqual(spotlightState.stage.kami);
+    });
+
+    it('spotlight 以外のフェーズでは SPOTLIGHT_REVEAL が無効', () => {
+      const result = gameReducer(initialState, { type: 'SPOTLIGHT_REVEAL' });
+      expect(result).toBe(initialState);
+    });
+  });
+
   describe('RESET_GAME', () => {
     it('phase が standby に戻る', () => {
       const afterInit = gameReducer(initialState, {
