@@ -34,6 +34,7 @@ export const initialState: GameState = {
   playerBBooCnt: 0,
   round: 0,
   curtainCallReason: null,
+  booResult: null,
   spotlightCard: null,
   backstageRevealedCards: [],
   backstageResult: null,

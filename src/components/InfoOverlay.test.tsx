@@ -18,6 +18,7 @@ const baseState: GameState = {
   playerBBooCnt: 2,
   round: 1,
   curtainCallReason: null,
+  booResult: null,
   spotlightCard: null,
   backstageRevealedCards: [],
   backstageResult: null,
