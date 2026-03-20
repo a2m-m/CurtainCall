@@ -132,7 +132,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         phase: 'spotlight',
-        playerABooCnt: isPlayerA ? state.playerABooCnt : state.playerABooCnt,
+        playerABooCnt: isPlayerA ? state.playerABooCnt : state.playerABooCnt + 1,
         playerBBooCnt: isPlayerA ? state.playerBBooCnt + 1 : state.playerBBooCnt,
       };
     }
