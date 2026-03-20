@@ -31,38 +31,38 @@ const baseState: GameState = {
 
 describe('calculateScore', () => {
   describe('カミ合計', () => {
-    it('stage.kami が null の場合は 0', () => {
-      const result = calculateScore({ ...baseState, stage: { kami: null, shimo: null } }, 'A');
+    it('playerAKami が空の場合は 0', () => {
+      const result = calculateScore({ ...baseState, playerAKami: [] }, 'A');
       expect(result.kamiTotal).toBe(0);
     });
 
     it('数字カードはランク値をそのまま使う（5 → 5）', () => {
-      const state: GameState = { ...baseState, stage: { kami: { ...makeCard(5), isFaceUp: true }, shimo: null } };
+      const state: GameState = { ...baseState, playerAKami: [makeCard(5)] };
       expect(calculateScore(state, 'A').kamiTotal).toBe(5);
     });
 
     it('A は 1', () => {
-      const state: GameState = { ...baseState, stage: { kami: { ...makeCard(1), isFaceUp: true }, shimo: null } };
+      const state: GameState = { ...baseState, playerAKami: [makeCard(1)] };
       expect(calculateScore(state, 'A').kamiTotal).toBe(1);
     });
 
     it('J は 11', () => {
-      const state: GameState = { ...baseState, stage: { kami: { ...makeCard(11), isFaceUp: true }, shimo: null } };
+      const state: GameState = { ...baseState, playerAKami: [makeCard(11)] };
       expect(calculateScore(state, 'A').kamiTotal).toBe(11);
     });
 
     it('Q は 12', () => {
-      const state: GameState = { ...baseState, stage: { kami: { ...makeCard(12), isFaceUp: true }, shimo: null } };
+      const state: GameState = { ...baseState, playerAKami: [makeCard(12)] };
       expect(calculateScore(state, 'A').kamiTotal).toBe(12);
     });
 
     it('K は 13', () => {
-      const state: GameState = { ...baseState, stage: { kami: { ...makeCard(13), isFaceUp: true }, shimo: null } };
+      const state: GameState = { ...baseState, playerAKami: [makeCard(13)] };
       expect(calculateScore(state, 'A').kamiTotal).toBe(13);
     });
 
     it('Joker は 0', () => {
-      const state: GameState = { ...baseState, stage: { kami: { ...makeCard(0, true), isFaceUp: true }, shimo: null } };
+      const state: GameState = { ...baseState, playerAKami: [makeCard(0, true)] };
       expect(calculateScore(state, 'A').kamiTotal).toBe(0);
     });
   });
@@ -138,7 +138,7 @@ describe('calculateScore', () => {
     it('カミ合計 - 手札合計 - ペナルティ の計算が正しい', () => {
       const state: GameState = {
         ...baseState,
-        stage: { kami: { ...makeCard(10), isFaceUp: true }, shimo: null },
+        playerAKami: [makeCard(10)],
         players: [
           { id: 'A', name: 'A', hand: [makeCard(3), makeCard(2)] }, // hand=5
           { id: 'B', name: 'B', hand: [] },
@@ -156,7 +156,7 @@ describe('calculateScore', () => {
     it('ペナルティなしの場合のトータル計算', () => {
       const state: GameState = {
         ...baseState,
-        stage: { kami: { ...makeCard(8), isFaceUp: true }, shimo: null },
+        playerAKami: [makeCard(8)],
         players: [
           { id: 'A', name: 'A', hand: [makeCard(3)] }, // hand=3
           { id: 'B', name: 'B', hand: [] },

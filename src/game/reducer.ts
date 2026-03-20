@@ -47,6 +47,13 @@ function removeCardAt(cards: Card[], index: number): Card[] {
   return [...cards.slice(0, index), ...cards.slice(index + 1)];
 }
 
+function addKamiToPlayer(state: GameState, playerId: string, card: Card): GameState {
+  if (playerId === 'A') {
+    return { ...state, playerAKami: [...state.playerAKami, card] };
+  }
+  return { ...state, playerBKami: [...state.playerBKami, card] };
+}
+
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'INIT_GAME': {
@@ -127,7 +134,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'WATCH_CLAP': {
       if (state.phase !== 'watch') return state;
-      return { ...state, phase: 'intermission' };
+      const actorId = state.players[0].id;
+      const kamiCard = state.stage.kami;
+      const nextState = { ...state, phase: 'intermission' as const };
+      return kamiCard ? addKamiToPlayer(nextState, actorId, kamiCard) : nextState;
     }
 
     case 'WATCH_BOO': {
@@ -145,8 +155,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.phase !== 'spotlight') return state;
       if (state.stage.shimo === null || state.stage.kami === null) return state;
       const revealedShimo: Card = { ...state.stage.shimo, isFaceUp: true };
-      const booResult = state.stage.kami.rank !== state.stage.shimo.rank ? 'correct' : 'incorrect';
-      return { ...state, stage: { ...state.stage, shimo: revealedShimo }, booResult };
+      const booResult: 'correct' | 'incorrect' =
+        state.stage.kami.rank !== state.stage.shimo.rank ? 'correct' : 'incorrect';
+      // ブーイング正解: watcher(players[1])がカミを獲得、不正解: actor(players[0])が保持
+      const winnerId = booResult === 'correct' ? state.players[1].id : state.players[0].id;
+      const nextState = { ...state, stage: { ...state.stage, shimo: revealedShimo }, booResult };
+      return addKamiToPlayer(nextState, winnerId, state.stage.kami);
     }
 
     case 'SPOTLIGHT_ENTER_BONUS': {
@@ -195,14 +209,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const players: [Player, Player] = booCorrect
           ? [state.players[0], newPairingPlayer]
           : [newPairingPlayer, state.players[1]];
-        return {
+        // ペア成立: セットカード(kami)を勝者のカミ配列に追加
+        const winnerId = booCorrect ? state.players[1].id : state.players[0].id;
+        const pairState = {
           ...state,
           deck: newDeck,
           setRemainingCount: newSetRemainingCount,
           stage: { kami: { ...openedCard }, shimo: { ...pairCard, isFaceUp: true } },
           players,
-          phase: 'intermission',
+          phase: 'intermission' as const,
         };
+        return addKamiToPlayer(pairState, winnerId, openedCard);
       }
 
       return {
@@ -248,15 +265,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           kami: { ...spotlightCard!, isFaceUp: true },
           shimo: { ...matchedCard, isFaceUp: true },
         };
-        return {
+        // ペア成立: spotlightCard を行動プレイヤー(players[0])のカミ配列に追加
+        const backstagePlayerId = state.players[0].id;
+        const matchState = {
           ...state,
           backstage: newBackstage,
           publicInfos: newPublicInfos,
           stage,
           backstageRevealedCards: selectedCards,
-          backstageResult: 'match',
-          phase: 'backstage-result',
+          backstageResult: 'match' as const,
+          phase: 'backstage-result' as const,
         };
+        return addKamiToPlayer(matchState, backstagePlayerId, spotlightCard!);
       }
 
       return {
