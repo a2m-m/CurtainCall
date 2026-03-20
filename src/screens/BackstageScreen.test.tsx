@@ -42,9 +42,10 @@ function BackstageWrapper() {
   }
   if (state.phase === 'spotlight-bonus') {
     // ペア不成立のセットカードを探してクリック → backstage へ
-    const playerAHand = state.players[0].hand;
+    // boo 正解時は watcher(players[1])、不正解時は actor(players[0])の手札でペア判定
+    const pairingHand = state.booResult === 'correct' ? state.players[1].hand : state.players[0].hand;
     const noPairSetIndex = state.deck.findIndex(
-      (sc) => !sc.isJoker && !playerAHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
+      (sc) => !sc.isJoker && !pairingHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
     );
     if (noPairSetIndex === -1) {
       return <div data-testid="skip">no-pair-card-not-found</div>;

@@ -140,9 +140,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SPOTLIGHT_REVEAL': {
       if (state.phase !== 'spotlight') return state;
-      if (state.stage.shimo === null) return state;
+      if (state.stage.shimo === null || state.stage.kami === null) return state;
       const revealedShimo: Card = { ...state.stage.shimo, isFaceUp: true };
-      return { ...state, stage: { ...state.stage, shimo: revealedShimo } };
+      const booResult = state.stage.kami.rank !== state.stage.shimo.rank ? 'correct' : 'incorrect';
+      return { ...state, stage: { ...state.stage, shimo: revealedShimo }, booResult };
     }
 
     case 'SPOTLIGHT_ENTER_BONUS': {
@@ -179,14 +180,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
-      // ペア判定: 手札に同数字があるか
-      const playerAHand = state.players[0].hand;
-      const pairCardIndex = playerAHand.findIndex((c) => !c.isJoker && c.rank === openedCard.rank);
+      // ペア判定: boo 正解時は watcher(players[1])、不正解時は actor(players[0])の手札を使う
+      const booCorrect = state.booResult === 'correct';
+      const pairingPlayer = booCorrect ? state.players[1] : state.players[0];
+      const pairingHand = pairingPlayer.hand;
+      const pairCardIndex = pairingHand.findIndex((c) => !c.isJoker && c.rank === openedCard.rank);
       if (pairCardIndex !== -1) {
-        const pairCard = playerAHand[pairCardIndex];
-        const newHandA = removeCardAt(playerAHand, pairCardIndex);
-        const newPlayerA: Player = { ...state.players[0], hand: newHandA };
-        const players: [Player, Player] = [newPlayerA, state.players[1]];
+        const pairCard = pairingHand[pairCardIndex];
+        const newHand = removeCardAt(pairingHand, pairCardIndex);
+        const newPairingPlayer: Player = { ...pairingPlayer, hand: newHand };
+        const players: [Player, Player] = booCorrect
+          ? [state.players[0], newPairingPlayer]
+          : [newPairingPlayer, state.players[1]];
         return {
           ...state,
           deck: newDeck,
