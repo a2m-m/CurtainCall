@@ -421,6 +421,68 @@ describe('gameReducer', () => {
     });
   });
 
+  describe('INTERMISSION', () => {
+    // intermission フェーズに到達するベース状態を構築（WATCH_CLAP 経由）
+    function buildIntermissionState() {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      return gameReducer(s4, { type: 'WATCH_CLAP' });
+    }
+
+    it('通常継続時に scout フェーズへ遷移する', () => {
+      const intermissionState = buildIntermissionState();
+      const result = gameReducer(intermissionState, { type: 'INTERMISSION' });
+      expect(result.phase).toBe('scout');
+    });
+
+    it('通常継続時に round が +1 される', () => {
+      const intermissionState = buildIntermissionState();
+      const result = gameReducer(intermissionState, { type: 'INTERMISSION' });
+      expect(result.round).toBe(intermissionState.round + 1);
+    });
+
+    it('通常継続時にプレイヤーが入れ替わる', () => {
+      const intermissionState = buildIntermissionState();
+      const prevScoutId = intermissionState.players[0].id;
+      const result = gameReducer(intermissionState, { type: 'INTERMISSION' });
+      expect(result.players[0].id).not.toBe(prevScoutId);
+    });
+
+    it('次スカウト担当の手札が0枚のとき curtain-call に遷移する', () => {
+      const base = buildIntermissionState();
+      // players[1] が次スカウト（round=1 の場合 nextScoutIsA=false → players[1] を参照）
+      const stateWithEmptyHand = {
+        ...base,
+        players: [base.players[0], { ...base.players[1], hand: [] }] as typeof base.players,
+      };
+      const result = gameReducer(stateWithEmptyHand, { type: 'INTERMISSION' });
+      expect(result.phase).toBe('curtain-call');
+      expect(result.curtainCallReason).toBe('hand-shortage');
+    });
+
+    it('次スカウト担当が1枚かつ相手が0枚のとき curtain-call に遷移する', () => {
+      const base = buildIntermissionState();
+      const oneCard = [base.players[1].hand[0]];
+      const stateWith1And0 = {
+        ...base,
+        players: [
+          { ...base.players[0], hand: [] },
+          { ...base.players[1], hand: oneCard },
+        ] as typeof base.players,
+      };
+      const result = gameReducer(stateWith1And0, { type: 'INTERMISSION' });
+      expect(result.phase).toBe('curtain-call');
+      expect(result.curtainCallReason).toBe('hand-shortage');
+    });
+
+    it('intermission 以外のフェーズでは INTERMISSION が無効', () => {
+      const result = gameReducer(initialState, { type: 'INTERMISSION' });
+      expect(result).toBe(initialState);
+    });
+  });
+
   describe('RESET_GAME', () => {
     it('phase が standby に戻る', () => {
       const afterInit = gameReducer(initialState, {
