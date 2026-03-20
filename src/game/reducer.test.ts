@@ -590,6 +590,37 @@ describe('gameReducer', () => {
       expect(result.curtainCallReason).toBe('hand-shortage');
     });
 
+    it('偶数ラウンドでも次スカウトは players[1] であり players[0] の手札不足では curtain-call にならない', () => {
+      const base = buildIntermissionState();
+      // round=2 相当: players[0] が手札 0 枚、players[1] は手札あり
+      // 次のスカウトは常に players[1] なので hand-shortage にならないはず
+      const stateRound2 = {
+        ...base,
+        round: 2,
+        players: [
+          { ...base.players[0], hand: [] },
+          { ...base.players[1] },
+        ] as typeof base.players,
+      };
+      const result = gameReducer(stateRound2, { type: 'INTERMISSION' });
+      expect(result.phase).toBe('scout');
+    });
+
+    it('偶数ラウンドで players[1] の手札が 0 枚のとき curtain-call に遷移する', () => {
+      const base = buildIntermissionState();
+      const stateRound2Empty = {
+        ...base,
+        round: 2,
+        players: [
+          { ...base.players[0] },
+          { ...base.players[1], hand: [] },
+        ] as typeof base.players,
+      };
+      const result = gameReducer(stateRound2Empty, { type: 'INTERMISSION' });
+      expect(result.phase).toBe('curtain-call');
+      expect(result.curtainCallReason).toBe('hand-shortage');
+    });
+
     it('intermission 以外のフェーズでは INTERMISSION が無効', () => {
       const result = gameReducer(initialState, { type: 'INTERMISSION' });
       expect(result).toBe(initialState);

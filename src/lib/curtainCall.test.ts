@@ -123,12 +123,22 @@ describe('checkCurtainCall', () => {
       expect(checkCurtainCall(state)).toBeNull();
     });
 
-    it('ラウンド偶数時は players[0] が次スカウトとして判定される', () => {
-      // round=2 → nextScoutIsA = (2 % 2 === 0) = true → nextScout = players[0]
+    it('ラウンド偶数でも次スカウトは players[1] であり players[0] の手札不足では hand-shortage にならない', () => {
+      // round=2: players[0] = 現在のスカウト → 次のスカウトは players[1]
+      // players[0] が 0 枚でも players[1] が 5 枚あれば継続できる
       const state: GameState = {
         ...baseState,
         round: 2,
         players: [makePlayer('A', 0), makePlayer('B', 5)],
+      };
+      expect(checkCurtainCall(state)).toBeNull();
+    });
+
+    it('偶数ラウンドで players[1] の手札が 0 枚のとき hand-shortage を返す', () => {
+      const state: GameState = {
+        ...baseState,
+        round: 2,
+        players: [makePlayer('A', 5), makePlayer('B', 0)],
       };
       expect(checkCurtainCall(state)).toBe('hand-shortage');
     });

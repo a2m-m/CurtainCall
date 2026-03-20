@@ -17,10 +17,9 @@ export function checkCurtainCall(state: GameState): CurtainCallReason | null {
   if (state.setRemainingCount <= 1 && state.deck.length > 0) return 'set-last-1';
 
   // 条件③: 手札不足（次のスカウト担当の手札が続行不可）
-  // round が奇数: players[0] がスカウト担当 → 次は players[1]（= round 偶数で A）
-  const nextScoutIsA = state.round % 2 === 0;
-  const nextScoutHand = nextScoutIsA ? state.players[0].hand : state.players[1].hand;
-  const otherHand = nextScoutIsA ? state.players[1].hand : state.players[0].hand;
+  // players 配列はラウンドごとに入れ替わるため、次のスカウトは常に現在の players[1]
+  const nextScoutHand = state.players[1].hand;
+  const otherHand = state.players[0].hand;
   if (nextScoutHand.length === 0 || (nextScoutHand.length === 1 && otherHand.length === 0)) {
     return 'hand-shortage';
   }
