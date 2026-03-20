@@ -1,5 +1,6 @@
-import type { Card, CurtainCallReason, GamePhase, GameState, Player, PublicInfo, Stage } from '@/types/game';
+import type { Card, CurtainCallReason, GamePhase, GameState, Player, Stage } from '@/types/game';
 import { createDeck, createDeckWithJoker, deal, shuffle } from '@/lib/deck';
+import { buildPublicInfos } from './publicInfo';
 
 export type GameAction =
   | { type: 'INIT_GAME'; playerAName: string; playerBName: string }
@@ -224,10 +225,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const selectedCards = cardIndices.map((i) => state.backstage[i]) as [Card, Card, Card];
 
-      const newPublicInfos: PublicInfo[] = [
-        ...state.publicInfos,
-        ...selectedCards.map((c) => ({ playerId: state.players[0].id, card: c, round: state.round })),
-      ];
+      const newPublicInfos = buildPublicInfos(
+        state.publicInfos,
+        selectedCards,
+        state.players[0].id,
+        state.round,
+      );
 
       const spotlightCard = state.spotlightCard;
       const matchLocalIndex =

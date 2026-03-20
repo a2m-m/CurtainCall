@@ -474,6 +474,47 @@ describe('gameReducer', () => {
       expect(final.backstage).toHaveLength(backstageBefore - 1);
     });
 
+    it('BACKSTAGE_OPEN でペア成立時も publicInfos に3件記録される', () => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
+      const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
+      const s7raw = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      const s7 = { ...s7raw, booResult: 'incorrect' as const };
+      const noPairSetIndex = s7.deck.findIndex(
+        (sc) => !sc.isJoker && !s7.players[0].hand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
+      );
+      if (noPairSetIndex === -1) return;
+      const backstageState = gameReducer(s7, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      if (backstageState.spotlightCard === null) return;
+
+      const { spotlightCard, backstage } = backstageState;
+      const pairIdx = backstage.findIndex((c) => !c.isJoker && c.rank === spotlightCard.rank);
+      if (pairIdx === -1) return;
+
+      const others = backstage.map((_, i) => i).filter((i) => i !== pairIdx).slice(0, 2);
+      const before = backstageState.publicInfos.length;
+      const result = gameReducer(backstageState, {
+        type: 'BACKSTAGE_OPEN',
+        cardIndices: [pairIdx, others[0], others[1]],
+      });
+      expect(result.backstageResult).toBe('match');
+      expect(result.publicInfos.length).toBe(before + 3);
+    });
+
+    it('BACKSTAGE_TAKE_HAND で取得したカードは publicInfos に含まれない', () => {
+      const state = buildBackstageState();
+      if (!state) return;
+      const resultState = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
+      if (resultState.backstageResult !== 'no-match') return;
+      const countBefore = resultState.publicInfos.length;
+      const final = gameReducer(resultState, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
+      // 手札に加えたカードで publicInfos は増えない
+      expect(final.publicInfos.length).toBe(countBefore);
+    });
+
     it('BACKSTAGE_PROCEED で backstage（スキップ経由）→ intermission', () => {
       const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
       const s2 = gameReducer(s1, { type: 'START_SCOUT' });
