@@ -53,6 +53,7 @@ export type GameState = {
   playerBBooCnt: number;
   round: number;
   curtainCallReason: CurtainCallReason | null;
+  booResult: 'correct' | 'incorrect' | null;
   spotlightCard: Card | null;
   backstageRevealedCards: Card[];
   backstageResult: BackstageResult | null;

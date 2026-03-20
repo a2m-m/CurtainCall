@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { gameReducer, initialState } from './reducer';
-import type { GameState } from '@/types/game';
+import type { Card, GameState } from '@/types/game';
 
 describe('gameReducer', () => {
   describe('INIT_GAME', () => {
@@ -159,6 +159,13 @@ describe('gameReducer', () => {
       const result = gameReducer(watchState, { type: 'WATCH_BOO' });
       expect(result.playerBBooCnt).toBe(1);
     });
+
+    it('ラウンド偶数時（round=2）に WATCH_BOO で playerABooCnt が増える', () => {
+      const round2WatchState = { ...watchState, round: 2 };
+      const result = gameReducer(round2WatchState, { type: 'WATCH_BOO' });
+      expect(result.playerABooCnt).toBe(1);
+      expect(result.playerBBooCnt).toBe(0);
+    });
   });
 
   describe('SPOTLIGHT_REVEAL', () => {
@@ -223,7 +230,9 @@ describe('gameReducer', () => {
       const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
       const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
       const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
-      bonusState = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      const s7 = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      // 既存テストは boo 不正解（actor の手札参照）パスを検証するため明示的に設定
+      bonusState = { ...s7, booResult: 'incorrect' as const };
     });
 
     it('spotlight-bonus 以外では無効', () => {
@@ -277,6 +286,62 @@ describe('gameReducer', () => {
       const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
       expect(result.phase).toBe('backstage');
     });
+
+    describe('boo 正解時（booResult=correct）の手札参照（Issue #64）', () => {
+      const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+
+      it('boo 正解時に players[1].hand でペア判定し intermission へ遷移する', () => {
+        const booCorrectState: GameState = {
+          phase: 'spotlight-bonus',
+          booResult: 'correct',
+          players: [
+            { id: 'A', name: 'A', hand: [mk(3), mk(7)] },  // actor: rank-5 なし
+            { id: 'B', name: 'B', hand: [mk(5), mk(9)] },  // watcher: rank-5 あり
+          ],
+          stage: { kami: { ...mk(4), isFaceUp: true }, shimo: { ...mk(6), isFaceUp: true } },
+          deck: [mk(5), mk(11), mk(8)],
+          backstage: [],
+          setRemainingCount: 3,
+          publicInfos: [],
+          playerABooCnt: 0,
+          playerBBooCnt: 0,
+          round: 1,
+          curtainCallReason: null,
+          spotlightCard: null,
+          backstageRevealedCards: [],
+          backstageResult: null,
+        };
+        const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(result.phase).toBe('intermission');
+        expect(result.players[1].hand).toHaveLength(1);
+        expect(result.players[0].hand).toHaveLength(2);
+      });
+
+      it('boo 正解時は players[0].hand にペアがあっても players[1].hand を使う', () => {
+        const booCorrectState: GameState = {
+          phase: 'spotlight-bonus',
+          booResult: 'correct',
+          players: [
+            { id: 'A', name: 'A', hand: [mk(5), mk(7)] },  // actor: rank-5 あり（だが参照されない）
+            { id: 'B', name: 'B', hand: [mk(9), mk(11)] }, // watcher: rank-5 なし → ペア不成立
+          ],
+          stage: { kami: { ...mk(4), isFaceUp: true }, shimo: { ...mk(6), isFaceUp: true } },
+          deck: [mk(5), mk(11), mk(8)],
+          backstage: [],
+          setRemainingCount: 3,
+          publicInfos: [],
+          playerABooCnt: 0,
+          playerBBooCnt: 0,
+          round: 1,
+          curtainCallReason: null,
+          spotlightCard: null,
+          backstageRevealedCards: [],
+          backstageResult: null,
+        };
+        const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(result.phase).toBe('backstage');
+      });
+    });
   });
 
   describe('SPOTLIGHT_SKIP_SET（spotlight-bonus フェーズ）', () => {
@@ -302,7 +367,9 @@ describe('gameReducer', () => {
       const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
       const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
       const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
-      const s7 = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      const s7raw = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      // boo 不正解パスを確定させて既存テストを安定化
+      const s7 = { ...s7raw, booResult: 'incorrect' as const };
 
       // ペア不成立のセットカードを探す
       const playerAHand = s7.players[0].hand;
@@ -347,7 +414,8 @@ describe('gameReducer', () => {
       const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
       const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
       const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
-      const s7 = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      const s7raw = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
+      const s7 = { ...s7raw, booResult: 'incorrect' as const };
       const noPairSetIndex = s7.deck.findIndex(
         (sc) => !sc.isJoker && !s7.players[0].hand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
       );
