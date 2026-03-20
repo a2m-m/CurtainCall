@@ -1,0 +1,98 @@
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 40px 16px;
+  background: var(--bg, #0f172a);
+}
+
+.heading {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--accent, #60a5fa);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.winnerText {
+  font-size: 20px;
+  font-weight: bold;
+  color: #facc15;
+  margin: 0;
+}
+
+.draw {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--muted, #7a8aaa);
+  margin: 0;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 360px;
+}
+
+.th {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--muted, #7a8aaa);
+  text-align: center;
+  border-bottom: 1px solid #1e2d42;
+}
+
+.th.winnerCol {
+  color: #facc15;
+}
+
+.label {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--muted, #7a8aaa);
+  text-align: left;
+}
+
+.td {
+  padding: 8px 12px;
+  font-size: 15px;
+  color: #fff;
+  text-align: center;
+}
+
+.total {
+  padding: 8px 12px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  border-top: 1px solid #1e2d42;
+}
+
+.winTotal {
+  color: #facc15;
+}
+
+.resetBtn {
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  border: 2px solid var(--accent, #60a5fa);
+  background: transparent;
+  color: var(--accent, #60a5fa);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.resetBtn:active {
+  background: rgba(96, 165, 250, 0.12);
+}
