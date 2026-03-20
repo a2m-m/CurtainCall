@@ -84,3 +84,24 @@
   box-shadow: 0 0 0 2.5px #7b52e8;
   transform: translateY(-6px);
 }
+
+/* ─── アニメーション ──────────────────────────────────────── */
+
+/* カードフリップ（裏→表）: scaleX で折り畳み→展開 */
+@keyframes cardFlip {
+  0%   { transform: scaleX(1); }
+  45%  { transform: scaleX(0); }
+  55%  { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+.flipping {
+  animation: cardFlip 0.4s ease-in-out;
+}
+
+/* prefers-reduced-motion: アニメーション無効化（カード表示は維持） */
+@media (prefers-reduced-motion: reduce) {
+  .flipping {
+    animation: none;
+  }
+}

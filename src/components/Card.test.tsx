@@ -78,4 +78,22 @@ describe('Card', () => {
     fireEvent.click(screen.getByRole('button'));
     expect(handleClick).toHaveBeenCalledOnce();
   });
+
+  it('animateFlip=trueでflippingクラスが付く', () => {
+    const { container } = render(<Card card={faceUpCard('spades', 7)} animateFlip />);
+    const el = container.querySelector('[class*="flipping"]');
+    expect(el).toBeTruthy();
+  });
+
+  it('animateFlip未指定ではflippingクラスが付かない', () => {
+    const { container } = render(<Card card={faceUpCard('spades', 7)} />);
+    const el = container.querySelector('[class*="flipping"]');
+    expect(el).toBeNull();
+  });
+
+  it('animateFlip=trueでもカード内容は正常に表示される', () => {
+    render(<Card card={faceUpCard('hearts', 5)} animateFlip />);
+    expect(screen.getByText('♥')).toBeDefined();
+    expect(screen.getByText('5')).toBeDefined();
+  });
 });

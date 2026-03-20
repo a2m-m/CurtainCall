@@ -26,15 +26,18 @@ type Props = {
   isSelected?: boolean;
   isSelectedShimo?: boolean;
   onClick?: () => void;
+  /** 裏→表フリップアニメーションを再生する（SPOTLIGHT_REVEAL 等で使用） */
+  animateFlip?: boolean;
 };
 
-export default function Card({ card, isSelected, isSelectedShimo, onClick }: Props) {
+export default function Card({ card, isSelected, isSelectedShimo, onClick, animateFlip }: Props) {
   const classNames = [styles.card];
 
   if (isSelected) classNames.push(styles.selected);
   else if (isSelectedShimo) classNames.push(styles.selectedShimo);
 
   if (onClick) classNames.push(styles.clickable);
+  if (animateFlip) classNames.push(styles.flipping);
 
   if (card.isJoker) {
     classNames.push(styles.joker);
