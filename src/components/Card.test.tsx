@@ -78,4 +78,52 @@ describe('Card', () => {
     fireEvent.click(screen.getByRole('button'));
     expect(handleClick).toHaveBeenCalledOnce();
   });
+
+  it('animateFlip=trueでflippingクラスが付く', () => {
+    const { container } = render(<Card card={faceUpCard('spades', 7)} animateFlip />);
+    const el = container.querySelector('[class*="flipping"]');
+    expect(el).toBeTruthy();
+  });
+
+  it('animateFlip未指定ではflippingクラスが付かない', () => {
+    const { container } = render(<Card card={faceUpCard('spades', 7)} />);
+    const el = container.querySelector('[class*="flipping"]');
+    expect(el).toBeNull();
+  });
+
+  it('animateFlip=trueでもカード内容は正常に表示される', () => {
+    render(<Card card={faceUpCard('hearts', 5)} animateFlip />);
+    expect(screen.getByText('♥')).toBeDefined();
+    expect(screen.getByText('5')).toBeDefined();
+  });
+
+  it('animateSlide=trueでslidingクラスが付く', () => {
+    const { container } = render(<Card card={faceUpCard('clubs', 3)} animateSlide />);
+    const el = container.querySelector('[class*="sliding"]');
+    expect(el).toBeTruthy();
+  });
+
+  it('animateSlide未指定ではslidingクラスが付かない', () => {
+    const { container } = render(<Card card={faceUpCard('clubs', 3)} />);
+    const el = container.querySelector('[class*="sliding"]');
+    expect(el).toBeNull();
+  });
+
+  it('animateDeal=trueでdealingクラスが付く', () => {
+    const { container } = render(<Card card={faceDownCard()} animateDeal />);
+    const el = container.querySelector('[class*="dealing"]');
+    expect(el).toBeTruthy();
+  });
+
+  it('dealDelayを指定するとanimationDelayスタイルが付く', () => {
+    const { container } = render(<Card card={faceDownCard()} animateDeal dealDelay={0.15} />);
+    const el = container.firstChild as HTMLElement;
+    expect(el.style.animationDelay).toBe('0.15s');
+  });
+
+  it('animateDeal未指定ではdealingクラスが付かない', () => {
+    const { container } = render(<Card card={faceDownCard()} />);
+    const el = container.querySelector('[class*="dealing"]');
+    expect(el).toBeNull();
+  });
 });

@@ -26,20 +26,32 @@ type Props = {
   isSelected?: boolean;
   isSelectedShimo?: boolean;
   onClick?: () => void;
+  /** 裏→表フリップアニメーションを再生する（SPOTLIGHT_REVEAL 等で使用） */
+  animateFlip?: boolean;
+  /** ステージへのスライドインアニメーションを再生する */
+  animateSlide?: boolean;
+  /** 配布アニメーションを再生する。dealDelay（秒）でスタガー遅延を指定 */
+  animateDeal?: boolean;
+  dealDelay?: number;
 };
 
-export default function Card({ card, isSelected, isSelectedShimo, onClick }: Props) {
+export default function Card({ card, isSelected, isSelectedShimo, onClick, animateFlip, animateSlide, animateDeal, dealDelay }: Props) {
   const classNames = [styles.card];
 
   if (isSelected) classNames.push(styles.selected);
   else if (isSelectedShimo) classNames.push(styles.selectedShimo);
 
   if (onClick) classNames.push(styles.clickable);
+  if (animateFlip) classNames.push(styles.flipping);
+  if (animateSlide) classNames.push(styles.sliding);
+  if (animateDeal) classNames.push(styles.dealing);
+
+  const animStyle = animateDeal && dealDelay != null ? { animationDelay: `${dealDelay}s` } : undefined;
 
   if (card.isJoker) {
     classNames.push(styles.joker);
     return (
-      <div className={classNames.join(' ')} onClick={onClick} role={onClick ? 'button' : undefined}>
+      <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined}>
         <span className={styles.jokerLabel}>JOKER</span>
       </div>
     );
@@ -48,7 +60,7 @@ export default function Card({ card, isSelected, isSelectedShimo, onClick }: Pro
   if (!card.isFaceUp) {
     classNames.push(styles.back);
     return (
-      <div className={classNames.join(' ')} onClick={onClick} role={onClick ? 'button' : undefined} />
+      <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined} />
     );
   }
 
@@ -57,7 +69,7 @@ export default function Card({ card, isSelected, isSelectedShimo, onClick }: Pro
   if (isRed) classNames.push(styles.red);
 
   return (
-    <div className={classNames.join(' ')} onClick={onClick} role={onClick ? 'button' : undefined}>
+    <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined}>
       <span className={styles.suit}>{SUIT_SYMBOL[card.suit]}</span>
       <span className={styles.rank}>{rankLabel(card.rank)}</span>
     </div>
