@@ -305,6 +305,8 @@ describe('gameReducer', () => {
           publicInfos: [],
           playerABooCnt: 0,
           playerBBooCnt: 0,
+          playerAKami: [],
+          playerBKami: [],
           round: 1,
           curtainCallReason: null,
           spotlightCard: null,
@@ -332,6 +334,8 @@ describe('gameReducer', () => {
           publicInfos: [],
           playerABooCnt: 0,
           playerBBooCnt: 0,
+          playerAKami: [],
+          playerBKami: [],
           round: 1,
           curtainCallReason: null,
           spotlightCard: null,
@@ -630,6 +634,203 @@ describe('gameReducer', () => {
     it('standby フェーズで WATCH_CLAP を dispatch しても state が変わらない', () => {
       const result = gameReducer(initialState, { type: 'WATCH_CLAP' });
       expect(result).toBe(initialState);
+    });
+  });
+
+  describe('ステージ累積（Issue #76）', () => {
+    const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+
+    // watch フェーズまで進めるヘルパー（round=1: players[0]=A がアクター）
+    function buildWatchState(kamiRank: number, shimoRank: number): GameState {
+      const kamiCard = mk(kamiRank);
+      const shimoCard = mk(shimoRank);
+      return {
+        phase: 'watch',
+        players: [
+          { id: 'A', name: 'A', hand: [kamiCard, shimoCard] },
+          { id: 'B', name: 'B', hand: [mk(3), mk(7)] },
+        ],
+        stage: { kami: { ...kamiCard, isFaceUp: true }, shimo: { ...shimoCard, isFaceUp: false } },
+        deck: [mk(2), mk(4), mk(6), mk(8), mk(10)],
+        backstage: [mk(2), mk(4), mk(6), mk(8), mk(10)],
+        setRemainingCount: 5,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        booResult: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+      };
+    }
+
+    describe('WATCH_CLAP: アクターのカミが playerAKami に追加される', () => {
+      it('round=1 (players[0].id=A) の CLAP で playerAKami に stage.kami が追加される', () => {
+        const watchState = buildWatchState(5, 9);
+        const result = gameReducer(watchState, { type: 'WATCH_CLAP' });
+        expect(result.playerAKami).toHaveLength(1);
+        expect(result.playerAKami[0].rank).toBe(5);
+      });
+
+      it('players[0].id=B の CLAP で playerBKami に stage.kami が追加される', () => {
+        const watchState: GameState = {
+          ...buildWatchState(7, 3),
+          players: [
+            { id: 'B', name: 'B', hand: [mk(7), mk(3)] },
+            { id: 'A', name: 'A', hand: [mk(2), mk(8)] },
+          ],
+        };
+        const result = gameReducer(watchState, { type: 'WATCH_CLAP' });
+        expect(result.playerBKami).toHaveLength(1);
+        expect(result.playerBKami[0].rank).toBe(7);
+        expect(result.playerAKami).toHaveLength(0);
+      });
+
+      it('CLAP を複数回重ねても playerAKami が累積される', () => {
+        const watchState1 = buildWatchState(5, 9);
+        const afterClap1 = gameReducer(watchState1, { type: 'WATCH_CLAP' });
+        // 2ラウンド目: 手動でステージを設定して再度CLAP
+        const watchState2: GameState = {
+          ...afterClap1,
+          phase: 'watch',
+          stage: { kami: { ...mk(10), isFaceUp: true }, shimo: { ...mk(3), isFaceUp: false } },
+        };
+        const result = gameReducer(watchState2, { type: 'WATCH_CLAP' });
+        expect(result.playerAKami).toHaveLength(2);
+        expect(result.playerAKami[0].rank).toBe(5);
+        expect(result.playerAKami[1].rank).toBe(10);
+      });
+    });
+
+    describe('SPOTLIGHT_REVEAL: booResult に応じてカミが累積される', () => {
+      it('boo 正解（kami !== shimo）: watcher=players[1].id=B の playerBKami に追加される', () => {
+        // kami と shimo のランクが異なる → booResult='correct'
+        const spotlightState: GameState = {
+          ...buildWatchState(5, 9),
+          phase: 'spotlight',
+        };
+        const result = gameReducer(spotlightState, { type: 'SPOTLIGHT_REVEAL' });
+        expect(result.booResult).toBe('correct');
+        expect(result.playerBKami).toHaveLength(1);
+        expect(result.playerBKami[0].rank).toBe(5);
+        expect(result.playerAKami).toHaveLength(0);
+      });
+
+      it('boo 不正解（kami === shimo）: actor=players[0].id=A の playerAKami に追加される', () => {
+        // kami と shimo のランクが同じ → booResult='incorrect'
+        const spotlightState: GameState = {
+          ...buildWatchState(5, 5),
+          phase: 'spotlight',
+        };
+        const result = gameReducer(spotlightState, { type: 'SPOTLIGHT_REVEAL' });
+        expect(result.booResult).toBe('incorrect');
+        expect(result.playerAKami).toHaveLength(1);
+        expect(result.playerAKami[0].rank).toBe(5);
+        expect(result.playerBKami).toHaveLength(0);
+      });
+    });
+
+    describe('SPOTLIGHT_OPEN_SET: ペア成立時にセットのカミが累積される', () => {
+      it('boo 不正解パス: ペア成立時に openedCard が playerAKami に追加される', () => {
+        // boo incorrect: actor=A がセット開示、ペア成立 → A がカミを得る
+        const bonusState: GameState = {
+          phase: 'spotlight-bonus',
+          booResult: 'incorrect',
+          players: [
+            { id: 'A', name: 'A', hand: [mk(6), mk(7)] },  // rank=5 なし → pair card は手札にない
+            { id: 'B', name: 'B', hand: [mk(5), mk(9)] },
+          ],
+          stage: { kami: { ...mk(3), isFaceUp: true }, shimo: { ...mk(3), isFaceUp: true } },
+          deck: [mk(6), mk(11), mk(8)],
+          backstage: [],
+          setRemainingCount: 3,
+          publicInfos: [],
+          playerABooCnt: 0,
+          playerBBooCnt: 0,
+          playerAKami: [mk(3)], // 既に1枚蓄積済み（SPOTLIGHT_REVEAL で追加済み想定）
+          playerBKami: [],
+          round: 1,
+          curtainCallReason: null,
+          spotlightCard: null,
+          backstageRevealedCards: [],
+          backstageResult: null,
+        };
+        // deck[0]=rank6, players[0].hand にrank6あり → ペア成立
+        const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(result.phase).toBe('intermission');
+        // playerAKami が1枚増えて合計2枚になる（元の1枚 + 新しいrank6）
+        expect(result.playerAKami).toHaveLength(2);
+        expect(result.playerAKami[1].rank).toBe(6);
+      });
+
+      it('boo 正解パス: ペア成立時に openedCard が playerBKami に追加される', () => {
+        const bonusState: GameState = {
+          phase: 'spotlight-bonus',
+          booResult: 'correct',
+          players: [
+            { id: 'A', name: 'A', hand: [mk(3), mk(7)] },
+            { id: 'B', name: 'B', hand: [mk(5), mk(9)] },  // rank=5 あり → ペア成立
+          ],
+          stage: { kami: { ...mk(4), isFaceUp: true }, shimo: { ...mk(6), isFaceUp: true } },
+          deck: [mk(5), mk(11), mk(8)],
+          backstage: [],
+          setRemainingCount: 3,
+          publicInfos: [],
+          playerABooCnt: 0,
+          playerBBooCnt: 0,
+          playerAKami: [],
+          playerBKami: [mk(4)], // 既に1枚蓄積済み（SPOTLIGHT_REVEAL で追加済み想定）
+          round: 1,
+          curtainCallReason: null,
+          spotlightCard: null,
+          backstageRevealedCards: [],
+          backstageResult: null,
+        };
+        // deck[0]=rank5, players[1].hand にrank5あり → ペア成立
+        const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(result.phase).toBe('intermission');
+        // playerBKami が1枚増えて合計2枚
+        expect(result.playerBKami).toHaveLength(2);
+        expect(result.playerBKami[1].rank).toBe(5);
+      });
+    });
+
+    describe('BACKSTAGE_OPEN: ペア成立時に spotlightCard が行動プレイヤーのカミに追加される', () => {
+      it('ペア成立時に spotlightCard が players[0].id のカミ配列に追加される', () => {
+        const spotlightCard = mk(7);
+        const matchCard = mk(7);
+        const backstageState: GameState = {
+          phase: 'backstage',
+          booResult: 'incorrect',
+          players: [
+            { id: 'A', name: 'A', hand: [mk(3)] },
+            { id: 'B', name: 'B', hand: [mk(2)] },
+          ],
+          stage: { kami: { ...mk(5), isFaceUp: true }, shimo: { ...mk(5), isFaceUp: true } },
+          deck: [],
+          backstage: [matchCard, mk(2), mk(9)],
+          setRemainingCount: 0,
+          publicInfos: [],
+          playerABooCnt: 0,
+          playerBBooCnt: 0,
+          playerAKami: [mk(5)], // SPOTLIGHT_REVEAL で蓄積済み
+          playerBKami: [],
+          round: 1,
+          curtainCallReason: null,
+          spotlightCard,
+          backstageRevealedCards: [],
+          backstageResult: null,
+        };
+        const result = gameReducer(backstageState, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
+        expect(result.backstageResult).toBe('match');
+        // playerAKami に spotlightCard (rank=7) が追加される
+        expect(result.playerAKami).toHaveLength(2);
+        expect(result.playerAKami[1].rank).toBe(7);
+      });
     });
   });
 });

@@ -19,6 +19,8 @@ const baseState: GameState = {
   publicInfos: [],
   playerABooCnt: 3,
   playerBBooCnt: 3,
+  playerAKami: [],
+  playerBKami: [],
   round: 1,
   curtainCallReason: 'joker',
   booResult: null,
@@ -163,6 +165,54 @@ describe('calculateScore', () => {
       };
       const result = calculateScore(state, 'A');
       expect(result.total).toBe(5); // 8 - 3 - 0
+    });
+  });
+
+  describe('累積カミ配列によるスコア計算（Issue #76）', () => {
+    it('playerAKami が複数枚の場合、合計が kamiTotal になる', () => {
+      const state: GameState = {
+        ...baseState,
+        playerAKami: [makeCard(5), makeCard(10), makeCard(3)],
+        playerBKami: [],
+      };
+      expect(calculateScore(state, 'A').kamiTotal).toBe(18); // 5+10+3
+    });
+
+    it('playerBKami が複数枚の場合、合計が kamiTotal になる', () => {
+      const state: GameState = {
+        ...baseState,
+        playerAKami: [],
+        playerBKami: [makeCard(7), makeCard(13)],
+      };
+      expect(calculateScore(state, 'B').kamiTotal).toBe(20); // 7+13
+    });
+
+    it('playerAKami が空の場合、kamiTotal は 0（stage.kami は無視される）', () => {
+      const state: GameState = {
+        ...baseState,
+        stage: { kami: { ...makeCard(9), isFaceUp: true }, shimo: null },
+        playerAKami: [],
+      };
+      // stage.kami ではなく playerAKami を参照するため 0 になる
+      expect(calculateScore(state, 'A').kamiTotal).toBe(0);
+    });
+
+    it('Joker を含む playerAKami の場合、Joker は 0 として合算される', () => {
+      const state: GameState = {
+        ...baseState,
+        playerAKami: [makeCard(5), makeCard(0, true)], // Joker=0
+      };
+      expect(calculateScore(state, 'A').kamiTotal).toBe(5);
+    });
+
+    it('A と B の kamiTotal が互いに独立している', () => {
+      const state: GameState = {
+        ...baseState,
+        playerAKami: [makeCard(8)],
+        playerBKami: [makeCard(12), makeCard(3)],
+      };
+      expect(calculateScore(state, 'A').kamiTotal).toBe(8);
+      expect(calculateScore(state, 'B').kamiTotal).toBe(15);
     });
   });
 });

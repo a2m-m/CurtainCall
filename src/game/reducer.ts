@@ -33,6 +33,8 @@ export const initialState: GameState = {
   publicInfos: [],
   playerABooCnt: 0,
   playerBBooCnt: 0,
+  playerAKami: [],
+  playerBKami: [],
   round: 0,
   curtainCallReason: null,
   booResult: null,
