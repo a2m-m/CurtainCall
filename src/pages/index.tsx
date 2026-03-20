@@ -1,3 +1,10 @@
+import GameRouter from '@/components/GameRouter';
+import { GameProvider } from '@/game/context';
+
 export default function Home() {
-  return <></>;
+  return (
+    <GameProvider>
+      <GameRouter />
+    </GameProvider>
+  );
 }
