@@ -159,6 +159,13 @@ describe('gameReducer', () => {
       const result = gameReducer(watchState, { type: 'WATCH_BOO' });
       expect(result.playerBBooCnt).toBe(1);
     });
+
+    it('ラウンド偶数時（round=2）に WATCH_BOO で playerABooCnt が増える', () => {
+      const round2WatchState = { ...watchState, round: 2 };
+      const result = gameReducer(round2WatchState, { type: 'WATCH_BOO' });
+      expect(result.playerABooCnt).toBe(1);
+      expect(result.playerBBooCnt).toBe(0);
+    });
   });
 
   describe('SPOTLIGHT_REVEAL', () => {
