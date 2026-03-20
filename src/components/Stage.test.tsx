@@ -56,6 +56,14 @@ describe('PlayerStage', () => {
     const el = container.querySelector('[class*="active"]');
     expect(el).toBeNull();
   });
+
+  it('animateSlide=trueでカードにslidingクラスが付く', () => {
+    const { container } = render(
+      <PlayerStage playerName="アリス" kamiCard={faceUpCard('spades', 1)} shimoCard={null} animateSlide />
+    );
+    const el = container.querySelector('[class*="sliding"]');
+    expect(el).toBeTruthy();
+  });
 });
 
 describe('MainStage', () => {
@@ -83,6 +91,22 @@ describe('MainStage', () => {
   it('aria-label "メインステージ" を持つ', () => {
     render(<MainStage cards={[]} />);
     expect(screen.getByLabelText('メインステージ')).toBeDefined();
+  });
+
+  it('animateDeal=trueでカードにdealingクラスが付く', () => {
+    const cards = [faceDownCard(), faceDownCard()];
+    const { container } = render(<MainStage cards={cards} animateDeal />);
+    const els = container.querySelectorAll('[class*="dealing"]');
+    expect(els.length).toBe(2);
+  });
+
+  it('animateDealでstaggerディレイが設定される', () => {
+    const cards = [faceDownCard(), faceDownCard(), faceDownCard()];
+    const { container } = render(<MainStage cards={cards} animateDeal />);
+    const cardEls = container.querySelectorAll('[class*="card"]') as NodeListOf<HTMLElement>;
+    expect(cardEls[0].style.animationDelay).toBe('0s');
+    expect(cardEls[1].style.animationDelay).toBe('0.05s');
+    expect(cardEls[2].style.animationDelay).toBe('0.1s');
   });
 });
 
