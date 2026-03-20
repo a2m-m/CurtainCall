@@ -51,6 +51,8 @@ export type GameState = {
   publicInfos: PublicInfo[];
   playerABooCnt: number;
   playerBBooCnt: number;
+  playerAKami: Card[]; // プレイヤーAステージに蓄積されたカミ札
+  playerBKami: Card[]; // プレイヤーBステージに蓄積されたカミ札
   round: number;
   curtainCallReason: CurtainCallReason | null;
   booResult: 'correct' | 'incorrect' | null;

@@ -24,6 +24,8 @@ const baseState: GameState = {
   publicInfos: [],
   playerABooCnt: 0,
   playerBBooCnt: 0,
+  playerAKami: [],
+  playerBKami: [],
   round: 1,
   curtainCallReason: null,
   booResult: null,
