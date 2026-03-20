@@ -324,12 +324,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'INTERMISSION': {
       if (state.phase !== 'intermission') return state;
 
-      // 手札不足チェック：次のスカウト担当（ラウンド偶数でBがスカウト）の手札0枚
-      const nextScoutIsA = state.round % 2 === 0;
-      const nextScoutHand = nextScoutIsA
-        ? state.players[0].hand
-        : state.players[1].hand;
-      const otherHand = nextScoutIsA ? state.players[1].hand : state.players[0].hand;
+      // 手札不足チェック：players 配列はラウンドごとに入れ替わるため、次のスカウトは常に players[1]
+      const nextScoutHand = state.players[1].hand;
+      const otherHand = state.players[0].hand;
 
       if (nextScoutHand.length === 0 || (nextScoutHand.length === 1 && otherHand.length === 0)) {
         return { ...state, phase: 'curtain-call', curtainCallReason: 'hand-shortage' };
