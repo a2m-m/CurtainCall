@@ -34,6 +34,8 @@ export default function ActionScreen() {
   };
 
   if (showPassDevice && kamiIndex !== null && shimoIndex !== null) {
+    // players[0] = actor（現ラウンド先攻）、players[1] = watcher（現ラウンド後攻）
+    // INTERMISSION でスワップされるため、この不変条件は全ラウンドで成立する
     return (
       <PassDevice
         playerName={state.players[1].name}
