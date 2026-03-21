@@ -24,6 +24,7 @@ const baseState: GameState = {
   spotlightCard: null,
   backstageRevealedCards: [],
   backstageResult: null,
+  backstagePlayerId: null,
 };
 
 describe('InfoOverlay', () => {

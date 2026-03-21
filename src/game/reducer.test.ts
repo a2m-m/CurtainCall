@@ -312,6 +312,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
         expect(result.phase).toBe('intermission');
@@ -341,6 +342,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
         expect(result.phase).toBe('backstage');
@@ -651,6 +653,166 @@ describe('gameReducer', () => {
     });
   });
 
+  describe('バックステージ担当者判定（Issue #80）', () => {
+    const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+
+    // SPOTLIGHT_OPEN_SET でペア不成立 → backstage に入るヘルパー
+    function buildFromNoPair(booResult: 'correct' | 'incorrect'): GameState | null {
+      const bonusState: GameState = {
+        phase: 'spotlight-bonus',
+        booResult,
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3), mk(7)] },  // rank=5 なし
+          { id: 'B', name: 'B', hand: [mk(9), mk(11)] }, // rank=5 なし
+        ],
+        stage: { kami: { ...mk(4), isFaceUp: true }, shimo: { ...mk(6), isFaceUp: true } },
+        deck: [mk(5), mk(12), mk(8)],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 3,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: null,
+      };
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+      return result.phase === 'backstage' ? result : null;
+    }
+
+    it('boo 不正解時: SPOTLIGHT_OPEN_SET（ペア不成立）→ backstagePlayerId が watcher(players[1].id=B) になる', () => {
+      const state = buildFromNoPair('incorrect');
+      if (!state) throw new Error('backstage state を構築できませんでした');
+      expect(state.backstagePlayerId).toBe('B');
+    });
+
+    it('boo 正解時: SPOTLIGHT_OPEN_SET（ペア不成立）→ backstagePlayerId が actor(players[0].id=A) になる', () => {
+      const state = buildFromNoPair('correct');
+      if (!state) throw new Error('backstage state を構築できませんでした');
+      expect(state.backstagePlayerId).toBe('A');
+    });
+
+    it('boo 不正解時: SPOTLIGHT_SKIP_SET → backstagePlayerId が watcher(players[1].id=B) になる', () => {
+      const bonusState: GameState = {
+        phase: 'spotlight-bonus',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: null,
+      };
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_SKIP_SET' });
+      expect(result.phase).toBe('backstage');
+      expect(result.backstagePlayerId).toBe('B');
+    });
+
+    it('boo 不正解時: BACKSTAGE_OPEN の publicInfos が watcher(B) のIDで記録される', () => {
+      const state: GameState = {
+        phase: 'backstage',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: 'B', // watcher = B（修正後にセットされる値）
+      };
+      const result = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
+      expect(result.publicInfos.every((p) => p.playerId === 'B')).toBe(true);
+    });
+
+    it('boo 不正解時: BACKSTAGE_TAKE_HAND でカードが watcher(players[1]=B) に追加される', () => {
+      const state: GameState = {
+        phase: 'backstage-result',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [mk(9), mk(11), mk(4)],
+        backstageResult: 'no-match',
+        backstagePlayerId: 'B', // watcher = B
+      };
+      const result = gameReducer(state, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
+      expect(result.players[1].hand).toHaveLength(2); // B: 1 + 1
+      expect(result.players[0].hand).toHaveLength(1); // A: 変化なし
+    });
+
+    it('boo 正解時: BACKSTAGE_TAKE_HAND でカードが actor(players[0]=A) に追加される', () => {
+      const state: GameState = {
+        phase: 'backstage-result',
+        booResult: 'correct',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [mk(9), mk(11), mk(4)],
+        backstageResult: 'no-match',
+        backstagePlayerId: 'A', // actor = A
+      };
+      const result = gameReducer(state, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
+      expect(result.players[0].hand).toHaveLength(2); // A: 1 + 1
+      expect(result.players[1].hand).toHaveLength(1); // B: 変化なし
+    });
+  });
+
   describe('不正遷移', () => {
     it('standby フェーズで SCOUT_CARD を dispatch しても state が変わらない', () => {
       const result = gameReducer(initialState, { type: 'SCOUT_CARD', cardIndex: 0 });
@@ -696,6 +858,7 @@ describe('gameReducer', () => {
         spotlightCard: null,
         backstageRevealedCards: [],
         backstageResult: null,
+        backstagePlayerId: null,
       };
     }
 
@@ -789,6 +952,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         // deck[0]=rank6, players[0].hand にrank6あり → ペア成立
         const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
@@ -820,6 +984,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         // deck[0]=rank5, players[1].hand にrank5あり → ペア成立
         const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
@@ -855,6 +1020,7 @@ describe('gameReducer', () => {
           spotlightCard,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: 'A', // boo incorrect → watcher=B のはずだが、このテストは players[0]=A を担当者として設定
         };
         const result = gameReducer(backstageState, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
         expect(result.backstageResult).toBe('match');

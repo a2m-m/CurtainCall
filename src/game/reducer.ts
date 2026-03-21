@@ -41,6 +41,7 @@ export const initialState: GameState = {
   spotlightCard: null,
   backstageRevealedCards: [],
   backstageResult: null,
+  backstagePlayerId: null,
 };
 
 function removeCardAt(cards: Card[], index: number): Card[] {
