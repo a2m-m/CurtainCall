@@ -43,7 +43,7 @@ describe('GameRouter: PhaseHeader と InfoOverlay の統合', () => {
 
   it('scout フェーズでアクティブプレイヤー名（アリス）が表示される', () => {
     renderInScout();
-    expect(screen.getByText('アリス')).toBeDefined();
+    expect(screen.getAllByText('アリス').length).toBeGreaterThan(0);
   });
 
   it('📊ボタンが表示される', () => {
