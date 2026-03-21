@@ -48,19 +48,19 @@ export default function Card({ card, isSelected, isSelectedShimo, onClick, anima
 
   const animStyle = animateDeal && dealDelay != null ? { animationDelay: `${dealDelay}s` } : undefined;
 
+  if (!card.isFaceUp) {
+    classNames.push(styles.back);
+    return (
+      <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined} />
+    );
+  }
+
   if (card.isJoker) {
     classNames.push(styles.joker);
     return (
       <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined}>
         <span className={styles.jokerLabel}>JOKER</span>
       </div>
-    );
-  }
-
-  if (!card.isFaceUp) {
-    classNames.push(styles.back);
-    return (
-      <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined} />
     );
   }
 
