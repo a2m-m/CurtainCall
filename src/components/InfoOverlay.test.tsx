@@ -18,6 +18,8 @@ const baseState: GameState = {
   playerBBooCnt: 2,
   playerAKami: [],
   playerBKami: [],
+  playerAShimo: [],
+  playerBShimo: [],
   round: 1,
   curtainCallReason: null,
   booResult: null,

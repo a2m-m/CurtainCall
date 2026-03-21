@@ -21,6 +21,8 @@ const baseState: GameState = {
   playerBBooCnt: 3,
   playerAKami: [],
   playerBKami: [],
+  playerAShimo: [],
+  playerBShimo: [],
   round: 1,
   curtainCallReason: 'joker',
   booResult: null,
