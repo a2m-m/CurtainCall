@@ -161,6 +161,27 @@
   color: var(--gold, #f0c060);
 }
 
+.kamiList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+.kamiChip {
+  font-size: 10px;
+  padding: 2px 5px;
+  background: var(--bg, #0f172a);
+  border-radius: 4px;
+  color: var(--text, #e0e6f0);
+}
+
+.kamiEmpty {
+  font-size: 10px;
+  color: var(--muted, #7a8aaa);
+}
+
 .knownCardsList {
   display: flex;
   flex-direction: column;
