@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
-import PassDevice from '@/components/PassDevice';
 import styles from './ScoutScreen.module.css';
 
 export default function ScoutScreen() {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [showPassDevice, setShowPassDevice] = useState(false);
 
-  const scoutPlayer = state.players[0];
   const opponentHand = state.players[1].hand;
 
   const handleCardClick = (index: number) => {
@@ -20,17 +17,8 @@ export default function ScoutScreen() {
 
   const handleConfirm = () => {
     if (selectedIndex === null) return;
-    setShowPassDevice(true);
+    dispatch({ type: 'SCOUT_CARD', cardIndex: selectedIndex });
   };
-
-  if (showPassDevice && selectedIndex !== null) {
-    return (
-      <PassDevice
-        playerName={scoutPlayer.name}
-        onComplete={() => dispatch({ type: 'SCOUT_CARD', cardIndex: selectedIndex })}
-      />
-    );
-  }
 
   return (
     <div className={styles.screen}>

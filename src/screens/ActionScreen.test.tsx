@@ -127,4 +127,80 @@ describe('ActionScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ステージへ出す' }));
     expect(screen.getByRole('button', { name: '長押しで進む' })).toBeDefined();
   });
+
+  it('PassDeviceにはウォッチャー（ボブ）の名前が表示される', () => {
+    renderAction();
+    const cardButtons = screen.getAllByRole('button').filter(
+      (b) => b.getAttribute('aria-label') !== 'ステージへ出す',
+    );
+    fireEvent.click(cardButtons[0]);
+    fireEvent.click(cardButtons[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'ステージへ出す' }));
+    // PassDevice はウォッチャー（ボブ）に渡すもの
+    expect(screen.getByText('ボブ')).toBeDefined();
+    // アクター（アリス）の名前は表示されない
+    expect(screen.queryByText('アリス')).toBeNull();
+  });
+});
+
+// INTERMISSION でスワップされた後も PassDevice が正しいウォッチャー名を表示することを確認
+describe('ActionScreen ラウンド2', () => {
+  function Round2ActionWrapper() {
+    const dispatch = useGameDispatch();
+    const state = useGameState();
+
+    if (state.phase === 'standby' && state.players[0].name === '') {
+      return <button onClick={() => dispatch({ type: 'INIT_GAME', playerAName: 'アリス', playerBName: 'ボブ' })}>init</button>;
+    }
+    if (state.phase === 'standby') {
+      return <button onClick={() => dispatch({ type: 'START_SCOUT' })}>start</button>;
+    }
+    if (state.phase === 'scout') {
+      return <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>;
+    }
+    // ラウンド1のアクション: アリス（players[0]）が actor → 自動で ACTION_PLAY
+    if (state.phase === 'action' && state.players[0].name === 'アリス') {
+      return <button onClick={() => dispatch({ type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 })}>action1</button>;
+    }
+    if (state.phase === 'watch') {
+      return <button onClick={() => dispatch({ type: 'WATCH_CLAP' })}>clap</button>;
+    }
+    if (state.phase === 'intermission') {
+      return <button onClick={() => dispatch({ type: 'INTERMISSION' })}>inter</button>;
+    }
+    // ラウンド2のアクション: ボブ（players[0]）が actor → ActionScreen を表示
+    if (state.phase === 'action' && state.players[0].name === 'ボブ') {
+      return <ActionScreen />;
+    }
+    return <div data-testid="phase">{state.phase}</div>;
+  }
+
+  function renderActionRound2() {
+    render(
+      <GameProvider>
+        <Round2ActionWrapper />
+      </GameProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'init' }));
+    fireEvent.click(screen.getByRole('button', { name: 'start' }));
+    fireEvent.click(screen.getByRole('button', { name: 'scout' }));   // Round 1 scout
+    fireEvent.click(screen.getByRole('button', { name: 'action1' })); // Round 1 action
+    fireEvent.click(screen.getByRole('button', { name: 'clap' }));    // Watch → Intermission
+    fireEvent.click(screen.getByRole('button', { name: 'inter' }));   // Intermission → Round 2 scout
+    fireEvent.click(screen.getByRole('button', { name: 'scout' }));   // Round 2 scout → action
+  }
+
+  it('ラウンド2のPassDeviceには新しいウォッチャー（アリス）の名前が表示される', () => {
+    renderActionRound2();
+    const cardButtons = screen.getAllByRole('button').filter(
+      (b) => b.getAttribute('aria-label') !== 'ステージへ出す',
+    );
+    fireEvent.click(cardButtons[0]);
+    fireEvent.click(cardButtons[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'ステージへ出す' }));
+    // ラウンド2ではアリスがウォッチャー
+    expect(screen.getByText('アリス')).toBeDefined();
+    // アクター（ボブ）の名前は表示されない
+    expect(screen.queryByText('ボブ')).toBeNull();
+  });
 });

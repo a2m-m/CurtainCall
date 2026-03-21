@@ -85,24 +85,21 @@ describe('ScoutScreen', () => {
     expect(btn.hasAttribute('disabled')).toBe(false);
   });
 
-  it('「スカウト確定」でPassDevice画面に遷移する', () => {
+  it('「スカウト確定」後、PassDeviceは表示されない', () => {
     renderScout();
     const allButtons = screen.getAllByRole('button');
     const firstCard = allButtons.find((b) => b.textContent === '') ?? allButtons[0];
     fireEvent.click(firstCard);
     fireEvent.click(screen.getByRole('button', { name: 'スカウト確定' }));
-    expect(screen.getByText('さんに渡してください')).toBeDefined();
+    expect(screen.queryByText('さんに渡してください')).toBeNull();
   });
 
-  it('PassDevice完了後にActionフェーズへ遷移する', () => {
+  it('「スカウト確定」後、直接アクションフェーズへ遷移する', () => {
     renderScout();
     const allButtons = screen.getAllByRole('button');
     const firstCard = allButtons.find((b) => b.textContent === '') ?? allButtons[0];
     fireEvent.click(firstCard);
     fireEvent.click(screen.getByRole('button', { name: 'スカウト確定' }));
-    // PassDeviceのonCompleteを直接トリガー（aria-label="長押しで進む"のボタンのPointerDownで即完了させる代わりに
-    // onComplete を模倣するため、PointerDown→PointerUp を連打する方法もあるが、
-    // ここではスカウト確定後のpassdevice画面にいることを確認するにとどめる）
-    expect(screen.getByRole('button', { name: '長押しで進む' })).toBeDefined();
+    expect(screen.getByTestId('after-scout').textContent).toBe('phase: action');
   });
 });
