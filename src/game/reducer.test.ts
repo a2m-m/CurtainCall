@@ -350,8 +350,8 @@ describe('gameReducer', () => {
     });
   });
 
-  describe('SPOTLIGHT_SKIP_SET（spotlight-bonus フェーズ）', () => {
-    it('spotlight-bonus → backstage に遷移する', () => {
+  describe('SPOTLIGHT_SKIP_SET（spotlight / spotlight-bonus フェーズ）', () => {
+    it('spotlight-bonus → intermission に遷移する（バックステージなし）', () => {
       const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
       const s2 = gameReducer(s1, { type: 'START_SCOUT' });
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
@@ -360,7 +360,20 @@ describe('gameReducer', () => {
       const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
       const bonusState = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
       const result = gameReducer(bonusState, { type: 'SPOTLIGHT_SKIP_SET' });
-      expect(result.phase).toBe('backstage');
+      expect(result.phase).toBe('intermission');
+      expect(result.backstagePlayerId).toBeNull();
+    });
+
+    it('spotlight → intermission に遷移する（バックステージなし）', () => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const s4 = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
+      const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
+      const result = gameReducer(s6, { type: 'SPOTLIGHT_SKIP_SET' });
+      expect(result.phase).toBe('intermission');
+      expect(result.backstagePlayerId).toBeNull();
     });
   });
 
@@ -523,7 +536,7 @@ describe('gameReducer', () => {
       expect(final.publicInfos.length).toBe(countBefore);
     });
 
-    it('BACKSTAGE_PROCEED で backstage（スキップ経由）→ intermission', () => {
+    it('SPOTLIGHT_SKIP_SET 経由では backstage フェーズを経ずに intermission へ到達する', () => {
       const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
       const s2 = gameReducer(s1, { type: 'START_SCOUT' });
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
@@ -531,9 +544,7 @@ describe('gameReducer', () => {
       const s5 = gameReducer(s4, { type: 'WATCH_BOO' });
       const s6 = gameReducer(s5, { type: 'SPOTLIGHT_REVEAL' });
       const s7 = gameReducer(s6, { type: 'SPOTLIGHT_ENTER_BONUS' });
-      const skipState = gameReducer(s7, { type: 'SPOTLIGHT_SKIP_SET' });
-      expect(skipState.phase).toBe('backstage');
-      const result = gameReducer(skipState, { type: 'BACKSTAGE_PROCEED' });
+      const result = gameReducer(s7, { type: 'SPOTLIGHT_SKIP_SET' });
       expect(result.phase).toBe('intermission');
     });
   });
@@ -699,7 +710,7 @@ describe('gameReducer', () => {
       expect(state.backstagePlayerId).toBe('A');
     });
 
-    it('boo 不正解時: SPOTLIGHT_SKIP_SET → backstagePlayerId が watcher(players[1].id=B) になる', () => {
+    it('boo 不正解時: SPOTLIGHT_SKIP_SET → intermission に遷移し backstagePlayerId は null のまま', () => {
       const bonusState: GameState = {
         phase: 'spotlight-bonus',
         booResult: 'incorrect',
@@ -724,8 +735,8 @@ describe('gameReducer', () => {
         backstagePlayerId: null,
       };
       const result = gameReducer(bonusState, { type: 'SPOTLIGHT_SKIP_SET' });
-      expect(result.phase).toBe('backstage');
-      expect(result.backstagePlayerId).toBe('B');
+      expect(result.phase).toBe('intermission');
+      expect(result.backstagePlayerId).toBeNull();
     });
 
     it('boo 不正解時: BACKSTAGE_OPEN の publicInfos が watcher(B) のIDで記録される', () => {

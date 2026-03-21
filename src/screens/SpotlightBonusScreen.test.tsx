@@ -82,10 +82,10 @@ describe('SpotlightBonusScreen', () => {
     expect(screen.getByRole('button', { name: '開かない' })).toBeDefined();
   });
 
-  it('「開かない」で backstage フェーズに遷移する', () => {
+  it('「開かない」で intermission フェーズに遷移する（バックステージなし）', () => {
     renderBonus();
     fireEvent.click(screen.getByRole('button', { name: '開かない' }));
-    expect(screen.getByTestId('after-bonus').textContent).toBe('phase: backstage');
+    expect(screen.getByTestId('after-bonus').textContent).toBe('phase: intermission');
   });
 
   it('セットカードをクリックすると curtain-call か backstage か intermission に遷移する', () => {
