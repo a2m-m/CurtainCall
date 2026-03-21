@@ -6,7 +6,9 @@ export type GameAction =
   | { type: 'INIT_GAME'; playerAName: string; playerBName: string }
   | { type: 'START_SCOUT' }
   | { type: 'SCOUT_CARD'; cardIndex: number }
+  | { type: 'SCOUT_RESULT_PROCEED' }
   | { type: 'ACTION_PLAY'; kamiIndex: number; shimoIndex: number }
+  | { type: 'ACTION_RESULT_PROCEED' }
   | { type: 'WATCH_CLAP' }
   | { type: 'WATCH_BOO' }
   | { type: 'SPOTLIGHT_REVEAL' }
@@ -105,7 +107,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
       const players: [Player, Player] = [newPlayerA, newPlayerB];
 
-      return { ...state, phase: 'action', players };
+      return { ...state, phase: 'scout-result', players };
+    }
+
+    case 'SCOUT_RESULT_PROCEED': {
+      if (state.phase !== 'scout-result') return state;
+      return { ...state, phase: 'action' };
     }
 
     case 'ACTION_PLAY': {
@@ -130,7 +137,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newPlayerA: Player = { ...state.players[0], hand: newHand };
       const players: [Player, Player] = [newPlayerA, state.players[1]];
 
-      return { ...state, phase: 'watch', players, stage: { kami, shimo } };
+      return { ...state, phase: 'action-result', players, stage: { kami, shimo } };
+    }
+
+    case 'ACTION_RESULT_PROCEED': {
+      if (state.phase !== 'action-result') return state;
+      return { ...state, phase: 'watch' };
     }
 
     case 'WATCH_CLAP': {
