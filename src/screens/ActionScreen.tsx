@@ -22,9 +22,25 @@ export default function ActionScreen() {
       setKamiIndex(index);
       setStep('selectingKuroko');
     } else if (step === 'selectingKuroko') {
-      if (index === kamiIndex) return; // 同一カード不可
-      setShimoIndex(index);
-      setStep('confirmed');
+      if (index === kamiIndex) {
+        // 役者札を再タップ → 選択解除してselectingActorへ戻る
+        setKamiIndex(null);
+        setStep('selectingActor');
+      } else {
+        setShimoIndex(index);
+        setStep('confirmed');
+      }
+    } else if (step === 'confirmed') {
+      if (index === kamiIndex) {
+        // 役者札を再タップ → 両方解除してselectingActorへ戻る
+        setKamiIndex(null);
+        setShimoIndex(null);
+        setStep('selectingActor');
+      } else if (index === shimoIndex) {
+        // 黒子札を再タップ → 黒子だけ解除してselectingKurokoへ戻る
+        setShimoIndex(null);
+        setStep('selectingKuroko');
+      }
     }
   };
 
@@ -55,7 +71,8 @@ export default function ActionScreen() {
 
   const getCardOnClick = (index: number): (() => void) | undefined => {
     if (step === 'selectingActor') return () => handleCardClick(index);
-    if (step === 'selectingKuroko' && index !== kamiIndex) return () => handleCardClick(index);
+    if (step === 'selectingKuroko') return () => handleCardClick(index);
+    if (step === 'confirmed' && (index === kamiIndex || index === shimoIndex)) return () => handleCardClick(index);
     return undefined;
   };
 
