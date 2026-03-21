@@ -106,6 +106,45 @@ describe('ActionScreen', () => {
     expect(screen.getByRole('button', { name: 'ステージへ出す' }).hasAttribute('disabled')).toBe(true);
   });
 
+  it('役者札選択後に同じカードを再タップするとselectingActorに戻る', () => {
+    renderAction();
+    const cardButtons = screen.getAllByRole('button').filter(
+      (b) => b.getAttribute('aria-label') !== 'ステージへ出す',
+    );
+    // card[0]を役者として選択、再タップで解除
+    fireEvent.click(cardButtons[0]);
+    fireEvent.click(cardButtons[0]);
+    // selectingActorに戻っているはずなので、次に別カードをタップすると役者になる（黒子にはならない）
+    // → 確定ボタンはまだdisabled（黒子未選択）
+    fireEvent.click(cardButtons[1]);
+    expect(screen.getByRole('button', { name: 'ステージへ出す' }).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('確定後に黒子札をタップすると選択が解除されてボタンがdisabledになる', () => {
+    renderAction();
+    const cardButtons = screen.getAllByRole('button').filter(
+      (b) => b.getAttribute('aria-label') !== 'ステージへ出す',
+    );
+    fireEvent.click(cardButtons[0]); // 役者
+    fireEvent.click(cardButtons[1]); // 黒子 → confirmed
+    expect(screen.getByRole('button', { name: 'ステージへ出す' }).hasAttribute('disabled')).toBe(false);
+    // 黒子札を再タップ → 解除
+    fireEvent.click(cardButtons[1]);
+    expect(screen.getByRole('button', { name: 'ステージへ出す' }).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('確定後に役者札をタップすると両方の選択が解除される', () => {
+    renderAction();
+    const cardButtons = screen.getAllByRole('button').filter(
+      (b) => b.getAttribute('aria-label') !== 'ステージへ出す',
+    );
+    fireEvent.click(cardButtons[0]); // 役者
+    fireEvent.click(cardButtons[1]); // 黒子 → confirmed
+    // 役者札を再タップ → 両方解除
+    fireEvent.click(cardButtons[0]);
+    expect(screen.getByRole('button', { name: 'ステージへ出す' }).hasAttribute('disabled')).toBe(true);
+  });
+
   it('「ステージへ出す」でPassDevice画面に遷移する', () => {
     renderAction();
     const cardButtons = screen.getAllByRole('button').filter(
