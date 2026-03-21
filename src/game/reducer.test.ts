@@ -995,8 +995,8 @@ describe('gameReducer', () => {
       });
     });
 
-    describe('BACKSTAGE_OPEN: ペア成立時に spotlightCard が行動プレイヤーのカミに追加される', () => {
-      it('ペア成立時に spotlightCard が players[0].id のカミ配列に追加される', () => {
+    describe('BACKSTAGE_OPEN: ペア成立時に spotlightCard がバックステージ担当者のカミに追加される', () => {
+      it('boo 不正解時: ペア成立で spotlightCard が watcher(B=players[1]) のカミ配列に追加される', () => {
         const spotlightCard = mk(7);
         const matchCard = mk(7);
         const backstageState: GameState = {
@@ -1020,13 +1020,14 @@ describe('gameReducer', () => {
           spotlightCard,
           backstageRevealedCards: [],
           backstageResult: null,
-          backstagePlayerId: 'A', // boo incorrect → watcher=B のはずだが、このテストは players[0]=A を担当者として設定
+          backstagePlayerId: 'B', // boo incorrect → watcher = B
         };
         const result = gameReducer(backstageState, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
         expect(result.backstageResult).toBe('match');
-        // playerAKami に spotlightCard (rank=7) が追加される
-        expect(result.playerAKami).toHaveLength(2);
-        expect(result.playerAKami[1].rank).toBe(7);
+        // playerBKami に spotlightCard (rank=7) が追加される（watcher=B が担当）
+        expect(result.playerBKami).toHaveLength(1);
+        expect(result.playerBKami[0].rank).toBe(7);
+        expect(result.playerAKami).toHaveLength(1); // A は変化なし
       });
     });
   });

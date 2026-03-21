@@ -223,18 +223,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return addKamiToPlayer(pairState, winnerId, openedCard);
       }
 
+      // boo 正解: actor(players[0])が敗者 → バックステージ担当
+      // boo 不正解: watcher(players[1])が敗者 → バックステージ担当
+      const backstagePlayerId =
+        state.booResult === 'correct' ? state.players[0].id : state.players[1].id;
       return {
         ...state,
         deck: newDeck,
         setRemainingCount: newSetRemainingCount,
         spotlightCard: openedCard,
         phase: 'backstage',
+        backstagePlayerId,
       };
     }
 
     case 'SPOTLIGHT_SKIP_SET': {
       if (state.phase !== 'spotlight' && state.phase !== 'spotlight-bonus') return state;
-      return { ...state, phase: 'backstage' };
+      const backstagePlayerId =
+        state.booResult === 'correct' ? state.players[0].id : state.players[1].id;
+      return { ...state, phase: 'backstage', backstagePlayerId };
     }
 
     case 'BACKSTAGE_OPEN': {
@@ -245,10 +252,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const selectedCards = cardIndices.map((i) => state.backstage[i]) as [Card, Card, Card];
 
+      const backstagePlayerId = state.backstagePlayerId!;
       const newPublicInfos = buildPublicInfos(
         state.publicInfos,
         selectedCards,
-        state.players[0].id,
+        backstagePlayerId,
         state.round,
       );
 
@@ -266,8 +274,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           kami: { ...spotlightCard!, isFaceUp: true },
           shimo: { ...matchedCard, isFaceUp: true },
         };
-        // ペア成立: spotlightCard を行動プレイヤー(players[0])のカミ配列に追加
-        const backstagePlayerId = state.players[0].id;
         const matchState = {
           ...state,
           backstage: newBackstage,
@@ -296,6 +302,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         spotlightCard: null,
         backstageRevealedCards: [],
         backstageResult: null,
+        backstagePlayerId: null,
         phase: 'intermission',
       };
     }
@@ -306,11 +313,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const card = state.backstage[action.cardIndex];
       if (card === undefined) return state;
       const newBackstage = removeCardAt(state.backstage, action.cardIndex);
-      const newPlayerA: Player = {
-        ...state.players[0],
-        hand: [...state.players[0].hand, card],
-      };
-      const players: [Player, Player] = [newPlayerA, state.players[1]];
+      const backstagePlayerIndex = state.players[0].id === state.backstagePlayerId ? 0 : 1;
+      const backstagePlayer = state.players[backstagePlayerIndex];
+      const newPlayer: Player = { ...backstagePlayer, hand: [...backstagePlayer.hand, card] };
+      const players: [Player, Player] = backstagePlayerIndex === 0
+        ? [newPlayer, state.players[1]]
+        : [state.players[0], newPlayer];
       return {
         ...state,
         backstage: newBackstage,
@@ -318,6 +326,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         spotlightCard: null,
         backstageRevealedCards: [],
         backstageResult: null,
+        backstagePlayerId: null,
         phase: 'intermission',
       };
     }
