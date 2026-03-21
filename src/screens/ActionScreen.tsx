@@ -36,7 +36,7 @@ export default function ActionScreen() {
   if (showPassDevice && kamiIndex !== null && shimoIndex !== null) {
     return (
       <PassDevice
-        playerName={actionPlayer.name}
+        playerName={state.players[1].name}
         onComplete={() => dispatch({ type: 'ACTION_PLAY', kamiIndex, shimoIndex })}
       />
     );
