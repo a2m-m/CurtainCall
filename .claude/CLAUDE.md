@@ -21,6 +21,7 @@
 ### ゲートの実施
 - **Pre-push**: `./scripts/run lint` / `./scripts/run test` を通してから push
 - **Post-push**: CI結果を確認し、失敗時は原因をIssue化
+- **PR作成後**: `/review` を実行してレビュー結果をチャットに出力する
 - PRレビュー：What/Why/Test/Risk/Rollback の観点で確認
 
 ### テスト・lint 自律修正ループ
@@ -40,13 +41,14 @@
 |---|---|---|
 | `/issue-create` | テンプレ準拠の命令書 Issue を作成 | ユーザー |
 | `/issue-lint` | Issue の品質チェック（AC・Commit Plan・空セクション） | ユーザー |
-| `/review` | Issue AC に基づく PR / 成果物レビュー | ユーザー |
+| `/review` | Issue AC に基づく PR / 成果物レビュー | Claude（PR作成直後に自動実行） |
 | `/gate` | Pre-Push Gate 実行 + 結果解釈 | ユーザー |
 | `/commit-lint` | コミットメッセージ規約チェック | ユーザー |
 | `/pr-complete` | PRマージ後に `.ai-context.md` を更新 | ユーザー |
 | `/ci-failure-triage` | CI失敗を解析して Bug Issue を自動作成 | ユーザー |
 | `/release-notes` | タグ間の変更からリリースノートを生成 | ユーザー |
 | `/skill-create` | 反復作業を新しいスキルとして定義 | ユーザー |
+| `/istart` | 次に着手すべき Issue を自動判断してブランチ作成・計画立案まで一気に開始 | ユーザー |
 | `context-sync` | `.ai-context.md` を読んで状態同期 | Claude（自動） |
 
 ---
