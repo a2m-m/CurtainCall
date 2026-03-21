@@ -1,4 +1,5 @@
 import type { GameState, Card } from '@/types/game';
+import { calculateScore } from '@/lib/scoring';
 import styles from './InfoOverlay.module.css';
 
 const BOO_MAX = 3;
@@ -30,6 +31,9 @@ export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
   const [playerA, playerB] = players;
 
   const booCounts = [playerABooCnt, playerBBooCnt];
+  const scoreA = calculateScore(gameState, 'A');
+  const scoreB = calculateScore(gameState, 'B');
+  const scores = [scoreA, scoreB];
 
   return (
     <div
@@ -53,13 +57,17 @@ export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
         <div className={styles.section}>
           <h4 className={styles.sectionTitle}>スコア（暫定）</h4>
           <div className={styles.scoreCompare}>
-            {[playerA, playerB].map((player) => (
+            {[playerA, playerB].map((player, i) => (
               <div key={player.id} className={styles.scoreCol}>
                 <div className={styles.sName}>{player.name}</div>
-                <div className={styles.sTotal}>{player.hand.length}</div>
+                <div className={styles.sTotal}>{scores[i].kamiTotal - scores[i].handTotal}</div>
                 <div className={styles.sRow}>
-                  <span>手札</span>
-                  <span>{player.hand.length} 枚</span>
+                  <span>カミ合計</span>
+                  <span>{scores[i].kamiTotal} 点</span>
+                </div>
+                <div className={styles.sRow}>
+                  <span>手札合計</span>
+                  <span>{scores[i].handTotal} 点</span>
                 </div>
               </div>
             ))}
