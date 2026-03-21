@@ -60,7 +60,7 @@ export default function SpotlightRevealScreen() {
       {isNoMatch && (
         <div className={styles.result}>
           <p className={styles.resultText}>ブーイング正解！</p>
-          <p className={styles.moveText}>カードがBのステージへ移動します</p>
+          <p className={styles.moveText}>カードが{state.players[1].name}のステージへ移動します</p>
           <div className={styles.actions}>
             <button
               className={styles.openSetBtn}

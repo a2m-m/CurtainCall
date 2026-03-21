@@ -100,4 +100,14 @@ describe('SpotlightRevealScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'スキップ' }));
     expect(screen.getByTestId('after-spotlight').textContent).toBe('phase: backstage');
   });
+
+  it('ブーイング正解時の移動先案内にウォッチャーのプレイヤー名が表示される（固定「B」でない）', () => {
+    renderSpotlight();
+    fireEvent.click(screen.getByRole('button', { name: '黒子札を開示' }));
+    if (screen.queryByText('ブーイング正解！') !== null) {
+      // watcher = players[1] = ボブ
+      expect(screen.queryByText('カードがBのステージへ移動します')).toBeNull();
+      expect(screen.getByText('カードがボブのステージへ移動します')).toBeDefined();
+    }
+  });
 });
