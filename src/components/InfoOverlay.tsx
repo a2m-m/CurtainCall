@@ -27,10 +27,11 @@ type Props = {
 };
 
 export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
-  const { players, playerABooCnt, playerBBooCnt, setRemainingCount, publicInfos } = gameState;
+  const { players, playerABooCnt, playerBBooCnt, setRemainingCount, publicInfos, playerAKami, playerBKami } = gameState;
   const [playerA, playerB] = players;
 
   const booCounts = [playerABooCnt, playerBBooCnt];
+  const kamiCards = [playerAKami, playerBKami];
   const scoreA = calculateScore(gameState, 'A');
   const scoreB = calculateScore(gameState, 'B');
   const scores = [scoreA, scoreB];
@@ -68,6 +69,17 @@ export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
                 <div className={styles.sRow}>
                   <span>手札合計</span>
                   <span>{scores[i].handTotal} 点</span>
+                </div>
+                <div className={styles.kamiList}>
+                  {kamiCards[i].length === 0 ? (
+                    <span className={styles.kamiEmpty}>なし</span>
+                  ) : (
+                    kamiCards[i].map((card, j) => (
+                      <span key={j} className={styles.kamiChip}>
+                        {suitLabel(card)}{rankLabel(card)}
+                      </span>
+                    ))
+                  )}
                 </div>
               </div>
             ))}

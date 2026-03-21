@@ -78,6 +78,23 @@ describe('InfoOverlay', () => {
     expect(screen.getByText('♠5')).toBeDefined();
   });
 
+  it('カミ札が0枚の場合は「なし」が表示される', () => {
+    render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={baseState} />);
+    const nasiElements = screen.getAllByText('なし');
+    expect(nasiElements.length).toBe(2);
+  });
+
+  it('カミ札がある場合はランク＋スート形式で表示される', () => {
+    const state: GameState = {
+      ...baseState,
+      playerAKami: [{ suit: 'spades', rank: 13, isJoker: false, isFaceUp: true }],
+      playerBKami: [{ suit: 'hearts', rank: 7, isJoker: false, isFaceUp: true }],
+    };
+    render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={state} />);
+    expect(screen.getByText('♠K')).toBeDefined();
+    expect(screen.getByText('♥7')).toBeDefined();
+  });
+
   it('バックドロップタップでonCloseが呼ばれる', () => {
     const handleClose = vi.fn();
     render(<InfoOverlay isOpen={true} onClose={handleClose} gameState={baseState} />);
