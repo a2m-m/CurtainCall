@@ -1,6 +1,13 @@
 import { useGameDispatch, useGameState } from '@/game/context';
 import { calculateScore } from '@/lib/scoring';
+import type { CurtainCallReason } from '@/types/game';
 import styles from './ResultScreen.module.css';
+
+const CURTAIN_CALL_REASON_LABEL: Record<CurtainCallReason, string> = {
+  joker: 'ジョーカーが登場しました',
+  'set-last-1': 'セットの裏向きカードが残り1枚になりました',
+  'hand-shortage': '手札不足により継続不能となりました',
+};
 
 export default function ResultScreen() {
   const state = useGameState();
@@ -18,6 +25,10 @@ export default function ResultScreen() {
   return (
     <div className={styles.screen}>
       <h1 className={styles.heading}>カーテンコール</h1>
+
+      {state.curtainCallReason && (
+        <p className={styles.reason}>{CURTAIN_CALL_REASON_LABEL[state.curtainCallReason]}</p>
+      )}
 
       <div className={styles.result}>
         {winner === 'draw' ? (

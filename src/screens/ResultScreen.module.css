@@ -16,6 +16,13 @@
   margin: 0;
 }
 
+.reason {
+  font-size: 13px;
+  color: var(--muted, #7a8aaa);
+  margin: 0;
+  text-align: center;
+}
+
 .result {
   display: flex;
   flex-direction: column;
