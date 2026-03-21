@@ -1,20 +1,18 @@
-import { useRef } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { GameProvider, useGameDispatch, useGameState } from '@/game/context';
 import IntermissionScreen from './IntermissionScreen';
 
+// INIT_GAME → START_SCOUT → SCOUT_CARD → ACTION_PLAY → WATCH_CLAP → intermission フェーズまで進めるラッパー
 function IntermissionWrapper() {
   const dispatch = useGameDispatch();
   const state = useGameState();
-  // インターミッション画面を一度表示したかどうかを記録する
-  const passedIntermission = useRef(false);
 
   if (state.phase === 'intermission') {
-    passedIntermission.current = true;
     return <IntermissionScreen />;
   }
-  if (passedIntermission.current) {
+  // ラウンド2のscoutフェーズ = インターミッション後（「次のラウンドへ」ボタン押下済み）
+  if (state.round === 2 && state.phase === 'scout') {
     return <div data-testid="after-intermission">phase: {state.phase}</div>;
   }
   if (state.phase === 'standby' && state.players[0].name === '') {
