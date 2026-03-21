@@ -826,6 +826,33 @@ describe('gameReducer', () => {
     });
   });
 
+  describe('SCOUT_RESULT_PROCEED', () => {
+    it('scout-result フェーズで SCOUT_RESULT_PROCEED → action になる', () => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'Alice', playerBName: 'Bob' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const afterScout = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const scoutResultState: GameState = { ...afterScout, phase: 'scout-result' as any };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = gameReducer(scoutResultState, { type: 'SCOUT_RESULT_PROCEED' } as any);
+      expect(result.phase).toBe('action');
+    });
+  });
+
+  describe('ACTION_RESULT_PROCEED', () => {
+    it('action-result フェーズで ACTION_RESULT_PROCEED → watch になる', () => {
+      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'Alice', playerBName: 'Bob' });
+      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
+      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
+      const afterAction = gameReducer(s3, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const actionResultState: GameState = { ...afterAction, phase: 'action-result' as any };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = gameReducer(actionResultState, { type: 'ACTION_RESULT_PROCEED' } as any);
+      expect(result.phase).toBe('watch');
+    });
+  });
+
   describe('不正遷移', () => {
     it('standby フェーズで SCOUT_CARD を dispatch しても state が変わらない', () => {
       const result = gameReducer(initialState, { type: 'SCOUT_CARD', cardIndex: 0 });
