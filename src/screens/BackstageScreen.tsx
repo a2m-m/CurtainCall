@@ -74,6 +74,9 @@ export default function BackstageScreen() {
     return (
       <div className={styles.screen}>
         <h1 className={styles.heading}>バックステージ</h1>
+        <p className={styles.instruction}>
+          セットをオープンしなかったため、バックステージフェーズは発生しません。
+        </p>
         <button
           className={styles.proceedBtn}
           onClick={() => dispatch({ type: 'BACKSTAGE_PROCEED' })}
