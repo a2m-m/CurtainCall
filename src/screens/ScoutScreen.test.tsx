@@ -70,19 +70,27 @@ describe('ScoutScreen', () => {
     expect(btn.hasAttribute('disabled')).toBe(false);
   });
 
-  it('一度選択したら他のカードをクリックしても選択が変わらない（引き直し不可）', () => {
+  it('別のカードをタップすると選択が切り替わる（選び直し可）', () => {
     renderScout();
-    const allButtons = screen.getAllByRole('button');
-    // 裏向きカードのボタンを2枚取得
-    const cardButtons = allButtons.filter((b) => b.textContent === '');
+    const cardButtons = screen.getAllByRole('button').filter((b) => b.textContent === '');
     expect(cardButtons.length).toBeGreaterThanOrEqual(2);
-
     // 1枚目を選択
     fireEvent.click(cardButtons[0]);
-    // 2枚目をクリックしても、confirm ボタンはまだ有効（選択は変わっていないことを間接確認）
+    // 2枚目に選び直す
     fireEvent.click(cardButtons[1]);
-    const btn = screen.getByRole('button', { name: 'スカウト確定' });
-    expect(btn.hasAttribute('disabled')).toBe(false);
+    // 2枚目が選択されていることを確認：再タップで解除するとconfirmがdisabledになる
+    fireEvent.click(cardButtons[1]);
+    expect(screen.getByRole('button', { name: 'スカウト確定' }).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('選択済みカードを再タップすると選択が解除される', () => {
+    renderScout();
+    const cardButtons = screen.getAllByRole('button').filter((b) => b.textContent === '');
+    fireEvent.click(cardButtons[0]);
+    expect(screen.getByRole('button', { name: 'スカウト確定' }).hasAttribute('disabled')).toBe(false);
+    // 同じカードを再タップ → 解除
+    fireEvent.click(cardButtons[0]);
+    expect(screen.getByRole('button', { name: 'スカウト確定' }).hasAttribute('disabled')).toBe(true);
   });
 
   it('「スカウト確定」後、PassDeviceは表示されない', () => {

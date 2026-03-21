@@ -11,8 +11,11 @@ export default function ScoutScreen() {
   const opponentHand = state.players[1].hand;
 
   const handleCardClick = (index: number) => {
-    if (selectedIndex !== null) return; // 引き直し不可
-    setSelectedIndex(index);
+    if (index === selectedIndex) {
+      setSelectedIndex(null); // 再タップで解除
+    } else {
+      setSelectedIndex(index); // 別カードへの選び直し
+    }
   };
 
   const handleConfirm = () => {
@@ -23,14 +26,14 @@ export default function ScoutScreen() {
   return (
     <div className={styles.screen}>
       <h1 className={styles.heading}>スカウト</h1>
-      <p className={styles.sub}>相手の手札から1枚選んでください（選び直し不可）</p>
+      <p className={styles.sub}>相手の手札から1枚選んでください</p>
       <div className={styles.grid}>
         {opponentHand.map((card, i) => (
           <Card
             key={i}
             card={{ ...card, isFaceUp: false }}
             isSelected={i === selectedIndex}
-            onClick={selectedIndex === null ? () => handleCardClick(i) : undefined}
+            onClick={() => handleCardClick(i)}
           />
         ))}
       </div>
