@@ -312,6 +312,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
         expect(result.phase).toBe('intermission');
@@ -341,6 +342,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
         expect(result.phase).toBe('backstage');
@@ -463,9 +465,11 @@ describe('gameReducer', () => {
       if (!state) return;
       const resultState = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
       if (resultState.backstageResult !== 'no-match') return;
-      const handBefore = resultState.players[0].hand.length;
+      // buildBackstageState は booResult='incorrect' → watcher(players[1]) がバックステージ担当
+      const backstagePlayerIndex = resultState.players[0].id === resultState.backstagePlayerId ? 0 : 1;
+      const handBefore = resultState.players[backstagePlayerIndex].hand.length;
       const final = gameReducer(resultState, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
-      expect(final.players[0].hand).toHaveLength(handBefore + 1);
+      expect(final.players[backstagePlayerIndex].hand).toHaveLength(handBefore + 1);
     });
 
     it('BACKSTAGE_TAKE_HAND でバックステージが1枚減る', () => {
@@ -651,6 +655,166 @@ describe('gameReducer', () => {
     });
   });
 
+  describe('バックステージ担当者判定（Issue #80）', () => {
+    const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+
+    // SPOTLIGHT_OPEN_SET でペア不成立 → backstage に入るヘルパー
+    function buildFromNoPair(booResult: 'correct' | 'incorrect'): GameState | null {
+      const bonusState: GameState = {
+        phase: 'spotlight-bonus',
+        booResult,
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3), mk(7)] },  // rank=5 なし
+          { id: 'B', name: 'B', hand: [mk(9), mk(11)] }, // rank=5 なし
+        ],
+        stage: { kami: { ...mk(4), isFaceUp: true }, shimo: { ...mk(6), isFaceUp: true } },
+        deck: [mk(5), mk(12), mk(8)],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 3,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: null,
+      };
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+      return result.phase === 'backstage' ? result : null;
+    }
+
+    it('boo 不正解時: SPOTLIGHT_OPEN_SET（ペア不成立）→ backstagePlayerId が watcher(players[1].id=B) になる', () => {
+      const state = buildFromNoPair('incorrect');
+      if (!state) throw new Error('backstage state を構築できませんでした');
+      expect(state.backstagePlayerId).toBe('B');
+    });
+
+    it('boo 正解時: SPOTLIGHT_OPEN_SET（ペア不成立）→ backstagePlayerId が actor(players[0].id=A) になる', () => {
+      const state = buildFromNoPair('correct');
+      if (!state) throw new Error('backstage state を構築できませんでした');
+      expect(state.backstagePlayerId).toBe('A');
+    });
+
+    it('boo 不正解時: SPOTLIGHT_SKIP_SET → backstagePlayerId が watcher(players[1].id=B) になる', () => {
+      const bonusState: GameState = {
+        phase: 'spotlight-bonus',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: null,
+      };
+      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_SKIP_SET' });
+      expect(result.phase).toBe('backstage');
+      expect(result.backstagePlayerId).toBe('B');
+    });
+
+    it('boo 不正解時: BACKSTAGE_OPEN の publicInfos が watcher(B) のIDで記録される', () => {
+      const state: GameState = {
+        phase: 'backstage',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: 'B', // watcher = B（修正後にセットされる値）
+      };
+      const result = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
+      expect(result.publicInfos.every((p) => p.playerId === 'B')).toBe(true);
+    });
+
+    it('boo 不正解時: BACKSTAGE_TAKE_HAND でカードが watcher(players[1]=B) に追加される', () => {
+      const state: GameState = {
+        phase: 'backstage-result',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [mk(9), mk(11), mk(4)],
+        backstageResult: 'no-match',
+        backstagePlayerId: 'B', // watcher = B
+      };
+      const result = gameReducer(state, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
+      expect(result.players[1].hand).toHaveLength(2); // B: 1 + 1
+      expect(result.players[0].hand).toHaveLength(1); // A: 変化なし
+    });
+
+    it('boo 正解時: BACKSTAGE_TAKE_HAND でカードが actor(players[0]=A) に追加される', () => {
+      const state: GameState = {
+        phase: 'backstage-result',
+        booResult: 'correct',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(3)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage: [mk(9), mk(11), mk(4)],
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [mk(9), mk(11), mk(4)],
+        backstageResult: 'no-match',
+        backstagePlayerId: 'A', // actor = A
+      };
+      const result = gameReducer(state, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
+      expect(result.players[0].hand).toHaveLength(2); // A: 1 + 1
+      expect(result.players[1].hand).toHaveLength(1); // B: 変化なし
+    });
+  });
+
   describe('不正遷移', () => {
     it('standby フェーズで SCOUT_CARD を dispatch しても state が変わらない', () => {
       const result = gameReducer(initialState, { type: 'SCOUT_CARD', cardIndex: 0 });
@@ -696,6 +860,7 @@ describe('gameReducer', () => {
         spotlightCard: null,
         backstageRevealedCards: [],
         backstageResult: null,
+        backstagePlayerId: null,
       };
     }
 
@@ -789,6 +954,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         // deck[0]=rank6, players[0].hand にrank6あり → ペア成立
         const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
@@ -820,6 +986,7 @@ describe('gameReducer', () => {
           spotlightCard: null,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: null,
         };
         // deck[0]=rank5, players[1].hand にrank5あり → ペア成立
         const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
@@ -830,8 +997,8 @@ describe('gameReducer', () => {
       });
     });
 
-    describe('BACKSTAGE_OPEN: ペア成立時に spotlightCard が行動プレイヤーのカミに追加される', () => {
-      it('ペア成立時に spotlightCard が players[0].id のカミ配列に追加される', () => {
+    describe('BACKSTAGE_OPEN: ペア成立時に spotlightCard がバックステージ担当者のカミに追加される', () => {
+      it('boo 不正解時: ペア成立で spotlightCard が watcher(B=players[1]) のカミ配列に追加される', () => {
         const spotlightCard = mk(7);
         const matchCard = mk(7);
         const backstageState: GameState = {
@@ -855,12 +1022,14 @@ describe('gameReducer', () => {
           spotlightCard,
           backstageRevealedCards: [],
           backstageResult: null,
+          backstagePlayerId: 'B', // boo incorrect → watcher = B
         };
         const result = gameReducer(backstageState, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
         expect(result.backstageResult).toBe('match');
-        // playerAKami に spotlightCard (rank=7) が追加される
-        expect(result.playerAKami).toHaveLength(2);
-        expect(result.playerAKami[1].rank).toBe(7);
+        // playerBKami に spotlightCard (rank=7) が追加される（watcher=B が担当）
+        expect(result.playerBKami).toHaveLength(1);
+        expect(result.playerBKami[0].rank).toBe(7);
+        expect(result.playerAKami).toHaveLength(1); // A は変化なし
       });
     });
   });

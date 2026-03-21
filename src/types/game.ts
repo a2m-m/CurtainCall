@@ -59,4 +59,5 @@ export type GameState = {
   spotlightCard: Card | null;
   backstageRevealedCards: Card[];
   backstageResult: BackstageResult | null;
+  backstagePlayerId: string | null; // バックステージ担当者ID（boo敗者）
 };
