@@ -18,6 +18,8 @@ const baseState: GameState = {
   playerBBooCnt: 2,
   playerAKami: [],
   playerBKami: [],
+  playerAShimo: [],
+  playerBShimo: [],
   round: 1,
   curtainCallReason: null,
   booResult: null,
@@ -78,10 +80,11 @@ describe('InfoOverlay', () => {
     expect(screen.getByText('♠5')).toBeDefined();
   });
 
-  it('カミ札が0枚の場合は「なし」が表示される', () => {
+  it('カミ札が0枚の場合は「なし」が表示される（ステージ・蓄積ペア・スコアの各セクション）', () => {
     render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={baseState} />);
+    // ステージ:1 + スコアA:1 + スコアB:1 + 蓄積ペアA:1 + 蓄積ペアB:1 = 5
     const nasiElements = screen.getAllByText('なし');
-    expect(nasiElements.length).toBe(2);
+    expect(nasiElements.length).toBe(5);
   });
 
   it('カミ札がある場合はランク＋スート形式で表示される', () => {
@@ -91,8 +94,9 @@ describe('InfoOverlay', () => {
       playerBKami: [{ suit: 'hearts', rank: 7, isJoker: false, isFaceUp: true }],
     };
     render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={state} />);
-    expect(screen.getByText('♠K')).toBeDefined();
-    expect(screen.getByText('♥7')).toBeDefined();
+    // スコアセクションと蓄積ペアセクションの両方に表示されるため getAllByText を使用
+    expect(screen.getAllByText('♠K').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('♥7').length).toBeGreaterThan(0);
   });
 
   it('バックドロップタップでonCloseが呼ばれる', () => {

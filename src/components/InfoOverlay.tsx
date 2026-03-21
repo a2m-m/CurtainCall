@@ -27,11 +27,12 @@ type Props = {
 };
 
 export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
-  const { players, playerABooCnt, playerBBooCnt, setRemainingCount, publicInfos, playerAKami, playerBKami } = gameState;
+  const { players, playerABooCnt, playerBBooCnt, setRemainingCount, publicInfos, playerAKami, playerBKami, playerAShimo, playerBShimo, stage } = gameState;
   const [playerA, playerB] = players;
 
   const booCounts = [playerABooCnt, playerBBooCnt];
   const kamiCards = [playerAKami, playerBKami];
+  const shimoCards = [playerAShimo, playerBShimo];
   const scoreA = calculateScore(gameState, 'A');
   const scoreB = calculateScore(gameState, 'B');
   const scores = [scoreA, scoreB];
@@ -115,6 +116,67 @@ export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
           <div className={styles.setRemaining}>
             <span className={styles.setRemainingLabel}>裏向き残り</span>
             <span className={styles.setCount}>{setRemainingCount} 枚</span>
+          </div>
+        </div>
+
+        {/* 現在のステージ */}
+        <div className={styles.section}>
+          <h4 className={styles.sectionTitle}>現在のステージ</h4>
+          {stage.kami === null && stage.shimo === null ? (
+            <span className={styles.kamiEmpty}>なし</span>
+          ) : (
+            <div className={styles.stageRow}>
+              <div className={styles.stageCard}>
+                <span className={styles.stageLabel}>カミ</span>
+                <span className={styles.stageValue}>
+                  {stage.kami ? `${suitLabel(stage.kami)}${rankLabel(stage.kami)}` : '—'}
+                </span>
+              </div>
+              <div className={styles.stageCard}>
+                <span className={styles.stageLabel}>シモ</span>
+                <span className={styles.stageValue}>
+                  {stage.shimo
+                    ? stage.shimo.isFaceUp
+                      ? `${suitLabel(stage.shimo)}${rankLabel(stage.shimo)}`
+                      : '裏'
+                    : '—'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 蓄積ペア */}
+        <div className={styles.section}>
+          <h4 className={styles.sectionTitle}>蓄積ペア</h4>
+          <div className={styles.pairCompare}>
+            {[playerA, playerB].map((player, i) => (
+              <div key={player.id} className={styles.pairCol}>
+                <div className={styles.sName}>{player.name}</div>
+                {kamiCards[i].length === 0 ? (
+                  <span className={styles.kamiEmpty}>なし</span>
+                ) : (
+                  kamiCards[i].map((kami, j) => {
+                    const shimo = shimoCards[i][j];
+                    return (
+                      <div key={j} className={styles.pairRow}>
+                        <span className={styles.pairKami}>
+                          {suitLabel(kami)}{rankLabel(kami)}
+                        </span>
+                        <span className={styles.pairSlash}>/</span>
+                        <span className={styles.pairShimo}>
+                          {shimo
+                            ? shimo.isFaceUp
+                              ? `${suitLabel(shimo)}${rankLabel(shimo)}`
+                              : '裏'
+                            : '—'}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ))}
           </div>
         </div>
 

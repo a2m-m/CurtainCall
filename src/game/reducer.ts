@@ -37,6 +37,8 @@ export const initialState: GameState = {
   playerBBooCnt: 0,
   playerAKami: [],
   playerBKami: [],
+  playerAShimo: [],
+  playerBShimo: [],
   round: 0,
   curtainCallReason: null,
   booResult: null,
@@ -51,10 +53,19 @@ function removeCardAt(cards: Card[], index: number): Card[] {
 }
 
 function addKamiToPlayer(state: GameState, playerId: string, card: Card): GameState {
+  const shimo = state.stage.shimo;
   if (playerId === 'A') {
-    return { ...state, playerAKami: [...state.playerAKami, card] };
+    return {
+      ...state,
+      playerAKami: [...state.playerAKami, card],
+      playerAShimo: shimo ? [...state.playerAShimo, shimo] : state.playerAShimo,
+    };
   }
-  return { ...state, playerBKami: [...state.playerBKami, card] };
+  return {
+    ...state,
+    playerBKami: [...state.playerBKami, card],
+    playerBShimo: shimo ? [...state.playerBShimo, shimo] : state.playerBShimo,
+  };
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
