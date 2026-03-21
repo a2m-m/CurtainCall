@@ -465,9 +465,11 @@ describe('gameReducer', () => {
       if (!state) return;
       const resultState = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
       if (resultState.backstageResult !== 'no-match') return;
-      const handBefore = resultState.players[0].hand.length;
+      // buildBackstageState は booResult='incorrect' → watcher(players[1]) がバックステージ担当
+      const backstagePlayerIndex = resultState.players[0].id === resultState.backstagePlayerId ? 0 : 1;
+      const handBefore = resultState.players[backstagePlayerIndex].hand.length;
       const final = gameReducer(resultState, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
-      expect(final.players[0].hand).toHaveLength(handBefore + 1);
+      expect(final.players[backstagePlayerIndex].hand).toHaveLength(handBefore + 1);
     });
 
     it('BACKSTAGE_TAKE_HAND でバックステージが1枚減る', () => {
