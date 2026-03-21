@@ -182,6 +182,60 @@
   color: var(--muted, #7a8aaa);
 }
 
+.stageRow {
+  display: flex;
+  gap: 16px;
+}
+
+.stageCard {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 5px 8px;
+  background: var(--bg, #0f172a);
+  border-radius: 6px;
+}
+
+.stageLabel {
+  font-size: 10px;
+  color: var(--muted, #7a8aaa);
+}
+
+.stageValue {
+  color: var(--text, #e0e6f0);
+  font-weight: bold;
+}
+
+.pairCompare {
+  display: flex;
+  gap: 12px;
+}
+
+.pairCol {
+  flex: 1;
+}
+
+.pairRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.pairKami {
+  color: var(--text, #e0e6f0);
+}
+
+.pairSlash {
+  color: var(--muted, #7a8aaa);
+}
+
+.pairShimo {
+  color: var(--muted, #7a8aaa);
+}
+
 .knownCardsList {
   display: flex;
   flex-direction: column;
