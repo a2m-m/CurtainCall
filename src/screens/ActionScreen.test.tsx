@@ -127,4 +127,18 @@ describe('ActionScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ステージへ出す' }));
     expect(screen.getByRole('button', { name: '長押しで進む' })).toBeDefined();
   });
+
+  it('PassDeviceにはウォッチャー（ボブ）の名前が表示される', () => {
+    renderAction();
+    const cardButtons = screen.getAllByRole('button').filter(
+      (b) => b.getAttribute('aria-label') !== 'ステージへ出す',
+    );
+    fireEvent.click(cardButtons[0]);
+    fireEvent.click(cardButtons[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'ステージへ出す' }));
+    // PassDevice はウォッチャー（ボブ）に渡すもの
+    expect(screen.getByText('ボブ')).toBeDefined();
+    // アクター（アリス）の名前は表示されない
+    expect(screen.queryByText('アリス')).toBeNull();
+  });
 });
