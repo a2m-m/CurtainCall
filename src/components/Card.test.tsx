@@ -24,6 +24,13 @@ const jokerCard = (): CardType => ({
   isFaceUp: true,
 });
 
+const faceDownJokerCard = (): CardType => ({
+  suit: 'spades',
+  rank: 0,
+  isJoker: true,
+  isFaceUp: false,
+});
+
 describe('Card', () => {
   it('表向きカードがスートとランクを表示する', () => {
     render(<Card card={faceUpCard('spades', 1)} />);
@@ -57,6 +64,17 @@ describe('Card', () => {
   it('ジョーカーがJOKERラベルを表示する', () => {
     render(<Card card={jokerCard()} />);
     expect(screen.getByText('JOKER')).toBeDefined();
+  });
+
+  it('裏向きジョーカーはJOKERラベルを表示しない', () => {
+    render(<Card card={faceDownJokerCard()} />);
+    expect(screen.queryByText('JOKER')).toBeNull();
+  });
+
+  it('裏向きジョーカーはbackクラスを持つ', () => {
+    const { container } = render(<Card card={faceDownJokerCard()} />);
+    const el = container.querySelector('[class*="back"]');
+    expect(el).toBeTruthy();
   });
 
   it('selected状態でselectedクラスが付く', () => {
