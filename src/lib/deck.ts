@@ -26,6 +26,10 @@ export function shuffle(cards: Card[]): Card[] {
   return result;
 }
 
+export function sortHand(cards: Card[]): Card[] {
+  return [...cards].sort((a, b) => b.rank - a.rank);
+}
+
 export function deal(deck: Card[], counts: number[]): Card[][] {
   const total = counts.reduce((a, b) => a + b, 0);
   if (total > deck.length) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createDeck, createDeckWithJoker, shuffle, deal } from './deck';
+import { createDeck, createDeckWithJoker, shuffle, deal, sortHand } from './deck';
 
 describe('createDeck', () => {
   it('52枚を返す', () => {
@@ -80,5 +80,44 @@ describe('deal', () => {
   it('空配列を指定した場合は空の結果を返す', () => {
     const deck = createDeck();
     expect(deal(deck, [])).toEqual([]);
+  });
+});
+
+describe('sortHand', () => {
+  it('rankの大きい順に並ぶ', () => {
+    const hand = [
+      { suit: 'spades' as const, rank: 3, isJoker: false, isFaceUp: true },
+      { suit: 'hearts' as const, rank: 13, isJoker: false, isFaceUp: true },
+      { suit: 'clubs' as const, rank: 7, isJoker: false, isFaceUp: true },
+    ];
+    const sorted = sortHand(hand);
+    expect(sorted[0].rank).toBe(13);
+    expect(sorted[1].rank).toBe(7);
+    expect(sorted[2].rank).toBe(3);
+  });
+
+  it('Joker（rank=0）は末尾に来る', () => {
+    const hand = [
+      { suit: 'spades' as const, rank: 0, isJoker: true, isFaceUp: true },
+      { suit: 'hearts' as const, rank: 5, isJoker: false, isFaceUp: true },
+      { suit: 'clubs' as const, rank: 11, isJoker: false, isFaceUp: true },
+    ];
+    const sorted = sortHand(hand);
+    expect(sorted[sorted.length - 1].isJoker).toBe(true);
+    expect(sorted[0].rank).toBe(11);
+  });
+
+  it('元の配列を変更しない', () => {
+    const hand = [
+      { suit: 'spades' as const, rank: 5, isJoker: false, isFaceUp: true },
+      { suit: 'hearts' as const, rank: 10, isJoker: false, isFaceUp: true },
+    ];
+    const original = [...hand];
+    sortHand(hand);
+    expect(hand).toEqual(original);
+  });
+
+  it('空配列を受け取ったら空配列を返す', () => {
+    expect(sortHand([])).toEqual([]);
   });
 });
