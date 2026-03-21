@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
 import PassDevice from '@/components/PassDevice';
+import { sortHand } from '@/lib/deck';
 import styles from './ActionScreen.module.css';
 
 type SelectionStep = 'selectingActor' | 'selectingKuroko' | 'confirmed';
@@ -15,6 +16,7 @@ export default function ActionScreen() {
   const [showPassDevice, setShowPassDevice] = useState(false);
 
   const hand = state.players[0].hand;
+  const sortedHand = sortHand(hand);
   const actionPlayer = state.players[0];
 
   const handleCardClick = (index: number) => {
@@ -101,15 +103,18 @@ export default function ActionScreen() {
       </div>
 
       <div className={styles.grid}>
-        {hand.map((card, i) => (
-          <Card
-            key={i}
-            card={{ ...card, isFaceUp: true }}
-            isSelected={i === kamiIndex}
-            isSelectedShimo={i === shimoIndex}
-            onClick={getCardOnClick(i)}
-          />
-        ))}
+        {sortedHand.map((card) => {
+          const i = hand.indexOf(card);
+          return (
+            <Card
+              key={i}
+              card={{ ...card, isFaceUp: true }}
+              isSelected={i === kamiIndex}
+              isSelectedShimo={i === shimoIndex}
+              onClick={getCardOnClick(i)}
+            />
+          );
+        })}
       </div>
 
       <button
