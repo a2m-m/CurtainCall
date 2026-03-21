@@ -239,9 +239,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SPOTLIGHT_SKIP_SET': {
       if (state.phase !== 'spotlight' && state.phase !== 'spotlight-bonus') return state;
-      const backstagePlayerId =
-        state.booResult === 'correct' ? state.players[0].id : state.players[1].id;
-      return { ...state, phase: 'backstage', backstagePlayerId };
+      // セット未オープン時は比較対象カードが存在しないため
+      // バックステージフェーズは発生せずインターミッションへ直行する
+      return { ...state, phase: 'intermission' };
     }
 
     case 'BACKSTAGE_OPEN': {

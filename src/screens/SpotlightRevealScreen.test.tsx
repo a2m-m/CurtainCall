@@ -94,11 +94,11 @@ describe('SpotlightRevealScreen', () => {
     expect(screen.getByRole('button', { name: 'スキップ' })).toBeDefined();
   });
 
-  it('スキップで backstage フェーズに遷移する', () => {
+  it('スキップで intermission フェーズに遷移する（バックステージなし）', () => {
     renderSpotlight();
     fireEvent.click(screen.getByRole('button', { name: '黒子札を開示' }));
     fireEvent.click(screen.getByRole('button', { name: 'スキップ' }));
-    expect(screen.getByTestId('after-spotlight').textContent).toBe('phase: backstage');
+    expect(screen.getByTestId('after-spotlight').textContent).toBe('phase: intermission');
   });
 
   it('ブーイング正解時の移動先案内にウォッチャーのプレイヤー名が表示される（固定「B」でない）', () => {
