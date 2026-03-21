@@ -20,8 +20,7 @@ function ScoutResultWrapper() {
   if (state.phase === 'scout') {
     return <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((state.phase as any) === 'scout-result') {
+  if (state.phase === 'scout-result') {
     return <ScoutResultScreen />;
   }
   return <div data-testid="after-scout-result">phase: {state.phase}</div>;

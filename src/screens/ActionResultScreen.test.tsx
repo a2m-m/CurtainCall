@@ -20,18 +20,15 @@ function ActionResultWrapper() {
   if (state.phase === 'scout') {
     return <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((state.phase as any) === 'scout-result') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return <button onClick={() => dispatch({ type: 'SCOUT_RESULT_PROCEED' } as any)}>scout-result-proceed</button>;
+  if (state.phase === 'scout-result') {
+    return <button onClick={() => dispatch({ type: 'SCOUT_RESULT_PROCEED' })}>scout-result-proceed</button>;
   }
   if (state.phase === 'action') {
     return (
       <button onClick={() => dispatch({ type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 })}>action</button>
     );
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((state.phase as any) === 'action-result') {
+  if (state.phase === 'action-result') {
     return <ActionResultScreen />;
   }
   return <div data-testid="after-action-result">phase: {state.phase}</div>;

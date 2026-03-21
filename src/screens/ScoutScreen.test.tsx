@@ -27,6 +27,7 @@ function ScoutWrapper() {
   if (state.phase === 'scout') {
     return <ScoutScreen />;
   }
+  // scout-result まで進んだら after-scout として扱う（GameRouter が ScoutResultScreen を担当）
   return <div data-testid="after-scout">phase: {state.phase}</div>;
 }
 
@@ -102,12 +103,12 @@ describe('ScoutScreen', () => {
     expect(screen.queryByText('さんに渡してください')).toBeNull();
   });
 
-  it('「スカウト確定」後、直接アクションフェーズへ遷移する', () => {
+  it('「スカウト確定」後、scout-result フェーズへ遷移する', () => {
     renderScout();
     const allButtons = screen.getAllByRole('button');
     const firstCard = allButtons.find((b) => b.textContent === '') ?? allButtons[0];
     fireEvent.click(firstCard);
     fireEvent.click(screen.getByRole('button', { name: 'スカウト確定' }));
-    expect(screen.getByTestId('after-scout').textContent).toBe('phase: action');
+    expect(screen.getByTestId('after-scout').textContent).toBe('phase: scout-result');
   });
 });

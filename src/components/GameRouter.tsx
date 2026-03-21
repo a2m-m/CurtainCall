@@ -1,8 +1,10 @@
 import { useGameState } from '@/game/context';
+import ActionResultScreen from '@/screens/ActionResultScreen';
 import ActionScreen from '@/screens/ActionScreen';
 import BackstageScreen from '@/screens/BackstageScreen';
 import IntermissionScreen from '@/screens/IntermissionScreen';
 import ResultScreen from '@/screens/ResultScreen';
+import ScoutResultScreen from '@/screens/ScoutResultScreen';
 import ScoutScreen from '@/screens/ScoutScreen';
 import SpotlightBonusScreen from '@/screens/SpotlightBonusScreen';
 import SpotlightRevealScreen from '@/screens/SpotlightRevealScreen';
@@ -22,8 +24,12 @@ export default function GameRouter() {
       return <StandbyScreen />;
     case 'scout':
       return <ScoutScreen />;
+    case 'scout-result':
+      return <ScoutResultScreen />;
     case 'action':
       return <ActionScreen />;
+    case 'action-result':
+      return <ActionResultScreen />;
     case 'watch':
       return <WatchScreen />;
     case 'spotlight':

@@ -27,11 +27,21 @@ function SpotlightWrapper() {
       <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>
     );
   }
+  if (state.phase === 'scout-result') {
+    return (
+      <button onClick={() => dispatch({ type: 'SCOUT_RESULT_PROCEED' })}>scout-proceed</button>
+    );
+  }
   if (state.phase === 'action') {
     return (
       <button onClick={() => dispatch({ type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 })}>
         action
       </button>
+    );
+  }
+  if (state.phase === 'action-result') {
+    return (
+      <button onClick={() => dispatch({ type: 'ACTION_RESULT_PROCEED' })}>action-proceed</button>
     );
   }
   if (state.phase === 'watch') {
@@ -52,7 +62,9 @@ function renderSpotlight() {
   fireEvent.click(screen.getByRole('button', { name: 'init' }));
   fireEvent.click(screen.getByRole('button', { name: 'start' }));
   fireEvent.click(screen.getByRole('button', { name: 'scout' }));
+  fireEvent.click(screen.getByRole('button', { name: 'scout-proceed' }));
   fireEvent.click(screen.getByRole('button', { name: 'action' }));
+  fireEvent.click(screen.getByRole('button', { name: 'action-proceed' }));
   fireEvent.click(screen.getByRole('button', { name: 'boo' }));
 }
 

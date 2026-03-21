@@ -21,7 +21,9 @@ export type Stage = {
 export type GamePhase =
   | 'standby'
   | 'scout'
+  | 'scout-result'
   | 'action'
+  | 'action-result'
   | 'watch'
   | 'spotlight'
   | 'spotlight-bonus'

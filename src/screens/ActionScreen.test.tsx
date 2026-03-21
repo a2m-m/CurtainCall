@@ -27,6 +27,11 @@ function ActionWrapper() {
       <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>
     );
   }
+  if (state.phase === 'scout-result') {
+    return (
+      <button onClick={() => dispatch({ type: 'SCOUT_RESULT_PROCEED' })}>scout-proceed</button>
+    );
+  }
   if (state.phase === 'action') {
     return <ActionScreen />;
   }
@@ -42,6 +47,7 @@ function renderAction() {
   fireEvent.click(screen.getByRole('button', { name: 'init' }));
   fireEvent.click(screen.getByRole('button', { name: 'start' }));
   fireEvent.click(screen.getByRole('button', { name: 'scout' }));
+  fireEvent.click(screen.getByRole('button', { name: 'scout-proceed' }));
 }
 
 describe('ActionScreen', () => {
@@ -197,9 +203,15 @@ describe('ActionScreen ラウンド2', () => {
     if (state.phase === 'scout') {
       return <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>;
     }
+    if (state.phase === 'scout-result') {
+      return <button onClick={() => dispatch({ type: 'SCOUT_RESULT_PROCEED' })}>scout-proceed</button>;
+    }
     // ラウンド1のアクション: アリス（players[0]）が actor → 自動で ACTION_PLAY
     if (state.phase === 'action' && state.players[0].name === 'アリス') {
       return <button onClick={() => dispatch({ type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 })}>action1</button>;
+    }
+    if (state.phase === 'action-result' && state.players[0].name === 'アリス') {
+      return <button onClick={() => dispatch({ type: 'ACTION_RESULT_PROCEED' })}>action-proceed1</button>;
     }
     if (state.phase === 'watch') {
       return <button onClick={() => dispatch({ type: 'WATCH_CLAP' })}>clap</button>;
@@ -222,11 +234,14 @@ describe('ActionScreen ラウンド2', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'init' }));
     fireEvent.click(screen.getByRole('button', { name: 'start' }));
-    fireEvent.click(screen.getByRole('button', { name: 'scout' }));   // Round 1 scout
-    fireEvent.click(screen.getByRole('button', { name: 'action1' })); // Round 1 action
-    fireEvent.click(screen.getByRole('button', { name: 'clap' }));    // Watch → Intermission
-    fireEvent.click(screen.getByRole('button', { name: 'inter' }));   // Intermission → Round 2 scout
-    fireEvent.click(screen.getByRole('button', { name: 'scout' }));   // Round 2 scout → action
+    fireEvent.click(screen.getByRole('button', { name: 'scout' }));        // Round 1 scout
+    fireEvent.click(screen.getByRole('button', { name: 'scout-proceed' })); // scout-result → action
+    fireEvent.click(screen.getByRole('button', { name: 'action1' }));      // Round 1 action
+    fireEvent.click(screen.getByRole('button', { name: 'action-proceed1' })); // action-result → watch
+    fireEvent.click(screen.getByRole('button', { name: 'clap' }));         // Watch → Intermission
+    fireEvent.click(screen.getByRole('button', { name: 'inter' }));        // Intermission → Round 2 scout
+    fireEvent.click(screen.getByRole('button', { name: 'scout' }));        // Round 2 scout
+    fireEvent.click(screen.getByRole('button', { name: 'scout-proceed' })); // scout-result → Round 2 action
   }
 
   it('ラウンド2のPassDeviceには新しいウォッチャー（アリス）の名前が表示される', () => {
