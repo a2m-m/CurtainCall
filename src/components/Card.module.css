@@ -17,6 +17,11 @@
   cursor: pointer;
 }
 
+.clickable:focus-visible {
+  outline: 3px solid #4a9eff;
+  outline-offset: 2px;
+}
+
 .clickable:active {
   opacity: 0.75;
 }
