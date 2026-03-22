@@ -50,6 +50,7 @@ export const initialState: GameState = {
   backstagePlayerId: null,
   lastOpenedCard: null,
   spotlightOpenResultNextPhase: null,
+  lastScoutedCard: null,
 };
 
 function removeCardAt(cards: Card[], index: number): Card[] {
@@ -122,7 +123,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
       const players: [Player, Player] = [newPlayerA, newPlayerB];
 
-      return { ...state, phase: 'scout-result', players };
+      return { ...state, phase: 'scout-result', players, lastScoutedCard: scoutedCard };
     }
 
     case 'SCOUT_RESULT_PROCEED': {
