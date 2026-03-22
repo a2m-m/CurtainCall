@@ -51,6 +51,7 @@ export const initialState: GameState = {
   lastOpenedCard: null,
   spotlightOpenResultNextPhase: null,
   lastScoutedCard: null,
+  lastBackstageDrawnCard: null,
 };
 
 function removeCardAt(cards: Card[], index: number): Card[] {
@@ -377,6 +378,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         backstageRevealedCards: [],
         backstageResult: null,
         backstagePlayerId: null,
+        lastBackstageDrawnCard: null,
         phase: 'intermission',
       };
     }
@@ -398,11 +400,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         backstage: newBackstage,
         publicInfos: shiftPublicInfosAfterRemoval(state.publicInfos, action.cardIndex),
         players,
-        spotlightCard: null,
-        backstageRevealedCards: [],
-        backstageResult: null,
-        backstagePlayerId: null,
-        phase: 'intermission',
+        lastBackstageDrawnCard: card,
+        phase: 'backstage-result',
       };
     }
 
