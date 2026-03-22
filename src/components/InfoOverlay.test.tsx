@@ -122,6 +122,32 @@ describe('InfoOverlay', () => {
     expect(twoThirdSpan.parentElement?.parentElement?.textContent).toContain('ボブ');
   });
 
+  it('暫定スコアに手札合計が表示されない（非公開情報の漏洩防止）', () => {
+    const state: GameState = {
+      ...baseState,
+      players: [
+        { id: 'A', name: 'アリス', hand: [{ suit: 'spades', rank: 10, isJoker: false, isFaceUp: true }] },
+        { id: 'B', name: 'ボブ', hand: [{ suit: 'hearts', rank: 7, isJoker: false, isFaceUp: true }] },
+      ],
+    };
+    render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={state} />);
+    expect(screen.queryByText('手札合計')).toBeNull();
+  });
+
+  it('暫定スコアはカミ合計のみを表示する', () => {
+    const state: GameState = {
+      ...baseState,
+      players: [
+        { id: 'A', name: 'アリス', hand: [{ suit: 'spades', rank: 10, isJoker: false, isFaceUp: true }] },
+        { id: 'B', name: 'ボブ', hand: [] },
+      ],
+      playerAKami: [{ suit: 'clubs', rank: 5, isJoker: false, isFaceUp: true }],
+    };
+    render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={state} />);
+    // Aのカミ合計=5、手札=10だが暫定スコアはカミのみ→5が表示される
+    expect(screen.getByText('5 点')).toBeDefined();
+  });
+
   it('バックドロップタップでonCloseが呼ばれる', () => {
     const handleClose = vi.fn();
     render(<InfoOverlay isOpen={true} onClose={handleClose} gameState={baseState} />);

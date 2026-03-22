@@ -545,11 +545,23 @@ describe('gameReducer', () => {
       expect(result.phase).toBe('backstage-result');
     });
 
-    it('BACKSTAGE_OPEN で publicInfos が3件増える', () => {
+    it('BACKSTAGE_OPEN で publicInfos が3件増える（no-match シナリオ）', () => {
       const state = buildBackstageState();
       if (!state) return;
+      // spotlightCard と一致しないインデックスを3つ選んで no-match を確定させる
+      const noMatchIndices = state.backstage
+        .map((card, i) => ({ card, i }))
+        .filter(({ card }) =>
+          !state.spotlightCard ||
+          card.isJoker ||
+          state.spotlightCard.isJoker ||
+          card.rank !== state.spotlightCard.rank,
+        )
+        .slice(0, 3)
+        .map(({ i }) => i);
+      if (noMatchIndices.length < 3) return;
       const before = state.publicInfos.length;
-      const result = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
+      const result = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: noMatchIndices as [number, number, number] });
       expect(result.publicInfos.length).toBe(before + 3);
     });
 
