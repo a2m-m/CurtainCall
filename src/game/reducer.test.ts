@@ -578,7 +578,7 @@ describe('gameReducer', () => {
       expect(final.backstage).toHaveLength(backstageBefore - 1);
     });
 
-    it('BACKSTAGE_OPEN でペア成立時も publicInfos に3件記録される', () => {
+    it('BACKSTAGE_OPEN でペア成立時、publicInfos は +3 後にマッチ分 -1 で net +2 になる', () => {
       const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
       const s2 = gameReducer(s1, { type: 'START_SCOUT' });
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
@@ -607,18 +607,21 @@ describe('gameReducer', () => {
         cardIndices: [pairIdx, others[0], others[1]],
       });
       expect(result.backstageResult).toBe('match');
-      expect(result.publicInfos.length).toBe(before + 3);
+      // 3件追加、マッチしたカードの publicInfo が削除されるため net +2
+      expect(result.publicInfos.length).toBe(before + 2);
     });
 
-    it('BACKSTAGE_TAKE_HAND で取得したカードは publicInfos に含まれない', () => {
+    it('BACKSTAGE_TAKE_HAND で取得したカードの publicInfo が削除される', () => {
       const state = buildBackstageState();
       if (!state) return;
       const resultState = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
       if (resultState.backstageResult !== 'no-match') return;
       const countBefore = resultState.publicInfos.length;
       const final = gameReducer(resultState, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 0 });
-      // 手札に加えたカードで publicInfos は増えない
-      expect(final.publicInfos.length).toBe(countBefore);
+      // 手札に取ったカードの publicInfo が削除される → 1件減る
+      expect(final.publicInfos.length).toBe(countBefore - 1);
+      // 残存エントリのインデックスはすべて現在の backstage 長内に収まる
+      expect(final.publicInfos.every((p) => p.backstageIndex < final.backstage.length)).toBe(true);
     });
 
     it('BACKSTAGE_OPEN で publicInfos に backstageIndex が記録される', () => {

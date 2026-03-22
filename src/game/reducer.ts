@@ -1,6 +1,6 @@
 import type { Card, CurtainCallReason, GamePhase, GameState, Player, Stage } from '@/types/game';
 import { createDeck, createDeckWithJoker, deal, shuffle } from '@/lib/deck';
-import { buildPublicInfos } from './publicInfo';
+import { buildPublicInfos, shiftPublicInfosAfterRemoval } from './publicInfo';
 
 export type GameAction =
   | { type: 'INIT_GAME'; playerAName: string; playerBName: string }
@@ -307,6 +307,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         selectedCards,
         backstagePlayerId,
         state.round,
+        cardIndices,
       );
 
       const spotlightCard = state.spotlightCard;
@@ -323,10 +324,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           kami: { ...spotlightCard!, isFaceUp: true },
           shimo: { ...matchedCard, isFaceUp: true },
         };
+        const shiftedPublicInfos = shiftPublicInfosAfterRemoval(newPublicInfos, matchedBackstageIndex);
         const matchState = {
           ...state,
           backstage: newBackstage,
-          publicInfos: newPublicInfos,
+          publicInfos: shiftedPublicInfos,
           stage,
           backstageRevealedCards: selectedCards,
           backstageResult: 'match' as const,
@@ -371,6 +373,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         backstage: newBackstage,
+        publicInfos: shiftPublicInfosAfterRemoval(state.publicInfos, action.cardIndex),
         players,
         spotlightCard: null,
         backstageRevealedCards: [],
