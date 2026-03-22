@@ -36,7 +36,7 @@ const baseState: GameState = {
   backstageResult: null,
   backstagePlayerId: null,
   lastOpenedCard: null,
-  spotlightOpenResultNextPhase: null, lastScoutedCard: null,
+  spotlightOpenResultNextPhase: null, lastScoutedCard: null, lastBackstageDrawnCard: null,
 };
 
 describe('checkCurtainCall', () => {

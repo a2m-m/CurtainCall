@@ -1381,7 +1381,7 @@ describe('gameReducer', () => {
           backstageResult: null,
           backstagePlayerId: 'B', // boo incorrect → watcher = B
           lastOpenedCard: null,
-          spotlightOpenResultNextPhase: null, lastScoutedCard: null,
+          spotlightOpenResultNextPhase: null, lastScoutedCard: null, lastBackstageDrawnCard: null,
         };
         const result = gameReducer(backstageState, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
         expect(result.backstageResult).toBe('match');
