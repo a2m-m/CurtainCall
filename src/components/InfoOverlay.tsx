@@ -63,14 +63,10 @@ export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
             {[playerA, playerB].map((player, i) => (
               <div key={player.id} className={styles.scoreCol}>
                 <div className={styles.sName}>{player.name}</div>
-                <div className={styles.sTotal}>{scores[i].kamiTotal - scores[i].handTotal}</div>
+                <div className={styles.sTotal}>{scores[i].kamiTotal}</div>
                 <div className={styles.sRow}>
                   <span>カミ合計</span>
                   <span>{scores[i].kamiTotal} 点</span>
-                </div>
-                <div className={styles.sRow}>
-                  <span>手札合計</span>
-                  <span>{scores[i].handTotal} 点</span>
                 </div>
                 <div className={styles.kamiList}>
                   {kamiCards[i].length === 0 ? (
