@@ -99,6 +99,24 @@ describe('InfoOverlay', () => {
     expect(screen.getAllByText('♥7').length).toBeGreaterThan(0);
   });
 
+  it('swap後（偶数ラウンド）もA/Bのブーイング数が正しいプレイヤー欄に表示される', () => {
+    // players が swap された状態（偶数ラウンド）を再現
+    const state: GameState = {
+      ...baseState,
+      players: [
+        { id: 'B', name: 'ボブ', hand: [] },
+        { id: 'A', name: 'アリス', hand: [] },
+      ],
+      playerABooCnt: 0,
+      playerBBooCnt: 3,
+    };
+    render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={state} />);
+    // ブーイングセクション: players[0]=B(ボブ) → 「3 / 3」、players[1]=A(アリス) → 「0 / 3」 が正しい
+    const counts = screen.getAllByText(/\d+ \/ 3/);
+    expect(counts[0].textContent).toBe('3 / 3');
+    expect(counts[1].textContent).toBe('0 / 3');
+  });
+
   it('バックドロップタップでonCloseが呼ばれる', () => {
     const handleClose = vi.fn();
     render(<InfoOverlay isOpen={true} onClose={handleClose} gameState={baseState} />);
