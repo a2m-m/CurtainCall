@@ -250,12 +250,14 @@ describe('gameReducer', () => {
       expect(result).toBe(initialState);
     });
 
-    it('ジョーカーを開いたとき spotlight-joker に遷移し、ジョーカーが stage.shimo に格納される', () => {
+    it('ジョーカーを開いたとき spotlight-open-result に遷移し、PROCEED 後に spotlight-joker へ遷移する', () => {
       const jokerIndex = bonusState.deck.findIndex((c) => c.isJoker);
       if (jokerIndex === -1) return; // jokerがない場合はスキップ
-      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: jokerIndex });
+      const afterOpen = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: jokerIndex });
+      expect(afterOpen.phase).toBe('spotlight-open-result');
+      expect(afterOpen.stage.shimo?.isJoker).toBe(true);
+      const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
       expect(result.phase).toBe('spotlight-joker');
-      expect(result.stage.shimo?.isJoker).toBe(true);
     });
 
     it('setRemainingCount が減少する', () => {
@@ -265,14 +267,17 @@ describe('gameReducer', () => {
       expect(result.setRemainingCount).toBe(bonusState.setRemainingCount - 1);
     });
 
-    it('ペア成立時に intermission へ遷移する', () => {
+    it('ペア成立時に spotlight-open-result に遷移し、PROCEED 後に intermission へ遷移する', () => {
       // 手札に同じrankのカードがあるsetカードを探す
       const playerAHand = bonusState.players[0].hand;
       const pairableSetIndex = bonusState.deck.findIndex(
         (sc) => !sc.isJoker && playerAHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
       );
       if (pairableSetIndex === -1) return; // ペアなし状態ではスキップ
-      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: pairableSetIndex });
+      const afterOpen = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: pairableSetIndex });
+      expect(afterOpen.phase).toBe('spotlight-open-result');
+      expect(afterOpen.spotlightOpenResultNextPhase).toBe('intermission');
+      const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
       expect(result.phase).toBe('intermission');
     });
 
@@ -286,14 +291,17 @@ describe('gameReducer', () => {
       expect(result.players[0].hand).toHaveLength(playerAHand.length - 1);
     });
 
-    it('ペア不成立時に backstage へ遷移する', () => {
+    it('ペア不成立時に spotlight-open-result に遷移し、PROCEED 後に backstage へ遷移する', () => {
       // 手札にないrankのsetカードを探す
       const playerAHand = bonusState.players[0].hand;
       const noPairSetIndex = bonusState.deck.findIndex(
         (sc) => !sc.isJoker && !playerAHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
       );
       if (noPairSetIndex === -1) return;
-      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      const afterOpen = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      expect(afterOpen.phase).toBe('spotlight-open-result');
+      expect(afterOpen.spotlightOpenResultNextPhase).toBe('backstage');
+      const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
       expect(result.phase).toBe('backstage');
     });
 
@@ -337,7 +345,7 @@ describe('gameReducer', () => {
     describe('boo 正解時（booResult=correct）の手札参照（Issue #64）', () => {
       const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
 
-      it('boo 正解時に players[1].hand でペア判定し intermission へ遷移する', () => {
+      it('boo 正解時に players[1].hand でペア判定し spotlight-open-result 経由で intermission へ遷移する', () => {
         const booCorrectState: GameState = {
           phase: 'spotlight-bonus',
           booResult: 'correct',
@@ -363,10 +371,13 @@ describe('gameReducer', () => {
           backstageResult: null,
           backstagePlayerId: null,
         };
-        const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        const afterOpen = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(afterOpen.phase).toBe('spotlight-open-result');
+        expect(afterOpen.spotlightOpenResultNextPhase).toBe('intermission');
+        expect(afterOpen.players[1].hand).toHaveLength(1);
+        expect(afterOpen.players[0].hand).toHaveLength(2);
+        const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
         expect(result.phase).toBe('intermission');
-        expect(result.players[1].hand).toHaveLength(1);
-        expect(result.players[0].hand).toHaveLength(2);
       });
 
       it('boo 正解時は players[0].hand にペアがあっても players[1].hand を使う', () => {
@@ -395,7 +406,9 @@ describe('gameReducer', () => {
           backstageResult: null,
           backstagePlayerId: null,
         };
-        const result = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        const afterOpen = gameReducer(booCorrectState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(afterOpen.spotlightOpenResultNextPhase).toBe('backstage');
+        const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
         expect(result.phase).toBe('backstage');
       });
     });
@@ -514,7 +527,8 @@ describe('gameReducer', () => {
         (sc) => !sc.isJoker && !playerAHand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
       );
       if (noPairSetIndex === -1) return null;
-      return gameReducer(s9, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      const afterOpen = gameReducer(s9, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      return gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
     }
 
     it('backstage フェーズで spotlightCard がセットされている', () => {
@@ -559,7 +573,8 @@ describe('gameReducer', () => {
         (sc) => !sc.isJoker && !s9.players[0].hand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
       );
       if (noPairSetIndex === -1) return;
-      const backstageState = gameReducer(s9, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      const afterOpen = gameReducer(s9, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      const backstageState = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
       if (backstageState.spotlightCard === null) return;
 
       // バックステージからスポットライトカードと同rankのカードを含む3枚を探す
@@ -630,7 +645,8 @@ describe('gameReducer', () => {
         (sc) => !sc.isJoker && !s9.players[0].hand.some((hc) => !hc.isJoker && hc.rank === sc.rank),
       );
       if (noPairSetIndex === -1) return;
-      const backstageState = gameReducer(s9, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      const afterOpen = gameReducer(s9, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: noPairSetIndex });
+      const backstageState = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
       if (backstageState.spotlightCard === null) return;
 
       const { spotlightCard, backstage } = backstageState;
@@ -946,7 +962,8 @@ describe('gameReducer', () => {
         backstageResult: null,
         backstagePlayerId: null,
       };
-      const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+      const afterOpen = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+      const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
       return result.phase === 'backstage' ? result : null;
     }
 
@@ -1254,11 +1271,13 @@ describe('gameReducer', () => {
           backstagePlayerId: null,
         };
         // deck[0]=rank6, players[0].hand にrank6あり → ペア成立
-        const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        const afterOpen = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(afterOpen.phase).toBe('spotlight-open-result');
+        // playerAKami は既に spotlight-open-result 時点で追加済み（kami累積はオープン時に確定）
+        expect(afterOpen.playerAKami).toHaveLength(2);
+        expect(afterOpen.playerAKami[1].rank).toBe(6);
+        const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
         expect(result.phase).toBe('intermission');
-        // playerAKami が1枚増えて合計2枚になる（元の1枚 + 新しいrank6）
-        expect(result.playerAKami).toHaveLength(2);
-        expect(result.playerAKami[1].rank).toBe(6);
       });
 
       it('boo 正解パス: ペア成立時に openedCard が playerBKami に追加される', () => {
@@ -1288,11 +1307,13 @@ describe('gameReducer', () => {
           backstagePlayerId: null,
         };
         // deck[0]=rank5, players[1].hand にrank5あり → ペア成立
-        const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        const afterOpen = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: 0 });
+        expect(afterOpen.phase).toBe('spotlight-open-result');
+        // playerBKami は既に spotlight-open-result 時点で追加済み
+        expect(afterOpen.playerBKami).toHaveLength(2);
+        expect(afterOpen.playerBKami[1].rank).toBe(5);
+        const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
         expect(result.phase).toBe('intermission');
-        // playerBKami が1枚増えて合計2枚
-        expect(result.playerBKami).toHaveLength(2);
-        expect(result.playerBKami[1].rank).toBe(5);
       });
     });
 

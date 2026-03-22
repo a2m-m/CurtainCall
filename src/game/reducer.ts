@@ -212,7 +212,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           deck: newDeck,
           setRemainingCount: newSetRemainingCount,
           stage: { ...state.stage, shimo: openedCard },
-          phase: 'spotlight-joker',
+          phase: 'spotlight-open-result',
+          lastOpenedCard: openedCard,
+          spotlightOpenResultNextPhase: 'spotlight-joker',
         };
       }
       if (newSetRemainingCount <= 1) {
@@ -220,8 +222,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...state,
           deck: newDeck,
           setRemainingCount: newSetRemainingCount,
-          phase: 'curtain-call',
+          phase: 'spotlight-open-result',
           curtainCallReason: 'set-last-1',
+          lastOpenedCard: openedCard,
+          spotlightOpenResultNextPhase: 'curtain-call',
         };
       }
 
@@ -245,7 +249,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           setRemainingCount: newSetRemainingCount,
           stage: { kami: { ...openedCard }, shimo: { ...pairCard, isFaceUp: true } },
           players,
-          phase: 'intermission' as const,
+          phase: 'spotlight-open-result' as const,
+          lastOpenedCard: openedCard,
+          spotlightOpenResultNextPhase: 'intermission' as GamePhase,
         };
         return addKamiToPlayer(pairState, winnerId, openedCard);
       }
@@ -259,8 +265,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         deck: newDeck,
         setRemainingCount: newSetRemainingCount,
         spotlightCard: openedCard,
-        phase: 'backstage',
+        phase: 'spotlight-open-result',
         backstagePlayerId,
+        lastOpenedCard: openedCard,
+        spotlightOpenResultNextPhase: 'backstage',
       };
     }
 
