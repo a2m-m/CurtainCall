@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GameProvider, useGameDispatch, useGameState } from '@/game/context';
 import IntermissionScreen from './IntermissionScreen';
 
@@ -96,9 +96,29 @@ describe('IntermissionScreen', () => {
     expect(screen.getByText('アリス → ボブ')).toBeDefined();
   });
 
-  it('「次のラウンドへ」ボタンで scout フェーズに遷移する', () => {
+  it('「次のラウンドへ」ボタン押下後に PassDevice が表示される', () => {
     renderIntermission();
     fireEvent.click(screen.getByRole('button', { name: '次のラウンドへ' }));
-    expect(screen.getByTestId('after-intermission').textContent).toBe('phase: scout');
+    expect(screen.getByText('さんに渡してください')).toBeDefined();
+  });
+
+  it('「次のラウンドへ」ボタン押下後に scout フェーズへ直接遷移しない', () => {
+    renderIntermission();
+    fireEvent.click(screen.getByRole('button', { name: '次のラウンドへ' }));
+    expect(screen.queryByTestId('after-intermission')).toBeNull();
+  });
+
+  describe('PassDevice 経由でのフェーズ遷移', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('PassDevice 完了後に scout フェーズへ遷移する', () => {
+      renderIntermission();
+      fireEvent.click(screen.getByRole('button', { name: '次のラウンドへ' }));
+      const btn = screen.getByRole('button', { name: '長押しで進む' });
+      fireEvent.pointerDown(btn);
+      act(() => { vi.advanceTimersByTime(2000); });
+      expect(screen.getByTestId('after-intermission').textContent).toBe('phase: scout');
+    });
   });
 });

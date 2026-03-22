@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './PassDevice.module.css';
 
 const INTERVAL_MS = 20;
@@ -30,6 +30,14 @@ export default function PassDevice({ playerName, onComplete }: Props) {
       }
     }, INTERVAL_MS);
   };
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const cancelHold = () => {
     if (intervalRef.current) {
