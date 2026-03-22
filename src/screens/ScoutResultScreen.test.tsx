@@ -48,6 +48,14 @@ describe('ScoutResultScreen', () => {
     expect(screen.getByText(/手札/)).toBeDefined();
   });
 
+  it('引いたカードが表示される（自分のスカウト結果のみ）', () => {
+    renderScoutResult();
+    // Card コンポーネントがスート記号かランクを表示していることを確認
+    const suitSymbols = ['♠', '♥', '♦', '♣', 'JOKER'];
+    const hasSuit = suitSymbols.some((s) => document.body.textContent?.includes(s));
+    expect(hasSuit).toBe(true);
+  });
+
   it('「アクションへ」ボタンが表示される', () => {
     renderScoutResult();
     expect(screen.getByRole('button', { name: 'アクションへ' })).toBeDefined();
