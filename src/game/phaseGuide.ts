@@ -36,10 +36,14 @@ export function getPhaseGuide(state: GameState): PhaseGuide {
       activePlayerName = p0.name;
       break;
     case 'watch':
+      activePlayerName = p1.name;
+      break;
     case 'spotlight':
+      activePlayerName = p0.name;
+      break;
     case 'spotlight-bonus':
     case 'spotlight-joker':
-      activePlayerName = p1.name;
+      activePlayerName = state.booResult === 'correct' ? p1.name : p0.name;
       break;
     case 'backstage':
     case 'backstage-result':
