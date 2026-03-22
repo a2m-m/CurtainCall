@@ -30,6 +30,33 @@ const baseState: GameState = {
   ],
 };
 
+describe('BackstageScreen - Issue #138 リグレッション', () => {
+  it('BACKSTAGE_TAKE_HAND 後（lastBackstageDrawnCard あり）に引いたカードが表示される', () => {
+    vi.mocked(useGameState).mockReturnValue({
+      ...baseState,
+      phase: 'backstage-result',
+      backstageResult: 'no-match',
+      backstageRevealedCards: [card(1), card(2), card(3)],
+      lastBackstageDrawnCard: { suit: 'diamonds', rank: 7, isJoker: false, isFaceUp: true },
+    });
+    render(<BackstageScreen />);
+    expect(screen.getByText('手札に加えたカード')).toBeTruthy();
+    expect(screen.getByText('インターミッションへ')).toBeTruthy();
+  });
+
+  it('lastBackstageDrawnCard=null のとき引いたカード表示が出ない', () => {
+    vi.mocked(useGameState).mockReturnValue({
+      ...baseState,
+      phase: 'backstage-result',
+      backstageResult: 'no-match',
+      backstageRevealedCards: [card(1), card(2), card(3)],
+      lastBackstageDrawnCard: null,
+    });
+    render(<BackstageScreen />);
+    expect(screen.queryByText('手札に加えたカード')).toBeNull();
+  });
+});
+
 describe('BackstageScreen - Issue #130 リグレッション', () => {
   beforeEach(() => {
     vi.mocked(useGameState).mockReturnValue(baseState);
