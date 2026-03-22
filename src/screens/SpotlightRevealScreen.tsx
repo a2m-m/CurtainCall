@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
 import PassDevice from '@/components/PassDevice';
+import StageOverview from '@/components/StageOverview';
 import styles from './SpotlightRevealScreen.module.css';
 
 export default function SpotlightRevealScreen() {
@@ -19,7 +20,7 @@ export default function SpotlightRevealScreen() {
   return (
     <div className={styles.screen}>
       <h1 className={styles.heading}>スポットライト</h1>
-
+      <StageOverview />
       <div className={styles.stage}>
         <div className={styles.stageSlot}>
           <span className={styles.slotLabel}>役者（カミ）</span>

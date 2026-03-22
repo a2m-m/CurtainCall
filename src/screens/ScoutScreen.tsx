@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
+import StageOverview from '@/components/StageOverview';
 import { sortHand } from '@/lib/deck';
 import styles from './ScoutScreen.module.css';
 
@@ -29,6 +30,7 @@ export default function ScoutScreen() {
     <div className={styles.screen}>
       <h1 className={styles.heading}>スカウト</h1>
       <p className={styles.sub}>相手の手札から1枚選んでください</p>
+      <StageOverview />
       <div className={styles.grid}>
         {sortedOpponentHand.map((card) => {
           const i = opponentHand.indexOf(card);

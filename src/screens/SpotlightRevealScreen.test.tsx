@@ -184,6 +184,11 @@ describe('SpotlightRevealScreen', () => {
     expect(screen.getByTestId('after-spotlight').textContent).toBe('phase: intermission');
   });
 
+  it('場のカード欄が表示される（Issue #132 リグレッション）', () => {
+    renderSpotlight();
+    expect(screen.getByText('場のカード')).toBeDefined();
+  });
+
   it('ブーイング正解時の移動先案内にウォッチャーのプレイヤー名が表示される（固定「B」でない）', () => {
     renderSpotlight();
     fireEvent.click(screen.getByRole('button', { name: '黒子札を開示' }));
@@ -206,8 +211,8 @@ describe('SpotlightRevealScreen – ブーイング不正解シナリオ', () =>
     // boo 不正解（kami=shimo=rank1）が確定していることを検証
     expect(screen.getByText('ブーイング不正解！')).toBeDefined();
 
-    // 修正後: PassDevice が役者（アリス）向けに表示される
-    expect(screen.getByText('アリス')).toBeDefined();
+    // 修正後: PassDevice が役者（アリス）向けに表示される（複数箇所にアリスが表示される場合あり）
+    expect(screen.getAllByText('アリス').length).toBeGreaterThanOrEqual(1);
     // 修正後: PassDevice 完了前はセットボタンが非表示
     expect(screen.queryByRole('button', { name: 'セットを開く' })).toBeNull();
   });

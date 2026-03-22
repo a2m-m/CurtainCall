@@ -125,4 +125,9 @@ describe('ScoutScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'スカウト確定' }));
     expect(screen.getByTestId('after-scout').textContent).toBe('phase: scout-result');
   });
+
+  it('場のカード欄が表示される（Issue #132 リグレッション）', () => {
+    renderScout();
+    expect(screen.getByText('場のカード')).toBeDefined();
+  });
 });
