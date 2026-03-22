@@ -27,6 +27,7 @@ export type GamePhase =
   | 'watch'
   | 'spotlight'
   | 'spotlight-bonus'
+  | 'spotlight-joker'
   | 'backstage'
   | 'backstage-result'
   | 'intermission'

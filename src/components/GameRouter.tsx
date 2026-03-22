@@ -43,6 +43,7 @@ export default function GameRouter() {
       case 'spotlight':
         return <SpotlightRevealScreen />;
       case 'spotlight-bonus':
+      case 'spotlight-joker':
         return <SpotlightBonusScreen />;
       case 'backstage':
       case 'backstage-result':

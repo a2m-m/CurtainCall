@@ -14,6 +14,7 @@ export type GameAction =
   | { type: 'SPOTLIGHT_REVEAL' }
   | { type: 'SPOTLIGHT_ENTER_BONUS' }
   | { type: 'SPOTLIGHT_OPEN_SET'; setCardIndex: number }
+  | { type: 'SPOTLIGHT_OPEN_JOKER_EXTRA'; setCardIndex: number }
   | { type: 'SPOTLIGHT_SKIP_SET' }
   | { type: 'BACKSTAGE_OPEN'; cardIndices: [number, number, number] }
   | { type: 'BACKSTAGE_PROCEED' }
@@ -207,8 +208,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...state,
           deck: newDeck,
           setRemainingCount: newSetRemainingCount,
-          phase: 'curtain-call',
-          curtainCallReason: 'joker',
+          stage: { ...state.stage, shimo: openedCard },
+          phase: 'spotlight-joker',
         };
       }
       if (newSetRemainingCount <= 1) {
@@ -258,6 +259,31 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         phase: 'backstage',
         backstagePlayerId,
       };
+    }
+
+    case 'SPOTLIGHT_OPEN_JOKER_EXTRA': {
+      if (state.phase !== 'spotlight-joker') return state;
+      const setCard = state.deck[action.setCardIndex];
+      if (setCard === undefined) return state;
+
+      const openedCard: Card = { ...setCard, isFaceUp: true };
+      const newDeck = [...state.deck];
+      newDeck[action.setCardIndex] = openedCard;
+
+      // boo 正解: watcher(players[1])が勝者、不正解: actor(players[0])が勝者
+      const booCorrect = state.booResult === 'correct';
+      const winnerId = booCorrect ? state.players[1].id : state.players[0].id;
+
+      // stage.shimo にジョーカーが格納されているので addKamiToPlayer でそのまま記録される
+      const jokerState = {
+        ...state,
+        deck: newDeck,
+        setRemainingCount: state.setRemainingCount - 1,
+        stage: { kami: openedCard, shimo: state.stage.shimo },
+        phase: 'curtain-call' as const,
+        curtainCallReason: 'joker' as const,
+      };
+      return addKamiToPlayer(jokerState, winnerId, openedCard);
     }
 
     case 'SPOTLIGHT_SKIP_SET': {
