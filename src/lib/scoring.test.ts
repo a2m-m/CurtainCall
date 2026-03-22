@@ -30,6 +30,8 @@ const baseState: GameState = {
   backstageRevealedCards: [],
   backstageResult: null,
   backstagePlayerId: null,
+  lastOpenedCard: null,
+  spotlightOpenResultNextPhase: null,
 };
 
 describe('calculateScore', () => {

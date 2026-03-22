@@ -11,6 +11,7 @@ import ResultScreen from '@/screens/ResultScreen';
 import ScoutResultScreen from '@/screens/ScoutResultScreen';
 import ScoutScreen from '@/screens/ScoutScreen';
 import SpotlightBonusScreen from '@/screens/SpotlightBonusScreen';
+import SpotlightOpenResultScreen from '@/screens/SpotlightOpenResultScreen';
 import SpotlightRevealScreen from '@/screens/SpotlightRevealScreen';
 import StandbyScreen from '@/screens/StandbyScreen';
 import TitleScreen from '@/screens/TitleScreen';
@@ -45,6 +46,8 @@ export default function GameRouter() {
       case 'spotlight-bonus':
       case 'spotlight-joker':
         return <SpotlightBonusScreen />;
+      case 'spotlight-open-result':
+        return <SpotlightOpenResultScreen />;
       case 'backstage':
       case 'backstage-result':
         return <BackstageScreen />;

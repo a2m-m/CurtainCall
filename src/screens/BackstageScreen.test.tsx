@@ -64,6 +64,13 @@ function BackstageWrapper() {
       </button>
     );
   }
+  if (state.phase === 'spotlight-open-result') {
+    return (
+      <button onClick={() => dispatch({ type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' })}>
+        open-result-proceed
+      </button>
+    );
+  }
   if (state.phase === 'backstage' || state.phase === 'backstage-result') {
     return <BackstageScreen />;
   }
@@ -86,10 +93,13 @@ function renderBackstage() {
   fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
   fireEvent.click(screen.getByRole('button', { name: 'enter-bonus' }));
 
-  // ペア不成立のセットカードを開いて backstage フェーズへ
+  // ペア不成立のセットカードを開いて spotlight-open-result フェーズへ
   const openBtn = screen.queryByRole('button', { name: 'open-no-pair' });
   if (!openBtn) return false; // ペア不成立カードなし → テストスキップ
   fireEvent.click(openBtn);
+  // spotlight-open-result → backstage フェーズへ
+  const proceedBtn = screen.queryByRole('button', { name: 'open-result-proceed' });
+  if (proceedBtn) fireEvent.click(proceedBtn);
   return true;
 }
 
