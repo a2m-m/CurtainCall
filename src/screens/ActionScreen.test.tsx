@@ -1,7 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as gameContext from '@/game/context';
 import { GameProvider, useGameDispatch, useGameState } from '@/game/context';
 import ActionScreen from './ActionScreen';
+import type { GameState } from '@/types/game';
 
 // INIT_GAME → START_SCOUT → SCOUT_CARD → action フェーズまで進めるラッパー
 function ActionWrapper() {
@@ -261,5 +263,45 @@ describe('ActionScreen ラウンド2', () => {
     expect(screen.getByText('アリス')).toBeDefined();
     // アクター（ボブ）の名前は表示されない
     expect(screen.queryByText('ボブ')).toBeNull();
+  });
+});
+
+describe('ActionScreen lastScoutedCard=null', () => {
+  const nullScoutState: GameState = {
+    phase: 'action',
+    players: [
+      { id: 'A', name: 'アリス', hand: [] },
+      { id: 'B', name: 'ボブ', hand: [] },
+    ],
+    stage: { kami: null, shimo: null },
+    deck: [],
+    backstage: [],
+    setRemainingCount: 9,
+    publicInfos: [],
+    playerABooCnt: 0,
+    playerBBooCnt: 0,
+    playerAKami: [],
+    playerBKami: [],
+    playerAShimo: [],
+    playerBShimo: [],
+    round: 1,
+    curtainCallReason: null,
+    booResult: null,
+    spotlightCard: null,
+    backstageRevealedCards: [],
+    backstageResult: null,
+    backstagePlayerId: null,
+    lastOpenedCard: null,
+    spotlightOpenResultNextPhase: null,
+    lastScoutedCard: null,
+  };
+
+  it('lastScoutedCard が null の場合は「直前のスカウト」が表示されない', () => {
+    const spy = vi.spyOn(gameContext, 'useGameState').mockReturnValue(nullScoutState);
+
+    render(<ActionScreen />);
+    expect(screen.queryByText('直前のスカウト')).toBeNull();
+
+    spy.mockRestore();
   });
 });
