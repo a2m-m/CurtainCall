@@ -621,6 +621,125 @@ describe('gameReducer', () => {
       expect(final.publicInfos.length).toBe(countBefore);
     });
 
+    it('BACKSTAGE_OPEN で publicInfos に backstageIndex が記録される', () => {
+      const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+      const backstage: Card[] = Array.from({ length: 10 }, (_, i) => mk(i + 1));
+      const state: GameState = {
+        phase: 'backstage',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(1)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage,
+        setRemainingCount: 0,
+        publicInfos: [],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        playerAShimo: [],
+        playerBShimo: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: 'B',
+      };
+      const result = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [2, 5, 7] });
+      const indices = result.publicInfos.map((p) => p.backstageIndex);
+      expect(indices).toEqual([2, 5, 7]);
+    });
+
+    it('BACKSTAGE_OPEN でペア成立時、残存 publicInfos の backstageIndex がシフトされる', () => {
+      const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+      // backstage[4] (rank=5) がスポットライト (rank=5) とペア成立
+      const backstage: Card[] = Array.from({ length: 10 }, (_, i) => mk(i + 1));
+      const state: GameState = {
+        phase: 'backstage',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(1)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage,
+        setRemainingCount: 0,
+        // 事前に index=6, index=8 が公開済み
+        publicInfos: [
+          { playerId: 'B', card: mk(7), round: 1, backstageIndex: 6 },
+          { playerId: 'B', card: mk(9), round: 1, backstageIndex: 8 },
+        ],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        playerAShimo: [],
+        playerBShimo: [],
+        round: 2,
+        curtainCallReason: null,
+        spotlightCard: mk(5),
+        backstageRevealedCards: [],
+        backstageResult: null,
+        backstagePlayerId: 'B',
+      };
+      // cardIndices=[3,4,7]: index=4 (rank=5) がペア成立 → backstage から削除
+      const result = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [3, 4, 7] });
+      expect(result.backstageResult).toBe('match');
+      // 既存の index=6 → 5（index=4 削除により 1 シフト）
+      // 既存の index=8 → 7
+      const existing = result.publicInfos.filter((p) => p.round === 1);
+      expect(existing[0].backstageIndex).toBe(5);
+      expect(existing[1].backstageIndex).toBe(7);
+    });
+
+    it('BACKSTAGE_TAKE_HAND 後、取得カードの publicInfo が削除され残存インデックスがシフトされる', () => {
+      const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+      const backstage: Card[] = Array.from({ length: 8 }, (_, i) => mk(i + 1));
+      const state: GameState = {
+        phase: 'backstage-result',
+        booResult: 'incorrect',
+        players: [
+          { id: 'A', name: 'A', hand: [mk(1)] },
+          { id: 'B', name: 'B', hand: [mk(2)] },
+        ],
+        stage: { kami: null, shimo: null },
+        deck: [],
+        backstage,
+        setRemainingCount: 0,
+        // index=3,5,6 が公開済み
+        publicInfos: [
+          { playerId: 'B', card: mk(4), round: 1, backstageIndex: 3 },
+          { playerId: 'B', card: mk(6), round: 1, backstageIndex: 5 },
+          { playerId: 'B', card: mk(7), round: 1, backstageIndex: 6 },
+        ],
+        playerABooCnt: 0,
+        playerBBooCnt: 0,
+        playerAKami: [],
+        playerBKami: [],
+        playerAShimo: [],
+        playerBShimo: [],
+        round: 1,
+        curtainCallReason: null,
+        spotlightCard: null,
+        backstageRevealedCards: [mk(4), mk(6), mk(7)],
+        backstageResult: 'no-match',
+        backstagePlayerId: 'B',
+      };
+      // index=3 のカード (rank=4) を手札に取る
+      const result = gameReducer(state, { type: 'BACKSTAGE_TAKE_HAND', cardIndex: 3 });
+      // 取得したカードの publicInfo は削除される
+      expect(result.publicInfos.find((p) => p.backstageIndex === 3)).toBeUndefined();
+      // index=5 → 4
+      expect(result.publicInfos.find((p) => p.backstageIndex === 4)).toBeDefined();
+      // index=6 → 5
+      expect(result.publicInfos.find((p) => p.backstageIndex === 5)).toBeDefined();
+    });
+
     it('SPOTLIGHT_SKIP_SET 経由では backstage フェーズを経ずに intermission へ到達する', () => {
       const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'A', playerBName: 'B' });
       const s2 = gameReducer(s1, { type: 'START_SCOUT' });
