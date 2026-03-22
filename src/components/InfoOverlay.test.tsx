@@ -6,8 +6,8 @@ import type { GameState } from '@/types/game';
 const baseState: GameState = {
   phase: 'scout',
   players: [
-    { id: 'a', name: 'アリス', hand: [] },
-    { id: 'b', name: 'ボブ', hand: [] },
+    { id: 'A', name: 'アリス', hand: [] },
+    { id: 'B', name: 'ボブ', hand: [] },
   ],
   stage: { kami: null, shimo: null },
   deck: [],
@@ -70,7 +70,7 @@ describe('InfoOverlay', () => {
       ...baseState,
       publicInfos: [
         {
-          playerId: 'a',
+          playerId: 'A',
           card: { suit: 'spades', rank: 5, isJoker: false, isFaceUp: true },
           round: 1,
         },
@@ -107,14 +107,16 @@ describe('InfoOverlay', () => {
         { id: 'B', name: 'ボブ', hand: [] },
         { id: 'A', name: 'アリス', hand: [] },
       ],
-      playerABooCnt: 0,
-      playerBBooCnt: 3,
+      playerABooCnt: 1,
+      playerBBooCnt: 2,
     };
     render(<InfoOverlay isOpen={true} onClose={() => {}} gameState={state} />);
-    // ブーイングセクション: players[0]=B(ボブ) → 「3 / 3」、players[1]=A(アリス) → 「0 / 3」 が正しい
-    const counts = screen.getAllByText(/\d+ \/ 3/);
-    expect(counts[0].textContent).toBe('3 / 3');
-    expect(counts[1].textContent).toBe('0 / 3');
+    // 「1 / 3」(Aのブーイング数) が表示されている行に「アリス」が含まれるべき
+    // Bug時: players[0]=ボブ に Aのデータ(1)が表示されるため「ボブ」が含まれてしまう
+    const oneThirdSpan = screen.getAllByText('1 / 3')[0];
+    expect(oneThirdSpan.parentElement?.parentElement?.textContent).toContain('アリス');
+    const twoThirdSpan = screen.getAllByText('2 / 3')[0];
+    expect(twoThirdSpan.parentElement?.parentElement?.textContent).toContain('ボブ');
   });
 
   it('バックドロップタップでonCloseが呼ばれる', () => {

@@ -28,7 +28,8 @@ type Props = {
 
 export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
   const { players, playerABooCnt, playerBBooCnt, setRemainingCount, publicInfos, playerAKami, playerBKami, playerAShimo, playerBShimo, stage } = gameState;
-  const [playerA, playerB] = players;
+  const playerA = players.find((p) => p.id === 'A')!;
+  const playerB = players.find((p) => p.id === 'B')!;
 
   const booCounts = [playerABooCnt, playerBBooCnt];
   const kamiCards = [playerAKami, playerBKami];
