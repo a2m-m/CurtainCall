@@ -33,6 +33,7 @@ function PlayerStageMini({
           <span className={styles.empty}>—</span>
         ) : (
           <div className={styles.cards}>
+            {/* シモ札はゲームルール上、裏向きで公開される */}
             {shimoCards.map((card, i) => (
               <Card key={i} card={{ ...card, isFaceUp: false }} />
             ))}
