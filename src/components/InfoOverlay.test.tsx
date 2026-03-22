@@ -73,6 +73,7 @@ describe('InfoOverlay', () => {
           playerId: 'A',
           card: { suit: 'spades', rank: 5, isJoker: false, isFaceUp: true },
           round: 1,
+          backstageIndex: 2,
         },
       ],
     };

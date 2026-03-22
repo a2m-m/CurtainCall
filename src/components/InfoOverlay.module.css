@@ -256,3 +256,9 @@
   color: var(--muted, #7a8aaa);
   font-size: 10px;
 }
+
+.knownCardPos {
+  color: var(--gold, #f0c060);
+  font-size: 10px;
+  font-weight: bold;
+}
