@@ -1,12 +1,24 @@
+import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
+import PassDevice from '@/components/PassDevice';
 import styles from './IntermissionScreen.module.css';
 
 export default function IntermissionScreen() {
   const state = useGameState();
   const dispatch = useGameDispatch();
+  const [showPassDevice, setShowPassDevice] = useState(false);
 
   const currentScout = state.players[0];
   const nextScout = state.players[1];
+
+  if (showPassDevice) {
+    return (
+      <PassDevice
+        playerName={nextScout.name}
+        onComplete={() => dispatch({ type: 'INTERMISSION' })}
+      />
+    );
+  }
 
   return (
     <div className={styles.screen}>
@@ -21,7 +33,7 @@ export default function IntermissionScreen() {
 
       <button
         className={styles.proceedBtn}
-        onClick={() => dispatch({ type: 'INTERMISSION' })}
+        onClick={() => setShowPassDevice(true)}
       >
         次のラウンドへ
       </button>
