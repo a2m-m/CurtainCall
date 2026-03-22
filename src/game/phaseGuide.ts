@@ -15,6 +15,7 @@ const PHASE_NAMES: Record<GameState['phase'], string> = {
   spotlight: 'スポットライト',
   'spotlight-bonus': 'スポットライトボーナス',
   'spotlight-joker': 'スポットライト（ジョーカー）',
+  'spotlight-open-result': 'セットオープン結果',
   backstage: 'バックステージ',
   'backstage-result': 'バックステージ結果',
   intermission: '幕間',
@@ -43,6 +44,7 @@ export function getPhaseGuide(state: GameState): PhaseGuide {
       break;
     case 'spotlight-bonus':
     case 'spotlight-joker':
+    case 'spotlight-open-result':
       activePlayerName = state.booResult === 'correct' ? p1.name : p0.name;
       break;
     case 'backstage':

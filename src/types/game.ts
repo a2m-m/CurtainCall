@@ -28,6 +28,7 @@ export type GamePhase =
   | 'spotlight'
   | 'spotlight-bonus'
   | 'spotlight-joker'
+  | 'spotlight-open-result'
   | 'backstage'
   | 'backstage-result'
   | 'intermission'
@@ -66,4 +67,6 @@ export type GameState = {
   backstageRevealedCards: Card[];
   backstageResult: BackstageResult | null;
   backstagePlayerId: string | null; // バックステージ担当者ID（boo敗者）
+  lastOpenedCard: Card | null; // SPOTLIGHT_OPEN_SET で開いたカード（結果表示用）
+  spotlightOpenResultNextPhase: GamePhase | null; // spotlight-open-result 後の遷移先
 };

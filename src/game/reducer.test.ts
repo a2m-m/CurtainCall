@@ -297,6 +297,43 @@ describe('gameReducer', () => {
       expect(result.phase).toBe('backstage');
     });
 
+    describe('セットオープン結果表示（Issue #129）', () => {
+      it('SPOTLIGHT_OPEN_SET 後に spotlight-open-result フェーズへ遷移する', () => {
+        const nonJokerIndex = bonusState.deck.findIndex((c) => !c.isJoker);
+        if (nonJokerIndex === -1) return;
+        const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: nonJokerIndex });
+        // セットオープン直後は結果表示フェーズに入る（現在は直接次フェーズへ遷移してしまう）
+        expect(result.phase).toBe('spotlight-open-result');
+      });
+
+      it('SPOTLIGHT_OPEN_SET 後に lastOpenedCard に開いたカードが保持される', () => {
+        const nonJokerIndex = bonusState.deck.findIndex((c) => !c.isJoker);
+        if (nonJokerIndex === -1) return;
+        const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: nonJokerIndex });
+        // 開いたカード情報が state に保持されているべき（現在は null のまま）
+        expect(result.lastOpenedCard).not.toBeNull();
+      });
+
+      it('ジョーカーを開いた場合も spotlight-open-result フェーズへ遷移し lastOpenedCard に保持される', () => {
+        const jokerIndex = bonusState.deck.findIndex((c) => c.isJoker);
+        if (jokerIndex === -1) return;
+        const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: jokerIndex });
+        expect(result.phase).toBe('spotlight-open-result');
+        expect(result.lastOpenedCard?.isJoker).toBe(true);
+      });
+
+      it('SPOTLIGHT_OPEN_RESULT_PROCEED で spotlightOpenResultNextPhase のフェーズへ遷移する', () => {
+        const nonJokerIndex = bonusState.deck.findIndex((c) => !c.isJoker);
+        if (nonJokerIndex === -1) return;
+        const afterOpen = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: nonJokerIndex });
+        if (afterOpen.phase !== 'spotlight-open-result') return; // 再現テストが先に失敗する
+        const result = gameReducer(afterOpen, { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' });
+        expect(result.phase).toBe(afterOpen.spotlightOpenResultNextPhase);
+        expect(result.lastOpenedCard).toBeNull();
+        expect(result.spotlightOpenResultNextPhase).toBeNull();
+      });
+    });
+
     describe('boo 正解時（booResult=correct）の手札参照（Issue #64）', () => {
       const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
 
@@ -321,7 +358,7 @@ describe('gameReducer', () => {
           playerBShimo: [],
           round: 1,
           curtainCallReason: null,
-          spotlightCard: null,
+          spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
           backstageRevealedCards: [],
           backstageResult: null,
           backstagePlayerId: null,
@@ -353,7 +390,7 @@ describe('gameReducer', () => {
           playerBShimo: [],
           round: 1,
           curtainCallReason: null,
-          spotlightCard: null,
+          spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
           backstageRevealedCards: [],
           backstageResult: null,
           backstagePlayerId: null,
@@ -420,7 +457,7 @@ describe('gameReducer', () => {
       playerBShimo: [],
       round: 1,
       curtainCallReason: null,
-      spotlightCard: null,
+      spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
       backstageRevealedCards: [],
       backstageResult: null,
       backstagePlayerId: null,
@@ -647,7 +684,7 @@ describe('gameReducer', () => {
         playerBShimo: [],
         round: 1,
         curtainCallReason: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [],
         backstageResult: null,
         backstagePlayerId: 'B',
@@ -689,6 +726,8 @@ describe('gameReducer', () => {
         backstageRevealedCards: [],
         backstageResult: null,
         backstagePlayerId: 'B',
+        lastOpenedCard: null,
+        spotlightOpenResultNextPhase: null,
       };
       // cardIndices=[3,4,7]: index=4 (rank=5) がペア成立 → backstage から削除
       const result = gameReducer(state, { type: 'BACKSTAGE_OPEN', cardIndices: [3, 4, 7] });
@@ -728,7 +767,7 @@ describe('gameReducer', () => {
         playerBShimo: [],
         round: 1,
         curtainCallReason: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [mk(4), mk(6), mk(7)],
         backstageResult: 'no-match',
         backstagePlayerId: 'B',
@@ -902,7 +941,7 @@ describe('gameReducer', () => {
         playerBShimo: [],
         round: 1,
         curtainCallReason: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [],
         backstageResult: null,
         backstagePlayerId: null,
@@ -944,7 +983,7 @@ describe('gameReducer', () => {
         playerBShimo: [],
         round: 1,
         curtainCallReason: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [],
         backstageResult: null,
         backstagePlayerId: null,
@@ -975,7 +1014,7 @@ describe('gameReducer', () => {
         playerBShimo: [],
         round: 1,
         curtainCallReason: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [],
         backstageResult: null,
         backstagePlayerId: 'B', // watcher = B（修正後にセットされる値）
@@ -1005,7 +1044,7 @@ describe('gameReducer', () => {
         playerBShimo: [],
         round: 1,
         curtainCallReason: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [mk(9), mk(11), mk(4)],
         backstageResult: 'no-match',
         backstagePlayerId: 'B', // watcher = B
@@ -1036,7 +1075,7 @@ describe('gameReducer', () => {
         playerBShimo: [],
         round: 1,
         curtainCallReason: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [mk(9), mk(11), mk(4)],
         backstageResult: 'no-match',
         backstagePlayerId: 'A', // actor = A
@@ -1113,7 +1152,7 @@ describe('gameReducer', () => {
         round: 1,
         curtainCallReason: null,
         booResult: null,
-        spotlightCard: null,
+        spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
         backstageRevealedCards: [],
         backstageResult: null,
         backstagePlayerId: null,
@@ -1209,7 +1248,7 @@ describe('gameReducer', () => {
           playerBShimo: [],
           round: 1,
           curtainCallReason: null,
-          spotlightCard: null,
+          spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
           backstageRevealedCards: [],
           backstageResult: null,
           backstagePlayerId: null,
@@ -1243,7 +1282,7 @@ describe('gameReducer', () => {
           playerBShimo: [],
           round: 1,
           curtainCallReason: null,
-          spotlightCard: null,
+          spotlightCard: null, lastOpenedCard: null, spotlightOpenResultNextPhase: null,
           backstageRevealedCards: [],
           backstageResult: null,
           backstagePlayerId: null,
@@ -1285,6 +1324,8 @@ describe('gameReducer', () => {
           backstageRevealedCards: [],
           backstageResult: null,
           backstagePlayerId: 'B', // boo incorrect → watcher = B
+          lastOpenedCard: null,
+          spotlightOpenResultNextPhase: null,
         };
         const result = gameReducer(backstageState, { type: 'BACKSTAGE_OPEN', cardIndices: [0, 1, 2] });
         expect(result.backstageResult).toBe('match');

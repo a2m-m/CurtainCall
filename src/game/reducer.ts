@@ -14,6 +14,7 @@ export type GameAction =
   | { type: 'SPOTLIGHT_REVEAL' }
   | { type: 'SPOTLIGHT_ENTER_BONUS' }
   | { type: 'SPOTLIGHT_OPEN_SET'; setCardIndex: number }
+  | { type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' }
   | { type: 'SPOTLIGHT_OPEN_JOKER_EXTRA'; setCardIndex: number }
   | { type: 'SPOTLIGHT_SKIP_SET' }
   | { type: 'BACKSTAGE_OPEN'; cardIndices: [number, number, number] }
@@ -47,6 +48,8 @@ export const initialState: GameState = {
   backstageRevealedCards: [],
   backstageResult: null,
   backstagePlayerId: null,
+  lastOpenedCard: null,
+  spotlightOpenResultNextPhase: null,
 };
 
 function removeCardAt(cards: Card[], index: number): Card[] {
@@ -258,6 +261,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         spotlightCard: openedCard,
         phase: 'backstage',
         backstagePlayerId,
+      };
+    }
+
+    case 'SPOTLIGHT_OPEN_RESULT_PROCEED': {
+      if (state.phase !== 'spotlight-open-result') return state;
+      if (state.spotlightOpenResultNextPhase === null) return state;
+      return {
+        ...state,
+        phase: state.spotlightOpenResultNextPhase,
+        lastOpenedCard: null,
+        spotlightOpenResultNextPhase: null,
       };
     }
 
