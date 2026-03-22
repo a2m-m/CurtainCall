@@ -1,6 +1,6 @@
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
-import styles from './SpotlightBonusScreen.module.css';
+import styles from './SpotlightOpenResultScreen.module.css';
 
 export default function SpotlightOpenResultScreen() {
   const state = useGameState();
@@ -26,10 +26,10 @@ export default function SpotlightOpenResultScreen() {
   return (
     <div className={styles.screen}>
       <h1 className={styles.heading}>セットオープン結果</h1>
-      <p className={styles.instruction}>{getResultMessage()}</p>
+      <p className={styles.resultMessage}>{getResultMessage()}</p>
       {lastOpenedCard && <Card card={lastOpenedCard} />}
       <button
-        className={styles.cancelBtn}
+        className={styles.proceedBtn}
         onClick={() => dispatch({ type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' })}
       >
         次へ
