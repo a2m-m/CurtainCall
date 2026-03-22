@@ -18,6 +18,7 @@ export default function ActionScreen() {
   const hand = state.players[0].hand;
   const sortedHand = sortHand(hand);
   const actionPlayer = state.players[0];
+  const lastScoutedCard = state.lastScoutedCard;
 
   const handleCardClick = (index: number) => {
     if (step === 'selectingActor') {
@@ -101,6 +102,13 @@ export default function ActionScreen() {
           )}
         </div>
       </div>
+
+      {lastScoutedCard !== null && (
+        <div className={styles.scoutedCardArea}>
+          <span className={styles.scoutedLabel}>直前のスカウト</span>
+          <Card card={{ ...lastScoutedCard, isFaceUp: true }} />
+        </div>
+      )}
 
       <div className={styles.grid}>
         {sortedHand.map((card) => {

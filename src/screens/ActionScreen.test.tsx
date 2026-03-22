@@ -65,6 +65,11 @@ describe('ActionScreen', () => {
     expect(buttons.length).toBeGreaterThanOrEqual(16);
   });
 
+  it('直前のスカウトで引いたカードが表示される', () => {
+    renderAction();
+    expect(screen.getByText('直前のスカウト')).toBeDefined();
+  });
+
   it('初期状態で「ステージへ出す」ボタンはdisabled', () => {
     renderAction();
     const btn = screen.getByRole('button', { name: 'ステージへ出す' });
