@@ -103,6 +103,20 @@ describe('ScoutScreen', () => {
     expect(screen.queryByText('さんに渡してください')).toBeNull();
   });
 
+  it('Enter キーでカードを選択でき「スカウト確定」が有効になる', () => {
+    renderScout();
+    const cardButtons = screen.getAllByRole('button').filter((b) => b.textContent === '');
+    fireEvent.keyDown(cardButtons[0], { key: 'Enter' });
+    expect(screen.getByRole('button', { name: 'スカウト確定' }).hasAttribute('disabled')).toBe(false);
+  });
+
+  it('Space キーでカードを選択でき「スカウト確定」が有効になる', () => {
+    renderScout();
+    const cardButtons = screen.getAllByRole('button').filter((b) => b.textContent === '');
+    fireEvent.keyDown(cardButtons[0], { key: ' ' });
+    expect(screen.getByRole('button', { name: 'スカウト確定' }).hasAttribute('disabled')).toBe(false);
+  });
+
   it('「スカウト確定」後、scout-result フェーズへ遷移する', () => {
     renderScout();
     const allButtons = screen.getAllByRole('button');
