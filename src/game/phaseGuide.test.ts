@@ -53,10 +53,34 @@ describe('getPhaseGuide', () => {
     expect(getPhaseGuide({ ...baseState, phase: 'spotlight' }).phaseName).toBe('スポットライト');
   });
 
+  it('spotlight フェーズで players[0]（actor）がアクティブプレイヤー', () => {
+    expect(getPhaseGuide({ ...baseState, phase: 'spotlight' }).activePlayerName).toBe('アリス');
+  });
+
   it('spotlight-bonus フェーズで phaseName が「スポットライトボーナス」', () => {
     expect(getPhaseGuide({ ...baseState, phase: 'spotlight-bonus' }).phaseName).toBe(
       'スポットライトボーナス',
     );
+  });
+
+  it('spotlight-bonus フェーズで booResult=correct のとき players[1]（watcher）がアクティブ', () => {
+    const state: GameState = { ...baseState, phase: 'spotlight-bonus', booResult: 'correct' };
+    expect(getPhaseGuide(state).activePlayerName).toBe('ボブ');
+  });
+
+  it('spotlight-bonus フェーズで booResult=incorrect のとき players[0]（actor）がアクティブ', () => {
+    const state: GameState = { ...baseState, phase: 'spotlight-bonus', booResult: 'incorrect' };
+    expect(getPhaseGuide(state).activePlayerName).toBe('アリス');
+  });
+
+  it('spotlight-joker フェーズで booResult=correct のとき players[1]（watcher）がアクティブ', () => {
+    const state: GameState = { ...baseState, phase: 'spotlight-joker', booResult: 'correct' };
+    expect(getPhaseGuide(state).activePlayerName).toBe('ボブ');
+  });
+
+  it('spotlight-joker フェーズで booResult=incorrect のとき players[0]（actor）がアクティブ', () => {
+    const state: GameState = { ...baseState, phase: 'spotlight-joker', booResult: 'incorrect' };
+    expect(getPhaseGuide(state).activePlayerName).toBe('アリス');
   });
 
   it('backstage フェーズで phaseName が「バックステージ」', () => {
