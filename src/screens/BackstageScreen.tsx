@@ -8,7 +8,7 @@ export default function BackstageScreen() {
   const dispatch = useGameDispatch();
   const [selected, setSelected] = useState<number[]>([]);
 
-  const { phase, backstage, backstageRevealedCards, backstageResult, spotlightCard } = state;
+  const { phase, backstage, backstageRevealedCards, backstageResult, spotlightCard, publicInfos } = state;
 
   function toggleSelect(index: number) {
     setSelected((prev) => {
@@ -54,13 +54,18 @@ export default function BackstageScreen() {
             <p className={styles.resultNoMatch}>不一致</p>
             <p className={styles.label}>バックステージから1枚選んで手札に加える</p>
             <div className={styles.cardGrid}>
-              {backstage.map((card, index) => (
-                <Card
-                  key={index}
-                  card={{ ...card, isFaceUp: false }}
-                  onClick={() => dispatch({ type: 'BACKSTAGE_TAKE_HAND', cardIndex: index })}
-                />
-              ))}
+              {backstage.map((card, index) => {
+                const isKnown = publicInfos.some((p) => p.backstageIndex === index);
+                return (
+                  <div key={index} className={styles.cardSlot}>
+                    {isKnown && <span className={styles.knownBadge}>既知</span>}
+                    <Card
+                      card={{ ...card, isFaceUp: false }}
+                      onClick={() => dispatch({ type: 'BACKSTAGE_TAKE_HAND', cardIndex: index })}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
@@ -101,14 +106,19 @@ export default function BackstageScreen() {
       </p>
 
       <div className={styles.cardGrid}>
-        {backstage.map((card, index) => (
-          <Card
-            key={index}
-            card={{ ...card, isFaceUp: false }}
-            isSelected={selected.includes(index)}
-            onClick={() => toggleSelect(index)}
-          />
-        ))}
+        {backstage.map((card, index) => {
+          const isKnown = publicInfos.some((p) => p.backstageIndex === index);
+          return (
+            <div key={index} className={styles.cardSlot}>
+              {isKnown && <span className={styles.knownBadge}>既知</span>}
+              <Card
+                card={{ ...card, isFaceUp: false }}
+                isSelected={selected.includes(index)}
+                onClick={() => toggleSelect(index)}
+              />
+            </div>
+          );
+        })}
       </div>
 
       <button

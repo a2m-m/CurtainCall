@@ -107,3 +107,24 @@
 .proceedBtn:active {
   background: rgba(96, 165, 250, 0.12);
 }
+
+.cardSlot {
+  position: relative;
+  display: inline-flex;
+}
+
+.knownBadge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gold, #f0c060);
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 1;
+  pointer-events: none;
+}

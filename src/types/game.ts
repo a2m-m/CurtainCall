@@ -38,6 +38,7 @@ export type PublicInfo = {
   playerId: string;
   card: Card;
   round: number;
+  backstageIndex: number;
 };
 
 export type CurtainCallReason = 'joker' | 'set-last-1' | 'hand-shortage';

@@ -199,6 +199,9 @@ export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
                   <span className={styles.knownCardLoc}>
                     {players.find((p) => p.id === info.playerId)?.name ?? info.playerId}
                   </span>
+                  <span className={styles.knownCardPos}>
+                    {info.backstageIndex + 1}枚目
+                  </span>
                 </div>
               ))
             )}
