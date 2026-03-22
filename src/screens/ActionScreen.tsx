@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
 import PassDevice from '@/components/PassDevice';
+import StageOverview from '@/components/StageOverview';
 import { sortHand } from '@/lib/deck';
 import styles from './ActionScreen.module.css';
 
@@ -83,7 +84,7 @@ export default function ActionScreen() {
     <div className={styles.screen}>
       <h1 className={styles.heading}>アクション</h1>
       <p className={styles.sub}>{getInstruction()}</p>
-
+      <StageOverview />
       <div className={styles.preview}>
         <div className={styles.previewSlot}>
           <span className={styles.slotLabel}>役者（カミ）</span>

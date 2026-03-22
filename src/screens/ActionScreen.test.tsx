@@ -193,6 +193,11 @@ describe('ActionScreen', () => {
     // アクター（アリス）の名前は表示されない
     expect(screen.queryByText('アリス')).toBeNull();
   });
+
+  it('場のカード欄が表示される（Issue #132 リグレッション）', () => {
+    renderAction();
+    expect(screen.getByText('場のカード')).toBeDefined();
+  });
 });
 
 // INTERMISSION でスワップされた後も PassDevice が正しいウォッチャー名を表示することを確認

@@ -202,4 +202,10 @@ describe('BackstageScreen', () => {
     // 判定前のカード選択フェーズ（backstage）で「既知」バッジが存在しないこと
     expect(screen.queryByText('既知')).toBeNull();
   });
+
+  it('場のカード欄が表示される（Issue #132 リグレッション）', () => {
+    const ready = renderBackstage();
+    if (!ready) return;
+    expect(screen.getByText('場のカード')).toBeDefined();
+  });
 });

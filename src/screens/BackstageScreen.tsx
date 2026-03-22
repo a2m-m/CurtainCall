@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
+import StageOverview from '@/components/StageOverview';
 import styles from './BackstageScreen.module.css';
 
 export default function BackstageScreen() {
@@ -29,7 +30,7 @@ export default function BackstageScreen() {
     return (
       <div className={styles.screen}>
         <h1 className={styles.heading}>バックステージ</h1>
-
+        <StageOverview />
         <div className={styles.revealed}>
           <p className={styles.label}>開いた3枚</p>
           <div className={styles.cardRow}>
@@ -89,6 +90,7 @@ export default function BackstageScreen() {
     return (
       <div className={styles.screen}>
         <h1 className={styles.heading}>バックステージ</h1>
+        <StageOverview />
         <p className={styles.instruction}>
           セットをオープンしなかったため、バックステージフェーズは発生しません。
         </p>
@@ -105,7 +107,7 @@ export default function BackstageScreen() {
   return (
     <div className={styles.screen}>
       <h1 className={styles.heading}>バックステージ</h1>
-
+      <StageOverview />
       <div className={styles.spotlightCardArea}>
         <p className={styles.label}>スポットライトカード</p>
         <Card card={{ ...spotlightCard, isFaceUp: true }} />
