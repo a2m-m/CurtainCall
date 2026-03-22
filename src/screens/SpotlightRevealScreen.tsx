@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
+import PassDevice from '@/components/PassDevice';
 import styles from './SpotlightRevealScreen.module.css';
 
 export default function SpotlightRevealScreen() {
   const state = useGameState();
   const dispatch = useGameDispatch();
+  const [actorReady, setActorReady] = useState(false);
 
   const { kami, shimo } = state.stage;
   const isRevealed = shimo?.isFaceUp ?? false;
@@ -40,20 +43,27 @@ export default function SpotlightRevealScreen() {
       {isMatch && (
         <div className={styles.result}>
           <p className={styles.resultText}>ブーイング不正解！</p>
-          <div className={styles.actions}>
-            <button
-              className={styles.openSetBtn}
-              onClick={() => dispatch({ type: 'SPOTLIGHT_ENTER_BONUS' })}
-            >
-              セットを開く
-            </button>
-            <button
-              className={styles.skipBtn}
-              onClick={() => dispatch({ type: 'SPOTLIGHT_SKIP_SET' })}
-            >
-              スキップ
-            </button>
-          </div>
+          {!actorReady ? (
+            <PassDevice
+              playerName={state.players[0].name}
+              onComplete={() => setActorReady(true)}
+            />
+          ) : (
+            <div className={styles.actions}>
+              <button
+                className={styles.openSetBtn}
+                onClick={() => dispatch({ type: 'SPOTLIGHT_ENTER_BONUS' })}
+              >
+                セットを開く
+              </button>
+              <button
+                className={styles.skipBtn}
+                onClick={() => dispatch({ type: 'SPOTLIGHT_SKIP_SET' })}
+              >
+                スキップ
+              </button>
+            </div>
+          )}
         </div>
       )}
 
