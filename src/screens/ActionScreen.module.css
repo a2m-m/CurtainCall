@@ -50,6 +50,19 @@
   opacity: 0.4;
 }
 
+.scoutedCardArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.scoutedLabel {
+  font-size: 11px;
+  color: var(--muted, #7a8aaa);
+  letter-spacing: 0.05em;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
