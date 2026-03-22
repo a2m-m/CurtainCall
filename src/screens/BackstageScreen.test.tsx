@@ -178,4 +178,28 @@ describe('BackstageScreen', () => {
     const takeLabel = screen.queryByText('バックステージから1枚選んで手札に加える');
     expect(proceedBtn !== null || takeLabel !== null).toBe(true);
   });
+
+  it('判定後の不一致画面でカード位置を示す「既知」バッジが表示されない（Issue #130 リグレッション）', () => {
+    const ready = renderBackstage();
+    if (!ready) return;
+    const allCardButtons = screen.getAllByRole('button').filter(
+      (btn) => btn.className !== '' && btn.getAttribute('name') !== '判定',
+    );
+    fireEvent.click(allCardButtons[0]);
+    fireEvent.click(allCardButtons[1]);
+    fireEvent.click(allCardButtons[2]);
+    fireEvent.click(screen.getByRole('button', { name: '判定' }));
+
+    // 不一致時のカード選択UIでは「既知」バッジが存在しないこと
+    const takeLabel = screen.queryByText('バックステージから1枚選んで手札に加える');
+    if (!takeLabel) return; // match の場合はスキップ
+    expect(screen.queryByText('既知')).toBeNull();
+  });
+
+  it('バックステージカード選択画面でカード位置を示す「既知」バッジが表示されない（Issue #130 リグレッション）', () => {
+    const ready = renderBackstage();
+    if (!ready) return;
+    // 判定前のカード選択フェーズ（backstage）で「既知」バッジが存在しないこと
+    expect(screen.queryByText('既知')).toBeNull();
+  });
 });
