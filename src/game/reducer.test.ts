@@ -250,12 +250,12 @@ describe('gameReducer', () => {
       expect(result).toBe(initialState);
     });
 
-    it('ジョーカーを開いたとき curtain-call に遷移する', () => {
+    it('ジョーカーを開いたとき spotlight-joker に遷移し、ジョーカーが stage.shimo に格納される', () => {
       const jokerIndex = bonusState.deck.findIndex((c) => c.isJoker);
       if (jokerIndex === -1) return; // jokerがない場合はスキップ
       const result = gameReducer(bonusState, { type: 'SPOTLIGHT_OPEN_SET', setCardIndex: jokerIndex });
-      expect(result.phase).toBe('curtain-call');
-      expect(result.curtainCallReason).toBe('joker');
+      expect(result.phase).toBe('spotlight-joker');
+      expect(result.stage.shimo?.isJoker).toBe(true);
     });
 
     it('setRemainingCount が減少する', () => {
@@ -392,6 +392,67 @@ describe('gameReducer', () => {
       const result = gameReducer(s8, { type: 'SPOTLIGHT_SKIP_SET' });
       expect(result.phase).toBe('intermission');
       expect(result.backstagePlayerId).toBeNull();
+    });
+  });
+
+  describe('SPOTLIGHT_OPEN_JOKER_EXTRA', () => {
+    const mk = (rank: number): Card => ({ suit: 'spades', rank, isJoker: false, isFaceUp: false });
+    const joker: Card = { suit: 'spades', rank: 0, isJoker: true, isFaceUp: true };
+
+    // spotlight-joker 状態：ジョーカーが stage.shimo に格納されている
+    const jokerPhaseState: GameState = {
+      phase: 'spotlight-joker',
+      booResult: 'incorrect',
+      players: [
+        { id: 'A', name: 'A', hand: [mk(3), mk(7)] },
+        { id: 'B', name: 'B', hand: [mk(5), mk(9)] },
+      ],
+      stage: { kami: { ...mk(4), isFaceUp: true }, shimo: joker },
+      deck: [mk(6), mk(11), mk(8)],
+      backstage: [],
+      setRemainingCount: 3,
+      publicInfos: [],
+      playerABooCnt: 0,
+      playerBBooCnt: 0,
+      playerAKami: [],
+      playerBKami: [],
+      playerAShimo: [],
+      playerBShimo: [],
+      round: 1,
+      curtainCallReason: null,
+      spotlightCard: null,
+      backstageRevealedCards: [],
+      backstageResult: null,
+      backstagePlayerId: null,
+    };
+
+    it('SPOTLIGHT_OPEN_JOKER_EXTRA で curtain-call に遷移する', () => {
+      const result = gameReducer(jokerPhaseState, { type: 'SPOTLIGHT_OPEN_JOKER_EXTRA', setCardIndex: 0 });
+      expect(result.phase).toBe('curtain-call');
+      expect(result.curtainCallReason).toBe('joker');
+    });
+
+    it('booResult=incorrect のとき追加カードが players[0] のカミに、ジョーカーがシモに記録される', () => {
+      const result = gameReducer(jokerPhaseState, { type: 'SPOTLIGHT_OPEN_JOKER_EXTRA', setCardIndex: 0 });
+      expect(result.playerAKami).toHaveLength(1);
+      expect(result.playerAKami[0].rank).toBe(6);
+      expect(result.playerAShimo).toHaveLength(1);
+      expect(result.playerAShimo[0].isJoker).toBe(true);
+      expect(result.playerBKami).toHaveLength(0);
+    });
+
+    it('booResult=correct のとき追加カードが players[1] のカミに、ジョーカーがシモに記録される', () => {
+      const correctState: GameState = { ...jokerPhaseState, booResult: 'correct' };
+      const result = gameReducer(correctState, { type: 'SPOTLIGHT_OPEN_JOKER_EXTRA', setCardIndex: 0 });
+      expect(result.playerBKami).toHaveLength(1);
+      expect(result.playerBShimo).toHaveLength(1);
+      expect(result.playerBShimo[0].isJoker).toBe(true);
+      expect(result.playerAKami).toHaveLength(0);
+    });
+
+    it('spotlight-joker 以外では無効', () => {
+      const result = gameReducer(initialState, { type: 'SPOTLIGHT_OPEN_JOKER_EXTRA', setCardIndex: 0 });
+      expect(result).toBe(initialState);
     });
   });
 
