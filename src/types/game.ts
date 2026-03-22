@@ -70,4 +70,5 @@ export type GameState = {
   lastOpenedCard: Card | null; // SPOTLIGHT_OPEN_SET で開いたカード（結果表示用）
   spotlightOpenResultNextPhase: GamePhase | null; // spotlight-open-result 後の遷移先
   lastScoutedCard: Card | null; // SCOUT_CARD で引いたカード（スカウト結果表示用）
+  lastBackstageDrawnCard: Card | null; // BACKSTAGE_TAKE_HAND で引いたカード（結果表示用）
 };

@@ -8,7 +8,7 @@ export default function BackstageScreen() {
   const dispatch = useGameDispatch();
   const [selected, setSelected] = useState<number[]>([]);
 
-  const { phase, backstage, backstageRevealedCards, backstageResult, spotlightCard } = state;
+  const { phase, backstage, backstageRevealedCards, backstageResult, spotlightCard, lastBackstageDrawnCard } = state;
 
   function toggleSelect(index: number) {
     setSelected((prev) => {
@@ -42,6 +42,20 @@ export default function BackstageScreen() {
         {backstageResult === 'match' ? (
           <>
             <p className={styles.resultMatch}>ペア成立！</p>
+            <button
+              className={styles.proceedBtn}
+              onClick={() => dispatch({ type: 'BACKSTAGE_PROCEED' })}
+            >
+              インターミッションへ
+            </button>
+          </>
+        ) : lastBackstageDrawnCard !== null ? (
+          <>
+            <p className={styles.resultNoMatch}>不一致</p>
+            <p className={styles.label}>手札に加えたカード</p>
+            <div className={styles.cardRow}>
+              <Card card={{ ...lastBackstageDrawnCard, isFaceUp: true }} />
+            </div>
             <button
               className={styles.proceedBtn}
               onClick={() => dispatch({ type: 'BACKSTAGE_PROCEED' })}

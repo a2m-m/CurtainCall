@@ -294,6 +294,7 @@ describe('ActionScreen lastScoutedCard=null', () => {
     lastOpenedCard: null,
     spotlightOpenResultNextPhase: null,
     lastScoutedCard: null,
+    lastBackstageDrawnCard: null,
   };
 
   it('lastScoutedCard が null の場合は「直前のスカウト」が表示されない', () => {
