@@ -48,17 +48,32 @@ export default function Card({ card, isSelected, isSelectedShimo, onClick, anima
 
   const animStyle = animateDeal && dealDelay != null ? { animationDelay: `${dealDelay}s` } : undefined;
 
+  const interactiveProps = onClick
+    ? {
+        role: 'button' as const,
+        tabIndex: 0,
+        onClick,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick();
+          }
+        },
+        'aria-pressed': isSelected || isSelectedShimo || false,
+      }
+    : {};
+
   if (!card.isFaceUp) {
     classNames.push(styles.back);
     return (
-      <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined} />
+      <div className={classNames.join(' ')} style={animStyle} {...interactiveProps} />
     );
   }
 
   if (card.isJoker) {
     classNames.push(styles.joker);
     return (
-      <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined}>
+      <div className={classNames.join(' ')} style={animStyle} {...interactiveProps}>
         <span className={styles.jokerLabel}>JOKER</span>
       </div>
     );
@@ -69,7 +84,7 @@ export default function Card({ card, isSelected, isSelectedShimo, onClick, anima
   if (isRed) classNames.push(styles.red);
 
   return (
-    <div className={classNames.join(' ')} style={animStyle} onClick={onClick} role={onClick ? 'button' : undefined}>
+    <div className={classNames.join(' ')} style={animStyle} {...interactiveProps}>
       <span className={styles.suit}>{SUIT_SYMBOL[card.suit]}</span>
       <span className={styles.rank}>{rankLabel(card.rank)}</span>
     </div>

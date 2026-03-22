@@ -97,6 +97,57 @@ describe('Card', () => {
     expect(handleClick).toHaveBeenCalledOnce();
   });
 
+  it('onClick がある場合 tabIndex=0 が設定される', () => {
+    const handleClick = vi.fn();
+    render(<Card card={faceUpCard('spades', 5)} onClick={handleClick} />);
+    expect(screen.getByRole('button').getAttribute('tabindex')).toBe('0');
+  });
+
+  it('onClick がない場合 tabIndex が設定されない', () => {
+    render(<Card card={faceUpCard('spades', 5)} />);
+    const el = document.querySelector('[tabindex]');
+    expect(el).toBeNull();
+  });
+
+  it('Enter キーで onClick が呼ばれる', () => {
+    const handleClick = vi.fn();
+    render(<Card card={faceUpCard('clubs', 7)} onClick={handleClick} />);
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' });
+    expect(handleClick).toHaveBeenCalledOnce();
+  });
+
+  it('Space キーで onClick が呼ばれる', () => {
+    const handleClick = vi.fn();
+    render(<Card card={faceUpCard('diamonds', 3)} onClick={handleClick} />);
+    fireEvent.keyDown(screen.getByRole('button'), { key: ' ' });
+    expect(handleClick).toHaveBeenCalledOnce();
+  });
+
+  it('その他のキーでは onClick が呼ばれない', () => {
+    const handleClick = vi.fn();
+    render(<Card card={faceUpCard('hearts', 8)} onClick={handleClick} />);
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'Tab' });
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it('isSelected のとき aria-pressed=true になる', () => {
+    const handleClick = vi.fn();
+    render(<Card card={faceUpCard('spades', 2)} onClick={handleClick} isSelected />);
+    expect(screen.getByRole('button').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('isSelectedShimo のとき aria-pressed=true になる', () => {
+    const handleClick = vi.fn();
+    render(<Card card={faceUpCard('clubs', 4)} onClick={handleClick} isSelectedShimo />);
+    expect(screen.getByRole('button').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('未選択のとき aria-pressed=false になる', () => {
+    const handleClick = vi.fn();
+    render(<Card card={faceUpCard('hearts', 6)} onClick={handleClick} />);
+    expect(screen.getByRole('button').getAttribute('aria-pressed')).toBe('false');
+  });
+
   it('animateFlip=trueでflippingクラスが付く', () => {
     const { container } = render(<Card card={faceUpCard('spades', 7)} animateFlip />);
     const el = container.querySelector('[class*="flipping"]');
