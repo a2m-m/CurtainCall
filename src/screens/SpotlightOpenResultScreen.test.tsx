@@ -27,9 +27,6 @@ function SpotlightOpenResultWrapper() {
       {state.phase === 'action' && (
         <button onClick={() => dispatch({ type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 })}>action</button>
       )}
-      {state.phase === 'action-result' && (
-        <button onClick={() => dispatch({ type: 'ACTION_RESULT_PROCEED' })}>action-proceed</button>
-      )}
       {state.phase === 'watch' && (
         <button onClick={() => dispatch({ type: 'WATCH_BOO' })}>boo</button>
       )}
@@ -63,7 +60,6 @@ function renderOpenResult() {
   fireEvent.click(screen.getByRole('button', { name: 'scout' }));
   fireEvent.click(screen.getByRole('button', { name: 'scout-proceed' }));
   fireEvent.click(screen.getByRole('button', { name: 'action' }));
-  fireEvent.click(screen.getByRole('button', { name: 'action-proceed' }));
   fireEvent.click(screen.getByRole('button', { name: 'boo' }));
   fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
   fireEvent.click(screen.getByRole('button', { name: 'enter-bonus' }));

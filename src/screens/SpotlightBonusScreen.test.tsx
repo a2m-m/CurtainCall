@@ -39,11 +39,6 @@ function BonusWrapper() {
       </button>
     );
   }
-  if (state.phase === 'action-result') {
-    return (
-      <button onClick={() => dispatch({ type: 'ACTION_RESULT_PROCEED' })}>action-proceed</button>
-    );
-  }
   if (state.phase === 'watch') {
     return <button onClick={() => dispatch({ type: 'WATCH_BOO' })}>boo</button>;
   }
@@ -72,7 +67,6 @@ function renderBonus() {
   fireEvent.click(screen.getByRole('button', { name: 'scout' }));
   fireEvent.click(screen.getByRole('button', { name: 'scout-proceed' }));
   fireEvent.click(screen.getByRole('button', { name: 'action' }));
-  fireEvent.click(screen.getByRole('button', { name: 'action-proceed' }));
   fireEvent.click(screen.getByRole('button', { name: 'boo' }));
   fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
   fireEvent.click(screen.getByRole('button', { name: 'enter-bonus' }));

@@ -10,7 +10,6 @@ const PHASE_NAMES: Record<GameState['phase'], string> = {
   scout: 'スカウトフェーズ',
   'scout-result': 'スカウト結果',
   action: 'アクションフェーズ',
-  'action-result': 'アクション結果',
   watch: 'ウォッチフェーズ',
   spotlight: 'スポットライト',
   'spotlight-bonus': 'スポットライトボーナス',
@@ -33,7 +32,6 @@ export function getPhaseGuide(state: GameState): PhaseGuide {
     case 'scout':
     case 'scout-result':
     case 'action':
-    case 'action-result':
       activePlayerName = p0.name;
       break;
     case 'watch':

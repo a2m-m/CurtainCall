@@ -222,9 +222,6 @@ describe('ActionScreen ラウンド2', () => {
     if (state.phase === 'action' && state.players[0].name === 'アリス') {
       return <button onClick={() => dispatch({ type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 })}>action1</button>;
     }
-    if (state.phase === 'action-result' && state.players[0].name === 'アリス') {
-      return <button onClick={() => dispatch({ type: 'ACTION_RESULT_PROCEED' })}>action-proceed1</button>;
-    }
     if (state.phase === 'watch') {
       return <button onClick={() => dispatch({ type: 'WATCH_CLAP' })}>clap</button>;
     }
@@ -248,8 +245,7 @@ describe('ActionScreen ラウンド2', () => {
     fireEvent.click(screen.getByRole('button', { name: 'start' }));
     fireEvent.click(screen.getByRole('button', { name: 'scout' }));        // Round 1 scout
     fireEvent.click(screen.getByRole('button', { name: 'scout-proceed' })); // scout-result → action
-    fireEvent.click(screen.getByRole('button', { name: 'action1' }));      // Round 1 action
-    fireEvent.click(screen.getByRole('button', { name: 'action-proceed1' })); // action-result → watch
+    fireEvent.click(screen.getByRole('button', { name: 'action1' }));      // Round 1 action → watch
     fireEvent.click(screen.getByRole('button', { name: 'clap' }));         // Watch → Intermission
     fireEvent.click(screen.getByRole('button', { name: 'inter' }));        // Intermission → Round 2 scout
     fireEvent.click(screen.getByRole('button', { name: 'scout' }));        // Round 2 scout

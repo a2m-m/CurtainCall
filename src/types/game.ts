@@ -23,7 +23,6 @@ export type GamePhase =
   | 'scout'
   | 'scout-result'
   | 'action'
-  | 'action-result'
   | 'watch'
   | 'spotlight'
   | 'spotlight-bonus'

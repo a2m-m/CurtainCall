@@ -66,23 +66,6 @@ export default function GameRouter() {
       }
       case 'action':
         return <ActionScreen />;
-      case 'action-result': {
-        const { kami, shimo } = state.stage;
-        const actor = state.players[0];
-        const watcher = state.players[1];
-        return (
-          <>
-            <ActionScreen />
-            <ResultModal
-              title="ステージ確認"
-              message={`${actor.name} がステージへ出しました。${watcher.name} は確認してください。`}
-              cards={[...(kami ? [kami] : []), ...(shimo ? [shimo] : [])]}
-              onProceed={() => dispatch({ type: 'ACTION_RESULT_PROCEED' })}
-              proceedLabel="ウォッチへ"
-            />
-          </>
-        );
-      }
       case 'watch':
         return <WatchScreen />;
       case 'spotlight':

@@ -37,10 +37,6 @@ describe('getPhaseGuide', () => {
     expect(getPhaseGuide({ ...baseState, phase: 'action' }).activePlayerName).toBe('アリス');
   });
 
-  it('action-result フェーズで phaseName が「アクション結果」', () => {
-    expect(getPhaseGuide({ ...baseState, phase: 'action-result' }).phaseName).toBe('アクション結果');
-  });
-
   it('watch フェーズで phaseName が「ウォッチフェーズ」', () => {
     expect(getPhaseGuide({ ...baseState, phase: 'watch' }).phaseName).toBe('ウォッチフェーズ');
   });
