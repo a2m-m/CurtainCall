@@ -34,7 +34,7 @@ function PlayerStageMini({
         ) : (
           <div className={styles.cards}>
             {shimoCards.map((card, i) => (
-              <Card key={i} card={{ ...card, isFaceUp: false }} />
+              <Card key={i} card={card} />
             ))}
           </div>
         )}
