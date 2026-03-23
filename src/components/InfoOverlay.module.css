@@ -13,7 +13,7 @@
 }
 
 .panel {
-  width: min(360px, 100%);
+  width: min(390px, 100%);
   height: 100dvh;
   background: var(--surface, #16213e);
   border-left: 1px solid var(--border, #1e2d50);
