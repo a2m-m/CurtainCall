@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
+import ResultModal from '@/components/ResultModal';
 import StageOverview from '@/components/StageOverview';
 import styles from './BackstageScreen.module.css';
 
@@ -27,60 +28,45 @@ export default function BackstageScreen() {
 
   // 判定結果表示（backstage-result フェーズ）
   if (phase === 'backstage-result') {
+    const isProceedAvailable = backstageResult === 'match' || lastBackstageDrawnCard !== null;
+    const allCards = [
+      ...backstageRevealedCards.map((c) => ({ ...c, isFaceUp: true })),
+      ...(lastBackstageDrawnCard ? [{ ...lastBackstageDrawnCard, isFaceUp: true }] : []),
+    ];
     return (
-      <div className={styles.screen}>
-        <h1 className={styles.heading}>バックステージ</h1>
-        <StageOverview />
-        <div className={styles.revealed}>
-          <p className={styles.label}>開いた3枚</p>
-          <div className={styles.cardRow}>
-            {backstageRevealedCards.map((card, i) => (
-              <Card key={i} card={{ ...card, isFaceUp: true }} />
-            ))}
-          </div>
+      <>
+        {/* 背景として backstage 選択画面を表示 */}
+        <div className={styles.screen}>
+          <h1 className={styles.heading}>バックステージ</h1>
+          <StageOverview />
         </div>
-
-        {backstageResult === 'match' ? (
-          <>
-            <p className={styles.resultMatch}>ペア成立！</p>
-            <button
-              className={styles.proceedBtn}
-              onClick={() => dispatch({ type: 'BACKSTAGE_PROCEED' })}
-            >
-              インターミッションへ
-            </button>
-          </>
-        ) : lastBackstageDrawnCard !== null ? (
-          <>
-            <p className={styles.resultNoMatch}>不一致</p>
-            <p className={styles.label}>手札に加えたカード</p>
-            <div className={styles.cardRow}>
-              <Card card={{ ...lastBackstageDrawnCard, isFaceUp: true }} />
-            </div>
-            <button
-              className={styles.proceedBtn}
-              onClick={() => dispatch({ type: 'BACKSTAGE_PROCEED' })}
-            >
-              インターミッションへ
-            </button>
-          </>
-        ) : (
-          <>
-            <p className={styles.resultNoMatch}>不一致</p>
-            <p className={styles.label}>バックステージから1枚選んで手札に加える</p>
-            <div className={styles.cardGrid}>
-              {backstage.map((card, index) => (
-                <div key={index} className={styles.cardSlot}>
-                  <Card
-                    card={{ ...card, isFaceUp: false }}
-                    onClick={() => dispatch({ type: 'BACKSTAGE_TAKE_HAND', cardIndex: index })}
-                  />
+        <ResultModal
+          title="バックステージ結果"
+          message={backstageResult === 'match' ? 'ペア成立！' : '不一致'}
+          messageVariant={backstageResult === 'match' ? 'match' : 'no-match'}
+          cards={allCards}
+          extraContent={
+            !isProceedAvailable ? (
+              <div>
+                <p className={styles.label}>バックステージから1枚選んで手札に加える</p>
+                <div className={styles.cardRow}>
+                  {backstage.map((card, index) => (
+                    <Card
+                      key={index}
+                      card={{ ...card, isFaceUp: false }}
+                      onClick={() => dispatch({ type: 'BACKSTAGE_TAKE_HAND', cardIndex: index })}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+              </div>
+            ) : lastBackstageDrawnCard ? (
+              <p className={styles.label}>手札に加えたカード</p>
+            ) : undefined
+          }
+          onProceed={isProceedAvailable ? () => dispatch({ type: 'BACKSTAGE_PROCEED' }) : undefined}
+          proceedLabel="インターミッションへ"
+        />
+      </>
     );
   }
 
