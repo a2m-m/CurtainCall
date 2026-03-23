@@ -8,7 +8,7 @@ interface Props {
   messageVariant?: 'match' | 'no-match' | 'neutral';
   cards?: CardType[];
   extraContent?: React.ReactNode;
-  onProceed: () => void;
+  onProceed?: () => void;
   proceedLabel?: string;
 }
 
@@ -19,7 +19,7 @@ export default function ResultModal({
   cards,
   extraContent,
   onProceed,
-  proceedLabel = '次へ',
+  proceedLabel,
 }: Props) {
   return (
     <div className={styles.backdrop}>
@@ -34,9 +34,11 @@ export default function ResultModal({
           </div>
         )}
         {extraContent}
-        <button className={styles.proceedBtn} onClick={onProceed}>
-          {proceedLabel}
-        </button>
+        {onProceed && (
+          <button className={styles.proceedBtn} onClick={onProceed}>
+            {proceedLabel ?? '次へ'}
+          </button>
+        )}
       </div>
     </div>
   );
