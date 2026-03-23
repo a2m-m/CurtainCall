@@ -15,21 +15,6 @@ import StandbyScreen from '@/screens/StandbyScreen';
 import TitleScreen from '@/screens/TitleScreen';
 import WatchScreen from '@/screens/WatchScreen';
 
-function getSpotlightResultMessage(nextPhase: string): string {
-  switch (nextPhase) {
-    case 'spotlight-joker': return 'ジョーカー！追加で1枚開いてください';
-    case 'curtain-call': return 'セット残り1枚 — カーテンコール！';
-    case 'intermission': return 'ペア成立！';
-    case 'backstage': return 'ペア不成立。バックステージへ';
-    default: return '';
-  }
-}
-
-function getSpotlightResultVariant(nextPhase: string): 'match' | 'no-match' | 'neutral' {
-  if (nextPhase === 'intermission') return 'match';
-  if (nextPhase === 'backstage') return 'no-match';
-  return 'neutral';
-}
 
 export default function GameRouter() {
   const state = useGameState();
@@ -66,45 +51,14 @@ export default function GameRouter() {
       }
       case 'action':
         return <ActionScreen />;
-      case 'action-result': {
-        const { kami, shimo } = state.stage;
-        const actor = state.players[0];
-        const watcher = state.players[1];
-        return (
-          <>
-            <ActionScreen />
-            <ResultModal
-              title="ステージ確認"
-              message={`${actor.name} がステージへ出しました。${watcher.name} は確認してください。`}
-              cards={[...(kami ? [kami] : []), ...(shimo ? [shimo] : [])]}
-              onProceed={() => dispatch({ type: 'ACTION_RESULT_PROCEED' })}
-              proceedLabel="ウォッチへ"
-            />
-          </>
-        );
-      }
       case 'watch':
         return <WatchScreen />;
       case 'spotlight':
         return <SpotlightRevealScreen />;
       case 'spotlight-bonus':
       case 'spotlight-joker':
+      case 'spotlight-open-result':
         return <SpotlightBonusScreen />;
-      case 'spotlight-open-result': {
-        const { lastOpenedCard, spotlightOpenResultNextPhase } = state;
-        return (
-          <>
-            <SpotlightBonusScreen />
-            <ResultModal
-              title="セットオープン結果"
-              message={getSpotlightResultMessage(spotlightOpenResultNextPhase ?? '')}
-              messageVariant={getSpotlightResultVariant(spotlightOpenResultNextPhase ?? '')}
-              cards={lastOpenedCard !== null ? [lastOpenedCard] : []}
-              onProceed={() => dispatch({ type: 'SPOTLIGHT_OPEN_RESULT_PROCEED' })}
-            />
-          </>
-        );
-      }
       case 'backstage':
       case 'backstage-result':
         return <BackstageScreen />;

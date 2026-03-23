@@ -110,7 +110,7 @@ describe('gameReducer', () => {
   });
 
   describe('ACTION_PLAY', () => {
-    it('phase が action-result になる', () => {
+    it('phase が watch になる', () => {
       const afterInit = gameReducer(initialState, {
         type: 'INIT_GAME',
         playerAName: 'Alice',
@@ -120,7 +120,7 @@ describe('gameReducer', () => {
       const afterScout = gameReducer(afterStart, { type: 'SCOUT_CARD', cardIndex: 0 });
       const afterProceed = gameReducer(afterScout, { type: 'SCOUT_RESULT_PROCEED' });
       const result = gameReducer(afterProceed, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      expect(result.phase).toBe('action-result');
+      expect(result.phase).toBe('watch');
     });
 
     it('ステージにkami/shimoがセットされる', () => {
@@ -147,8 +147,7 @@ describe('gameReducer', () => {
       const s2 = gameReducer(s1, { type: 'START_SCOUT' });
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
-      const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      watchState = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
+      watchState = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
     });
 
     it('WATCH_CLAP で phase が intermission になる', () => {
@@ -180,8 +179,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      spotlightState = gameReducer(s6, { type: 'WATCH_BOO' });
+      spotlightState = gameReducer(s5, { type: 'WATCH_BOO' });
     });
 
     it('shimo が表向きになる', () => {
@@ -213,8 +211,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       spotlightState = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
     });
 
@@ -237,8 +234,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       const s8 = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
       const s9 = gameReducer(s8, { type: 'SPOTLIGHT_ENTER_BONUS' });
       // 既存テストは boo 不正解（actor の手札参照）パスを検証するため明示的に設定
@@ -421,8 +417,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       const s8 = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
       const bonusState = gameReducer(s8, { type: 'SPOTLIGHT_ENTER_BONUS' });
       const result = gameReducer(bonusState, { type: 'SPOTLIGHT_SKIP_SET' });
@@ -436,8 +431,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       const s8 = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
       const result = gameReducer(s8, { type: 'SPOTLIGHT_SKIP_SET' });
       expect(result.phase).toBe('intermission');
@@ -514,8 +508,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       const s8 = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
       const s9raw = gameReducer(s8, { type: 'SPOTLIGHT_ENTER_BONUS' });
       // boo 不正解パスを確定させて既存テストを安定化
@@ -576,8 +569,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       const s8 = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
       const s9raw = gameReducer(s8, { type: 'SPOTLIGHT_ENTER_BONUS' });
       const s9 = { ...s9raw, booResult: 'incorrect' as const };
@@ -671,8 +663,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       const s8 = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
       const s9raw = gameReducer(s8, { type: 'SPOTLIGHT_ENTER_BONUS' });
       const s9 = { ...s9raw, booResult: 'incorrect' as const };
@@ -839,8 +830,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      const s7 = gameReducer(s6, { type: 'WATCH_BOO' });
+      const s7 = gameReducer(s5, { type: 'WATCH_BOO' });
       const s8 = gameReducer(s7, { type: 'SPOTLIGHT_REVEAL' });
       const s9 = gameReducer(s8, { type: 'SPOTLIGHT_ENTER_BONUS' });
       const result = gameReducer(s9, { type: 'SPOTLIGHT_SKIP_SET' });
@@ -856,8 +846,7 @@ describe('gameReducer', () => {
       const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
       const s5 = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const s6 = gameReducer(s5, { type: 'ACTION_RESULT_PROCEED' });
-      return gameReducer(s6, { type: 'WATCH_CLAP' });
+      return gameReducer(s5, { type: 'WATCH_CLAP' });
     }
 
     it('通常継続時に scout フェーズへ遷移する', () => {
@@ -1145,18 +1134,6 @@ describe('gameReducer', () => {
       const afterScout = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
       const result = gameReducer(afterScout, { type: 'SCOUT_RESULT_PROCEED' });
       expect(result.phase).toBe('action');
-    });
-  });
-
-  describe('ACTION_RESULT_PROCEED', () => {
-    it('action-result フェーズで ACTION_RESULT_PROCEED → watch になる', () => {
-      const s1 = gameReducer(initialState, { type: 'INIT_GAME', playerAName: 'Alice', playerBName: 'Bob' });
-      const s2 = gameReducer(s1, { type: 'START_SCOUT' });
-      const s3 = gameReducer(s2, { type: 'SCOUT_CARD', cardIndex: 0 });
-      const s4 = gameReducer(s3, { type: 'SCOUT_RESULT_PROCEED' });
-      const afterAction = gameReducer(s4, { type: 'ACTION_PLAY', kamiIndex: 0, shimoIndex: 1 });
-      const result = gameReducer(afterAction, { type: 'ACTION_RESULT_PROCEED' });
-      expect(result.phase).toBe('watch');
     });
   });
 
