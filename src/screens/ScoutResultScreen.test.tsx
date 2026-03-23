@@ -1,29 +1,29 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { GameProvider, useGameDispatch, useGameState } from '@/game/context';
-import ScoutResultScreen from './ScoutResultScreen';
+import GameRouter from '@/components/GameRouter';
 
+// scout-result フェーズまで進めるラッパー
 function ScoutResultWrapper() {
   const dispatch = useGameDispatch();
   const state = useGameState();
 
-  if (state.phase === 'standby' && state.players[0].name === '') {
-    return (
-      <button onClick={() => dispatch({ type: 'INIT_GAME', playerAName: 'アリス', playerBName: 'ボブ' })}>
-        init
-      </button>
-    );
-  }
-  if (state.phase === 'standby') {
-    return <button onClick={() => dispatch({ type: 'START_SCOUT' })}>start</button>;
-  }
-  if (state.phase === 'scout') {
-    return <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>;
-  }
-  if (state.phase === 'scout-result') {
-    return <ScoutResultScreen />;
-  }
-  return <div data-testid="after-scout-result">phase: {state.phase}</div>;
+  return (
+    <>
+      {state.phase === 'standby' && state.players[0].name === '' && (
+        <button onClick={() => dispatch({ type: 'INIT_GAME', playerAName: 'アリス', playerBName: 'ボブ' })}>
+          init
+        </button>
+      )}
+      {state.phase === 'standby' && state.players[0].name !== '' && (
+        <button onClick={() => dispatch({ type: 'START_SCOUT' })}>start</button>
+      )}
+      {state.phase === 'scout' && (
+        <button onClick={() => dispatch({ type: 'SCOUT_CARD', cardIndex: 0 })}>scout</button>
+      )}
+      <GameRouter />
+    </>
+  );
 }
 
 function renderScoutResult() {
@@ -37,20 +37,20 @@ function renderScoutResult() {
   fireEvent.click(screen.getByRole('button', { name: 'scout' }));
 }
 
-describe('ScoutResultScreen', () => {
-  it('スカウト完了画面が表示される', () => {
+describe('scout-result フェーズの ResultModal 表示', () => {
+  it('スカウト完了モーダルが表示される', () => {
     renderScoutResult();
     expect(screen.getByText('スカウト完了')).toBeDefined();
   });
 
   it('手札枚数の案内が表示される', () => {
     renderScoutResult();
-    expect(screen.getByText(/手札/)).toBeDefined();
+    const matches = screen.getAllByText(/手札/);
+    expect(matches.length).toBeGreaterThan(0);
   });
 
-  it('引いたカードが表示される（自分のスカウト結果のみ）', () => {
+  it('引いたカードが表示される', () => {
     renderScoutResult();
-    // Card コンポーネントがスート記号かランクを表示していることを確認
     const suitSymbols = ['♠', '♥', '♦', '♣', 'JOKER'];
     const hasSuit = suitSymbols.some((s) => document.body.textContent?.includes(s));
     expect(hasSuit).toBe(true);
@@ -64,6 +64,6 @@ describe('ScoutResultScreen', () => {
   it('「アクションへ」をタップすると action フェーズへ進む', () => {
     renderScoutResult();
     fireEvent.click(screen.getByRole('button', { name: 'アクションへ' }));
-    expect(screen.getByTestId('after-scout-result').textContent).toBe('phase: action');
+    expect(screen.getByText('アクションフェーズ')).toBeDefined();
   });
 });
