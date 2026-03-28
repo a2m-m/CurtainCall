@@ -1,4 +1,4 @@
-import type { GameState } from '@/types/game';
+import type { GameState, Card } from '@/types/game';
 
 export type PhaseGuide = {
   phaseName: string;
@@ -55,4 +55,33 @@ export function getPhaseGuide(state: GameState): PhaseGuide {
   }
 
   return { phaseName, activePlayerName };
+}
+
+/**
+ * 現在のフェーズで操作プレイヤーの手札を返す。
+ * 手番外フェーズ（watch・intermission 等）では null を返す。
+ */
+export function getOperatingHand(state: GameState): Card[] | null {
+  const [p0, p1] = state.players;
+
+  switch (state.phase) {
+    case 'scout':
+    case 'scout-result':
+    case 'action':
+      return p0.hand;
+    case 'spotlight':
+      // watch フェーズ後も players[1] がデバイスを持つ
+      return p1.hand;
+    case 'spotlight-bonus':
+    case 'spotlight-joker':
+    case 'spotlight-open-result':
+      return state.booResult === 'correct' ? p1.hand : p0.hand;
+    case 'backstage':
+    case 'backstage-result': {
+      const backstagePlayer = state.players.find((p) => p.id === state.backstagePlayerId);
+      return backstagePlayer?.hand ?? null;
+    }
+    default:
+      return null;
+  }
 }

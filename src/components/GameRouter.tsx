@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
-import { getPhaseGuide } from '@/game/phaseGuide';
+import { getPhaseGuide, getOperatingHand } from '@/game/phaseGuide';
+import HandPanel from './HandPanel';
 import InfoOverlay from './InfoOverlay';
 import PhaseHeader from './PhaseHeader';
+import styles from './GameRouter.module.css';
 import ResultModal from './ResultModal';
 import ActionScreen from '@/screens/ActionScreen';
 import BackstageScreen from '@/screens/BackstageScreen';
@@ -26,6 +28,10 @@ export default function GameRouter() {
   }
 
   const { phaseName, activePlayerName } = getPhaseGuide(state);
+  const rawHand = getOperatingHand(state);
+  const operatingHand = rawHand !== null
+    ? { hand: rawHand, playerName: activePlayerName }
+    : null;
 
   function renderScreen() {
     switch (state.phase) {
@@ -81,11 +87,21 @@ export default function GameRouter() {
         activePlayerName={activePlayerName}
         onInfoOpen={() => setIsInfoOpen(true)}
       />
-      {renderScreen()}
+      <div className={styles.layout}>
+        <div className={styles.main}>
+          {renderScreen()}
+        </div>
+        {operatingHand && (
+          <aside className={styles.handSidebar}>
+            <HandPanel hand={operatingHand.hand} playerName={operatingHand.playerName} />
+          </aside>
+        )}
+      </div>
       <InfoOverlay
         isOpen={isInfoOpen}
         onClose={() => setIsInfoOpen(false)}
         gameState={state}
+        operatingHand={operatingHand}
       />
     </>
   );

@@ -1,0 +1,32 @@
+/* スマホ：1カラム（サイドバーなし） */
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 大画面用サイドバー：デフォルト非表示 */
+.handSidebar {
+  display: none;
+}
+
+/* タブレット・PC（≥600px）：サイドバーを常時表示 */
+@media (min-width: 600px) {
+  .handSidebar {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    flex-shrink: 0;
+    padding: 16px 12px;
+    border-left: 1px solid var(--border, #1e2d50);
+    background: var(--surface, #16213e);
+    overflow-y: auto;
+  }
+}
