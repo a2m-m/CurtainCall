@@ -262,3 +262,10 @@
   font-size: 10px;
   font-weight: bold;
 }
+
+/* 手札セクション：大画面では HandSidebar が常時表示するため非表示にする */
+@media (min-width: 600px) {
+  .handSection {
+    display: none;
+  }
+}

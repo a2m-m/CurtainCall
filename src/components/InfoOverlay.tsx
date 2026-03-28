@@ -1,5 +1,6 @@
 import type { GameState, Card } from '@/types/game';
 import { calculateScore } from '@/lib/scoring';
+import HandPanel from './HandPanel';
 import styles from './InfoOverlay.module.css';
 
 const BOO_MAX = 3;
@@ -24,9 +25,10 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   gameState: GameState;
+  operatingHand?: { hand: Card[]; playerName: string } | null;
 };
 
-export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
+export default function InfoOverlay({ isOpen, onClose, gameState, operatingHand }: Props) {
   const { players, playerABooCnt, playerBBooCnt, setRemainingCount, publicInfos, playerAKami, playerBKami, playerAShimo, playerBShimo, stage } = gameState;
   const playerA = players.find((p) => p.id === 'A')!;
   const playerB = players.find((p) => p.id === 'B')!;
@@ -55,6 +57,13 @@ export default function InfoOverlay({ isOpen, onClose, gameState }: Props) {
             ×
           </button>
         </div>
+
+        {/* 自分の手札（スマホのみ表示。大画面は HandSidebar で常時表示） */}
+        {operatingHand && (
+          <div className={`${styles.section} ${styles.handSection}`}>
+            <HandPanel hand={operatingHand.hand} playerName={operatingHand.playerName} />
+          </div>
+        )}
 
         {/* スコア速報 */}
         <div className={styles.section}>
