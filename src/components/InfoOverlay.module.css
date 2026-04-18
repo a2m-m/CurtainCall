@@ -2,10 +2,11 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(10, 6, 8, 0.82);
   z-index: 200;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-end;
+  backdrop-filter: blur(8px);
 }
 
 .open {
@@ -13,13 +14,35 @@
 }
 
 .panel {
-  width: min(390px, 100%);
+  width: min(480px, 100%);
   height: 100dvh;
-  background: var(--surface, #16213e);
-  border-left: 1px solid var(--border, #1e2d50);
+  background: rgba(18, 10, 8, 0.98);
+  border-left: 1px solid var(--border, rgba(214, 172, 108, 0.2));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* 上下の装飾ライン */
+.panel::before,
+.panel::after {
+  content: '';
+  position: sticky;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 1px;
+  background: var(--gold, #d6ac6c);
+  flex-shrink: 0;
+}
+
+.panel::before {
+  top: 0;
+}
+
+.panel::after {
+  bottom: 0;
 }
 
 .backdropArea {
@@ -31,44 +54,65 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border, #1e2d50);
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border, rgba(214, 172, 108, 0.2));
   position: sticky;
   top: 0;
-  background: var(--surface, #16213e);
+  background: rgba(18, 10, 8, 0.98);
   z-index: 1;
 }
 
 .header h3 {
-  font-size: 15px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 24px;
+  letter-spacing: 6px;
+  color: var(--text, #f5ebdc);
+  font-weight: 400;
   margin: 0;
+}
+
+.headerSub {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: var(--text-sec, #c7b496);
+  margin-top: 3px;
+  display: block;
 }
 
 .closeBtn {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background: var(--border, #1e2d50);
-  border: none;
-  color: var(--text, #e0e6f0);
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid var(--border, rgba(214, 172, 108, 0.2));
+  color: var(--muted, #8a7a62);
+  font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s;
+}
+
+.closeBtn:hover {
+  color: var(--gold, #d6ac6c);
+  border-color: var(--gold, #d6ac6c);
 }
 
 .section {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border, #1e2d50);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border, rgba(214, 172, 108, 0.12));
 }
 
 .sectionTitle {
-  font-size: 10px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
   letter-spacing: 2px;
-  color: var(--muted, #7a8aaa);
-  text-transform: uppercase;
-  margin: 0 0 10px;
+  color: var(--gold, #d6ac6c);
+  margin: 0 0 12px;
 }
 
 .scoreCompare {
@@ -79,7 +123,7 @@
 
 .scoreDivider {
   width: 1px;
-  background: var(--border, #1e2d50);
+  background: var(--border, rgba(214, 172, 108, 0.2));
 }
 
 .scoreCol {
@@ -88,36 +132,43 @@
 }
 
 .sName {
+  font-family: 'Noto Serif JP', serif;
   font-size: 11px;
-  color: var(--muted, #7a8aaa);
+  color: var(--muted, #8a7a62);
+  letter-spacing: 1px;
 }
 
 .sTotal {
-  font-size: 28px;
-  font-weight: bold;
-  color: var(--gold, #f0c060);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 32px;
+  color: var(--gold, #d6ac6c);
+  line-height: 1;
+  margin-top: 4px;
 }
 
 .sRow {
   display: flex;
   justify-content: space-between;
+  font-family: 'Noto Serif JP', serif;
   font-size: 11px;
-  color: var(--muted, #7a8aaa);
-  margin-top: 3px;
+  color: var(--muted, #8a7a62);
+  margin-top: 4px;
 }
 
 .sRow span:last-child {
-  color: var(--text, #e0e6f0);
+  color: var(--text, #f5ebdc);
 }
 
 .booPlayer {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .booPlayerName {
+  font-family: 'Noto Serif JP', serif;
   font-size: 11px;
-  color: var(--muted, #7a8aaa);
-  margin-bottom: 4px;
+  color: var(--muted, #8a7a62);
+  margin-bottom: 5px;
+  letter-spacing: 1px;
 }
 
 .booBar {
@@ -127,19 +178,21 @@
 }
 
 .booDot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: var(--border, #1e2d50);
+  background: rgba(214, 172, 108, 0.15);
 }
 
 .booDotFilled {
-  background: var(--accent, #e63946);
+  background: var(--gold, #d6ac6c);
+  box-shadow: 0 0 6px var(--gold, #d6ac6c);
 }
 
 .booCount {
-  font-size: 11px;
-  color: var(--muted, #7a8aaa);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 13px;
+  color: var(--text-sec, #c7b496);
   margin-left: 4px;
 }
 
@@ -151,40 +204,44 @@
 }
 
 .setRemainingLabel {
-  font-size: 13px;
-  color: var(--muted, #7a8aaa);
+  font-family: 'Noto Serif JP', serif;
+  font-size: 12px;
+  color: var(--muted, #8a7a62);
+  letter-spacing: 1px;
 }
 
 .setCount {
-  font-size: 22px;
-  font-weight: bold;
-  color: var(--gold, #f0c060);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 24px;
+  color: var(--gold, #d6ac6c);
 }
 
 .kamiList {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
   margin-top: 6px;
   justify-content: center;
 }
 
 .kamiChip {
-  font-size: 10px;
-  padding: 2px 5px;
-  background: var(--bg, #0f172a);
-  border-radius: 4px;
-  color: var(--text, #e0e6f0);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 14px;
+  padding: 3px 10px;
+  border: 1px solid var(--border, rgba(214, 172, 108, 0.2));
+  color: var(--gold, #d6ac6c);
+  background: rgba(214, 172, 108, 0.05);
 }
 
 .kamiEmpty {
-  font-size: 10px;
-  color: var(--muted, #7a8aaa);
+  font-size: 11px;
+  color: var(--muted, #8a7a62);
+  font-style: italic;
 }
 
 .stageRow {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .stageCard {
@@ -192,24 +249,27 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  padding: 5px 8px;
-  background: var(--bg, #0f172a);
-  border-radius: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border, rgba(214, 172, 108, 0.2));
+  background: rgba(28, 16, 14, 0.5);
 }
 
 .stageLabel {
-  font-size: 10px;
-  color: var(--muted, #7a8aaa);
+  font-family: 'Noto Serif JP', serif;
+  font-size: 9px;
+  color: var(--muted, #8a7a62);
+  letter-spacing: 2px;
 }
 
 .stageValue {
-  color: var(--text, #e0e6f0);
-  font-weight: bold;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 16px;
+  color: var(--text, #f5ebdc);
 }
 
 .pairCompare {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
 .pairCol {
@@ -219,27 +279,33 @@
 .pairRow {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  margin-top: 4px;
+  gap: 5px;
+  font-size: 12px;
+  margin-top: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--border, rgba(214, 172, 108, 0.12));
 }
 
 .pairKami {
-  color: var(--text, #e0e6f0);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 14px;
+  color: var(--text, #f5ebdc);
 }
 
 .pairSlash {
-  color: var(--muted, #7a8aaa);
+  color: var(--muted, #8a7a62);
 }
 
 .pairShimo {
-  color: var(--muted, #7a8aaa);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 14px;
+  color: var(--text-sec, #c7b496);
 }
 
 .knownCardsList {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .knownCardRow {
@@ -247,23 +313,24 @@
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  padding: 5px 8px;
-  background: var(--bg, #0f172a);
-  border-radius: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border, rgba(214, 172, 108, 0.12));
+  background: rgba(28, 16, 14, 0.4);
 }
 
 .knownCardLoc {
-  color: var(--muted, #7a8aaa);
+  color: var(--muted, #8a7a62);
+  font-family: 'Noto Serif JP', serif;
   font-size: 10px;
 }
 
 .knownCardPos {
-  color: var(--gold, #f0c060);
-  font-size: 10px;
-  font-weight: bold;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  color: var(--gold, #d6ac6c);
+  font-size: 14px;
 }
 
-/* 手札セクション：大画面では HandSidebar が常時表示するため非表示にする */
+/* 手札セクション: ドックモード時は非表示 */
 @media (min-width: 600px) {
   .handSection {
     display: none;
