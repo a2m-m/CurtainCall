@@ -32,7 +32,7 @@
 
 .cancelBtn {
   padding: 12px 28px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 15px;
   font-weight: bold;
   cursor: pointer;

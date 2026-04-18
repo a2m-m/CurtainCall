@@ -36,15 +36,20 @@ export default function TitleScreen() {
 
   return (
     <div className={styles.screen}>
-      <h1 className={styles.heading}>CurtainCall</h1>
+      <div className={styles.ornament}>a card game in three acts</div>
+      <h1 className={styles.heading}>Curtain<em>Call</em></h1>
+      <div className={styles.headingJp}>カーテンコール</div>
+
       <div className={styles.form}>
         <div className={styles.field}>
-          <label htmlFor="playerA" className={styles.label}>
-            プレイヤーA
-          </label>
+          <div className={styles.fieldHeader}>
+            <label htmlFor="playerA" className={styles.label}>Player A</label>
+            <span className={styles.labelSub}>先攻</span>
+          </div>
           <input
             id="playerA"
             type="text"
+            aria-label="プレイヤーA"
             className={styles.input}
             value={playerAName}
             onChange={(e) => setPlayerAName(e.target.value)}
@@ -53,12 +58,14 @@ export default function TitleScreen() {
           {errors.a && <p className={styles.error}>{errors.a}</p>}
         </div>
         <div className={styles.field}>
-          <label htmlFor="playerB" className={styles.label}>
-            プレイヤーB
-          </label>
+          <div className={styles.fieldHeader}>
+            <label htmlFor="playerB" className={styles.label}>Player B</label>
+            <span className={styles.labelSub}>後攻</span>
+          </div>
           <input
             id="playerB"
             type="text"
+            aria-label="プレイヤーB"
             className={styles.input}
             value={playerBName}
             onChange={(e) => setPlayerBName(e.target.value)}
@@ -66,11 +73,13 @@ export default function TitleScreen() {
           />
           {errors.b && <p className={styles.error}>{errors.b}</p>}
         </div>
-        {errors.general && <p className={styles.error}>{errors.general}</p>}
-        <button className={styles.startBtn} onClick={handleStart}>
-          ゲームスタート
-        </button>
       </div>
+
+      {errors.general && <p className={styles.error}>{errors.general}</p>}
+
+      <button className={styles.startBtn} aria-label="ゲームスタート" onClick={handleStart}>
+        OVERTURE · 開演
+      </button>
     </div>
   );
 }

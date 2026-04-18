@@ -11,7 +11,7 @@
 .heading {
   font-size: 24px;
   font-weight: bold;
-  color: var(--accent, #60a5fa);
+  color: var(--gold, #d6ac6c);
   letter-spacing: 0.05em;
   margin: 0;
 }
@@ -73,12 +73,12 @@
 
 .judgeBtn {
   padding: 12px 32px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   border: none;
-  background: var(--accent, #60a5fa);
+  background: var(--gold, #d6ac6c);
   color: #fff;
   -webkit-tap-highlight-color: transparent;
 }
@@ -94,13 +94,13 @@
 
 .proceedBtn {
   padding: 12px 28px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 15px;
   font-weight: bold;
   cursor: pointer;
-  border: 2px solid var(--accent, #60a5fa);
+  border: 2px solid var(--gold, #d6ac6c);
   background: transparent;
-  color: var(--accent, #60a5fa);
+  color: var(--gold, #d6ac6c);
   -webkit-tap-highlight-color: transparent;
 }
 
