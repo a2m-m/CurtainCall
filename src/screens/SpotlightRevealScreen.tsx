@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import Card from '@/components/Card';
 import PassDevice from '@/components/PassDevice';
 import StageOverview from '@/components/StageOverview';
 import styles from './SpotlightRevealScreen.module.css';
 
-export default function SpotlightRevealScreen() {
+type Props = { onPassDeviceChange?: (visible: boolean) => void };
+
+export default function SpotlightRevealScreen({ onPassDeviceChange }: Props) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [actorReady, setActorReady] = useState(false);
@@ -16,6 +18,10 @@ export default function SpotlightRevealScreen() {
     isRevealed && kami !== null && shimo !== null && kami.rank === shimo.rank;
   const isNoMatch =
     isRevealed && kami !== null && shimo !== null && kami.rank !== shimo.rank;
+
+  useEffect(() => {
+    onPassDeviceChange?.(isMatch && !actorReady);
+  }, [isMatch, actorReady, onPassDeviceChange]);
 
   return (
     <div className={styles.screen}>

@@ -4,7 +4,9 @@ import { calculateScore } from '@/lib/scoring';
 import PassDevice from '@/components/PassDevice';
 import styles from './IntermissionScreen.module.css';
 
-export default function IntermissionScreen() {
+type Props = { onPassDeviceChange?: (visible: boolean) => void };
+
+export default function IntermissionScreen({ onPassDeviceChange }: Props) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [showPassDevice, setShowPassDevice] = useState(false);
@@ -18,7 +20,10 @@ export default function IntermissionScreen() {
     return (
       <PassDevice
         playerName={nextScout.name}
-        onComplete={() => dispatch({ type: 'INTERMISSION' })}
+        onComplete={() => {
+          onPassDeviceChange?.(false);
+          dispatch({ type: 'INTERMISSION' });
+        }}
       />
     );
   }
@@ -60,7 +65,7 @@ export default function IntermissionScreen() {
       <button
         className={styles.proceedBtn}
         aria-label="次のラウンドへ"
-        onClick={() => setShowPassDevice(true)}
+        onClick={() => { setShowPassDevice(true); onPassDeviceChange?.(true); }}
       >
         NEXT ACT · 次幕へ
       </button>

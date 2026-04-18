@@ -3,7 +3,9 @@ import { useGameDispatch, useGameState } from '@/game/context';
 import PassDevice from '@/components/PassDevice';
 import styles from './StandbyScreen.module.css';
 
-export default function StandbyScreen() {
+type Props = { onPassDeviceChange?: (visible: boolean) => void };
+
+export default function StandbyScreen({ onPassDeviceChange }: Props) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [showPassDevice, setShowPassDevice] = useState(false);
@@ -12,7 +14,10 @@ export default function StandbyScreen() {
     return (
       <PassDevice
         playerName={state.players[0].name}
-        onComplete={() => dispatch({ type: 'START_SCOUT' })}
+        onComplete={() => {
+          onPassDeviceChange?.(false);
+          dispatch({ type: 'START_SCOUT' });
+        }}
       />
     );
   }
@@ -42,7 +47,7 @@ export default function StandbyScreen() {
       <button
         className={styles.readyBtn}
         aria-label="準備完了"
-        onClick={() => setShowPassDevice(true)}
+        onClick={() => { setShowPassDevice(true); onPassDeviceChange?.(true); }}
       >
         OPEN THE CURTAIN · 開幕
       </button>
