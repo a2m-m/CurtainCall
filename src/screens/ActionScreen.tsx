@@ -8,7 +8,9 @@ import styles from './ActionScreen.module.css';
 
 type SelectionStep = 'selectingActor' | 'selectingKuroko' | 'confirmed';
 
-export default function ActionScreen() {
+type Props = { onPassDeviceChange?: (visible: boolean) => void };
+
+export default function ActionScreen({ onPassDeviceChange }: Props) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [step, setStep] = useState<SelectionStep>('selectingActor');
@@ -51,6 +53,7 @@ export default function ActionScreen() {
   const handleConfirm = () => {
     if (kamiIndex === null || shimoIndex === null) return;
     setShowPassDevice(true);
+    onPassDeviceChange?.(true);
   };
 
   if (showPassDevice && kamiIndex !== null && shimoIndex !== null) {
@@ -59,7 +62,10 @@ export default function ActionScreen() {
     return (
       <PassDevice
         playerName={state.players[1].name}
-        onComplete={() => dispatch({ type: 'ACTION_PLAY', kamiIndex, shimoIndex })}
+        onComplete={() => {
+          onPassDeviceChange?.(false);
+          dispatch({ type: 'ACTION_PLAY', kamiIndex, shimoIndex });
+        }}
       />
     );
   }

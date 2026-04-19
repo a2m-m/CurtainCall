@@ -74,7 +74,7 @@
 .confirmBtn {
   padding: 14px 40px;
   border: 2px solid var(--gold, #f0c060);
-  border-radius: 12px;
+  border-radius: 0;
   background: transparent;
   color: var(--gold, #f0c060);
   font-size: 16px;

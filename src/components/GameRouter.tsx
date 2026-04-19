@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameDispatch, useGameState } from '@/game/context';
 import { getPhaseGuide, getOperatingHand } from '@/game/phaseGuide';
+import type { GameState } from '@/types/game';
 import HandPanel from './HandPanel';
 import InfoOverlay from './InfoOverlay';
 import PhaseHeader from './PhaseHeader';
@@ -18,10 +19,36 @@ import TitleScreen from '@/screens/TitleScreen';
 import WatchScreen from '@/screens/WatchScreen';
 
 
+function getActLabel(phase: GameState['phase']): string {
+  switch (phase) {
+    case 'standby': return 'Act I';
+    case 'scout':
+    case 'scout-result':
+    case 'action':
+    case 'watch': return 'Act II';
+    case 'spotlight':
+    case 'spotlight-bonus':
+    case 'spotlight-joker':
+    case 'spotlight-open-result':
+    case 'backstage':
+    case 'backstage-result': return 'Act III';
+    case 'intermission': return "Entr'acte";
+    case 'curtain-call':
+    case 'result': return 'Finale';
+    default: return '';
+  }
+}
+
 export default function GameRouter() {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isPassDeviceVisible, setIsPassDeviceVisible] = useState(false);
+
+  // フェーズが変わったら PassDevice 表示フラグをリセット（安全ネット）
+  useEffect(() => {
+    setIsPassDeviceVisible(false);
+  }, [state.phase]);
 
   if (state.phase === 'standby' && state.players[0].name === '') {
     return <TitleScreen />;
@@ -33,10 +60,12 @@ export default function GameRouter() {
     ? { hand: rawHand, playerName: activePlayerName }
     : null;
 
+  const actLabel = getActLabel(state.phase);
+
   function renderScreen() {
     switch (state.phase) {
       case 'standby':
-        return <StandbyScreen />;
+        return <StandbyScreen onPassDeviceChange={setIsPassDeviceVisible} />;
       case 'scout':
         return <ScoutScreen />;
       case 'scout-result': {
@@ -56,11 +85,11 @@ export default function GameRouter() {
         );
       }
       case 'action':
-        return <ActionScreen />;
+        return <ActionScreen onPassDeviceChange={setIsPassDeviceVisible} />;
       case 'watch':
         return <WatchScreen />;
       case 'spotlight':
-        return <SpotlightRevealScreen />;
+        return <SpotlightRevealScreen onPassDeviceChange={setIsPassDeviceVisible} />;
       case 'spotlight-bonus':
       case 'spotlight-joker':
       case 'spotlight-open-result':
@@ -69,7 +98,7 @@ export default function GameRouter() {
       case 'backstage-result':
         return <BackstageScreen />;
       case 'intermission':
-        return <IntermissionScreen />;
+        return <IntermissionScreen onPassDeviceChange={setIsPassDeviceVisible} />;
       case 'curtain-call':
       case 'result':
         return <ResultScreen />;
@@ -86,22 +115,29 @@ export default function GameRouter() {
         phaseName={phaseName}
         activePlayerName={activePlayerName}
         onInfoOpen={() => setIsInfoOpen(true)}
+        actLabel={actLabel}
+        playerAName={state.players[0].name}
+        playerBName={state.players[1].name}
       />
-      <div className={styles.layout}>
+      <div className={styles.stage}>
         <div className={styles.main}>
           {renderScreen()}
         </div>
-        {operatingHand && (
-          <aside className={styles.handSidebar}>
-            <HandPanel hand={operatingHand.hand} playerName={operatingHand.playerName} />
-          </aside>
-        )}
       </div>
+      {operatingHand && !isPassDeviceVisible && (
+        <div className={styles.handDock}>
+          <HandPanel
+            hand={operatingHand.hand}
+            playerName={operatingHand.playerName}
+            dockMode
+          />
+        </div>
+      )}
       <InfoOverlay
         isOpen={isInfoOpen}
         onClose={() => setIsInfoOpen(false)}
         gameState={state}
-        operatingHand={operatingHand}
+        operatingHand={isPassDeviceVisible ? null : operatingHand}
       />
     </>
   );

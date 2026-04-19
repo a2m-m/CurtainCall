@@ -85,8 +85,9 @@ export default function Card({ card, isSelected, isSelectedShimo, onClick, anima
 
   return (
     <div className={classNames.join(' ')} style={animStyle} {...interactiveProps}>
+      <span className={`${styles.rank} ${styles.rankTl}`}>{rankLabel(card.rank)}</span>
       <span className={styles.suit}>{SUIT_SYMBOL[card.suit]}</span>
-      <span className={styles.rank}>{rankLabel(card.rank)}</span>
+      <span className={`${styles.rank} ${styles.rankBr}`} data-rank={rankLabel(card.rank)} aria-hidden="true" />
     </div>
   );
 }

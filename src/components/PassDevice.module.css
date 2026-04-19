@@ -40,17 +40,19 @@
 .holdBtn {
   width: 100%;
   padding: 16px;
-  border: 2px solid var(--accent, #e63946);
-  border-radius: 12px;
+  border: 1.5px solid var(--gold, #d6ac6c);
+  border-radius: 0;
   background: transparent;
-  color: var(--text, #e0e6f0);
-  font-size: 14px;
-  font-weight: bold;
+  color: var(--text, #f5ebdc);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 3px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
+  font-family: 'Inter', sans-serif;
 }
 
 .holdFill {
@@ -59,7 +61,7 @@
   left: 0;
   height: 100%;
   width: 0;
-  background: rgba(230, 57, 70, 0.25);
+  background: rgba(214, 172, 108, 0.25);
   z-index: 0;
 }
 

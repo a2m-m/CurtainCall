@@ -4,12 +4,59 @@
   padding: 0;
 }
 
+:root {
+  --bg: #0a0608;
+  --bg2: #150a08;
+  --surface: #1c100e;
+  --border: rgba(214, 172, 108, 0.2);
+  --border-strong: rgba(214, 172, 108, 0.35);
+  --text: #f5ebdc;
+  --text-sec: #c7b496;
+  --muted: #8a7a62;
+  --gold: #d6ac6c;
+  --crimson: #a02030;
+  --accent: #a02030;
+  --danger: #c86a4a;
+}
+
 html, body {
   height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'Noto Sans JP', sans-serif;
+}
+
+button {
+  font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  cursor: pointer;
 }
 
 #__next {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(160, 32, 48, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(92, 16, 24, 0.35) 0%, transparent 60%),
+    linear-gradient(180deg, #150a08 0%, #0a0608 100%);
+  overflow: hidden;
+}
+
+/* 緞帳ストライプオーバーレイ */
+#__next::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(92, 16, 24, 0) 0px,
+    rgba(92, 16, 24, 0.20) 48px,
+    rgba(160, 32, 48, 0.08) 96px,
+    rgba(92, 16, 24, 0) 144px
+  );
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
 }

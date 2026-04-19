@@ -24,7 +24,9 @@ export default function ResultScreen() {
 
   return (
     <div className={styles.screen}>
-      <h1 className={styles.heading}>カーテンコール</h1>
+      <div className={styles.ornament}>— Finale —</div>
+      <h1 className={styles.heading}>CURTAIN CALL</h1>
+      <div className={styles.headingJp}>カーテンコール</div>
 
       {state.curtainCallReason && (
         <p className={styles.reason}>{CURTAIN_CALL_REASON_LABEL[state.curtainCallReason]}</p>
@@ -35,7 +37,7 @@ export default function ResultScreen() {
           <p className={styles.draw}>引き分け</p>
         ) : (
           <p className={styles.winnerText}>
-            {winner === 'A' ? playerA?.name : playerB?.name} の勝利！
+            🏆 {winner === 'A' ? playerA?.name : playerB?.name} の勝利！
           </p>
         )}
       </div>
@@ -82,9 +84,10 @@ export default function ResultScreen() {
 
       <button
         className={styles.resetBtn}
+        aria-label="もう一度"
         onClick={() => dispatch({ type: 'RESET_GAME' })}
       >
-        もう一度
+        ENCORE · もう一度
       </button>
     </div>
   );

@@ -1,36 +1,25 @@
 .card {
   width: var(--card-w, 52px);
   height: var(--card-h, 76px);
-  border-radius: 7px;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 0;
   flex-shrink: 0;
   position: relative;
   user-select: none;
   cursor: default;
-}
-
-.clickable {
-  cursor: pointer;
-}
-
-.clickable:focus-visible {
-  outline: 3px solid #4a9eff;
-  outline-offset: 2px;
-}
-
-.clickable:active {
-  opacity: 0.75;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 /* 表向き */
 .face {
-  background: #fff;
-  color: #222;
-  border: 1.5px solid #ccc;
+  background: #f7eedc;
+  color: #1a100e;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .suit {
@@ -39,60 +28,104 @@
 }
 
 .rank {
-  font-size: 13px;
-  font-weight: bold;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1;
+  position: absolute;
+}
+
+.rankTl {
+  top: 4px;
+  left: 5px;
+}
+
+.rankBr {
+  bottom: 4px;
+  right: 5px;
+  transform: rotate(180deg);
+}
+
+.rankBr::before {
+  content: attr(data-rank);
 }
 
 .red .suit {
-  color: #e74c3c;
+  color: #a02030;
 }
 
-.red .rank {
-  color: #e74c3c;
+.red .rankTl,
+.red .rankBr {
+  color: #a02030;
 }
 
 /* 裏向き */
 .back {
-  background: linear-gradient(135deg, #1a2a4a 0%, #0f3460 50%, #1a2a4a 100%);
-  border: 1.5px solid #0f3460;
+  background: linear-gradient(135deg, #5c1018 0%, #3a0810 50%, #5c1018 100%);
+  border: 1px solid rgba(214, 172, 108, 0.4);
 }
 
 .back::after {
-  content: '◈';
-  font-size: 22px;
-  color: rgba(255, 255, 255, 0.15);
+  content: 'C';
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  color: rgba(214, 172, 108, 0.35);
+  font-size: 50%;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 /* ジョーカー */
 .joker {
-  background: linear-gradient(135deg, #f39c12, #e74c3c);
-  border: 1.5px solid #f39c12;
-  color: #fff;
-  font-size: 11px;
-  font-weight: bold;
-  text-align: center;
+  background: linear-gradient(135deg, #d6ac6c, #a02030);
+  border: 1px solid #d6ac6c;
+  color: #120a08;
 }
 
 .jokerLabel {
+  font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 10px;
-  font-weight: bold;
+  font-weight: 600;
   letter-spacing: 1px;
 }
 
-/* 選択状態 */
-.selected {
-  box-shadow: 0 0 0 2.5px #e94560;
-  transform: translateY(-6px);
+/* インタラクション */
+.clickable {
+  cursor: pointer;
 }
 
+.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+}
+
+.clickable:focus-visible {
+  outline: 2px solid var(--gold, #d6ac6c);
+  outline-offset: 2px;
+}
+
+.clickable:active {
+  opacity: 0.85;
+}
+
+/* 選択状態（役者札） */
+.selected {
+  transform: translateY(-10px) !important;
+  box-shadow: 0 0 0 2px #d6ac6c, 0 14px 30px -10px rgba(214, 172, 108, 0.6);
+}
+
+/* 選択状態（黒子札） */
 .selectedShimo {
-  box-shadow: 0 0 0 2.5px #7b52e8;
-  transform: translateY(-6px);
+  transform: translateY(-10px) !important;
+  box-shadow: 0 0 0 2px #a02030, 0 14px 30px -10px rgba(160, 32, 48, 0.6);
 }
 
 /* ─── アニメーション ──────────────────────────────────────── */
 
-/* カードフリップ（裏→表）: scaleX で折り畳み→展開 */
 @keyframes cardFlip {
   0%   { transform: scaleX(1); }
   45%  { transform: scaleX(0); }
@@ -104,7 +137,6 @@
   animation: cardFlip 0.4s ease-in-out;
 }
 
-/* スライドイン（ステージへのカード移動） */
 @keyframes cardSlideIn {
   from { transform: translateY(-16px); opacity: 0; }
   to   { transform: translateY(0);     opacity: 1; }
@@ -114,7 +146,6 @@
   animation: cardSlideIn 0.3s ease-out;
 }
 
-/* 配布アニメーション（Standby フェーズ等、カード群を順次表示） */
 @keyframes cardDeal {
   from { transform: scale(0.85) translateY(-10px); opacity: 0; }
   to   { transform: scale(1)    translateY(0);     opacity: 1; }
@@ -124,7 +155,6 @@
   animation: cardDeal 0.3s ease-out both;
 }
 
-/* prefers-reduced-motion: アニメーション無効化（カード表示は維持） */
 @media (prefers-reduced-motion: reduce) {
   .flipping,
   .sliding,

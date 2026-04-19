@@ -3,7 +3,9 @@ import { useGameDispatch, useGameState } from '@/game/context';
 import PassDevice from '@/components/PassDevice';
 import styles from './StandbyScreen.module.css';
 
-export default function StandbyScreen() {
+type Props = { onPassDeviceChange?: (visible: boolean) => void };
+
+export default function StandbyScreen({ onPassDeviceChange }: Props) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [showPassDevice, setShowPassDevice] = useState(false);
@@ -12,34 +14,42 @@ export default function StandbyScreen() {
     return (
       <PassDevice
         playerName={state.players[0].name}
-        onComplete={() => dispatch({ type: 'START_SCOUT' })}
+        onComplete={() => {
+          onPassDeviceChange?.(false);
+          dispatch({ type: 'START_SCOUT' });
+        }}
       />
     );
   }
 
+  const summaryItems = [
+    { count: state.players[0].hand.length, label: `${state.players[0].name} の手札`, sublabel: '手札' },
+    { count: state.players[1].hand.length, label: `${state.players[1].name} の手札`, sublabel: '手札' },
+    { count: state.deck.length, label: 'セット', sublabel: 'メイン' },
+    { count: state.backstage.length, label: 'バックステージ', sublabel: 'アイテム' },
+  ];
+
   return (
     <div className={styles.screen}>
-      <h1 className={styles.heading}>カード配布完了</h1>
+      <div className={styles.ornament}>Act I</div>
+      <h1 className={styles.heading}>Setting the Stage</h1>
+      <h2 className={styles.headingJp}>カード配布完了</h2>
+
       <div className={styles.summary}>
-        <div className={styles.row}>
-          <span className={styles.label}>{state.players[0].name} の手札</span>
-          <span className={styles.count}>{state.players[0].hand.length} 枚</span>
-        </div>
-        <div className={styles.row}>
-          <span className={styles.label}>{state.players[1].name} の手札</span>
-          <span className={styles.count}>{state.players[1].hand.length} 枚</span>
-        </div>
-        <div className={styles.row}>
-          <span className={styles.label}>バックステージ</span>
-          <span className={styles.count}>{state.backstage.length} 枚</span>
-        </div>
-        <div className={styles.row}>
-          <span className={styles.label}>セット</span>
-          <span className={styles.count}>{state.deck.length} 枚</span>
-        </div>
+        {summaryItems.map((item) => (
+          <div key={item.label} className={styles.summaryItem}>
+            <div className={styles.count}>{item.count} 枚</div>
+            <div className={styles.label}>{item.label}</div>
+          </div>
+        ))}
       </div>
-      <button className={styles.readyBtn} onClick={() => setShowPassDevice(true)}>
-        準備完了
+
+      <button
+        className={styles.readyBtn}
+        aria-label="準備完了"
+        onClick={() => { setShowPassDevice(true); onPassDeviceChange?.(true); }}
+      >
+        OPEN THE CURTAIN · 開幕
       </button>
     </div>
   );
